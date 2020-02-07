@@ -1,0 +1,36 @@
+{
+  "_id": "-dataDictionary-",  
+  "-hierarchy-":["project","step","task"],
+
+
+  "project": [ 
+    {"name":"What is the name of project?"},
+    {"objective":"What is the objective?"},
+    {"status":"What is the project status", "list":["active","paused","passive"]}
+  ],
+  "step": [ 
+    {"name":"What is the name of step?"}
+  ],
+  "task": [ 
+    {"name":"What is the name of task?"},
+    {"procedure":"Which procedure to use",   "list":"id_procedure"}
+  ],
+
+
+  "measurement": [
+    {"fileName":"What is the file name?"},
+    {"alias":"What is the alias name?", "default":"fileName"},
+    {"image":null, "generate":true}
+  ],
+
+
+  "sample": [ 
+    {"name":"What is the name of the sample?"},
+    {"chemistry":"What is its chemical composition?", "required":false}
+  ],
+
+  "procedure": [ 
+    {"name":"What is the name of the procedure?"},
+    {"content":"What are the steps?"}
+  ]
+}
