@@ -82,4 +82,4 @@ def stringToImage(aString, show=True):
   image = Image.open(io.BytesIO(imgdata))
   if show:
     image.show()
-  return images
+  return image
