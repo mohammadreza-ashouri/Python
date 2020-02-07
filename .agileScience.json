@@ -1,0 +1,7 @@
+{
+"user":"admin",
+"password":"agile",
+"database":"agile_science",
+"baseFolder": "Juelich/asFolder",
+"eargs": {"editor":"gedit","ext":".md"}	
+}

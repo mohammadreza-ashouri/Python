@@ -1,6 +1,6 @@
 import os, traceback
 import couchdb, json
-from asTools import string2TagFieldComment
+from asTools import string2TagFieldComment, camelCase, imageToString
 
 
 class Database:
@@ -17,6 +17,14 @@ class Database:
     user         = configuration["user"]
     password     = configuration["password"]
     databaseName = configuration["database"]
+    self.basePath     = os.path.expanduser('~')+"/"+configuration["baseFolder"]
+    if not self.basePath.endswith("/"):
+      self.basePath += "/"
+    if os.path.exists(self.basePath):
+      os.chdir(self.basePath)
+    else:
+      print("Base folder did not exist. No directory saving\n",self.basePath)
+      self.basePath   = None
     couch        = couchdb.Server("http://"+user+":"+password+"@localhost:5984/")
     self.eargs   = configuration["eargs"]
     try:
@@ -134,6 +142,11 @@ class Database:
       flagLinked = False
       if "linked" in data and data['linked'] and self.hierarchyLevel>0:
         flagLinked = True
+      #images
+      if data['type'] == 'measurement':
+        print(data)
+        if data['alias'] =='':  data['alias']=data['name']
+        data['image'] = imageToString(data['name'])
     data.update(  string2TagFieldComment(inputString) )
     print("Data saved",data)
     _id, _rev = self.db.save(data)
@@ -141,6 +154,8 @@ class Database:
       parent = self.db.get(self.hierarchyStack[-1])
       parent['childs'].append(_id)
       self.db[parent.id] = parent
+    if self.basePath is not None:
+      os.makedirs( camelCase(data['name']) )
     return
 
 
@@ -154,6 +169,8 @@ class Database:
     if document == "-close-":
       self.hierarchyLevel -= 1
       self.hierarchyStack.pop()
+      if self.basePath is not None:
+        os.chdir('..')
       return
     listItems = document['choice'].split("_")
     if len(listItems)==3:
@@ -161,6 +178,9 @@ class Database:
       levelIdx = self.hierarchyList.index(levelName)
       self.hierarchyLevel = levelIdx+1
       self.hierarchyStack.append(id)
+      if self.basePath is not None:
+        print(camelCase(name))
+        os.chdir( camelCase(name) )
     else:
       print("** ERROR ** change Hierarchy")
     return
