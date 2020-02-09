@@ -16,19 +16,20 @@ class AgileScience:
     user         = configuration["user"]
     password     = configuration["password"]
     databaseName = configuration["database"]
-    self.basePath     = os.path.expanduser('~')+"/"+configuration["baseFolder"]
-    if not self.basePath.endswith("/"):
-      self.basePath += "/"
-    if os.path.exists(self.basePath):
-      os.chdir(self.basePath)
-    else:
-      print("Base folder did not exist. No directory saving\n",self.basePath)
-      self.basePath   = None
-    self.eargs   = configuration["eargs"]
     self.db = Database(user,password,databaseName)
-    self.hierarchyList = self.db.get("-dataDictionary-")["-hierarchy-"]
-    self.hierarchyStack = ['-hierarchyRoot-']
-    self.hierarchyLevel = 0
+    self.eargs   = configuration["eargs"]
+    # open basePath as current working directory
+    self.cwd     = os.path.expanduser('~')+"/"+configuration["baseFolder"]
+    if not self.cwd.endswith("/"):
+      self.cwd += "/"
+    if os.path.exists(self.cwd):
+      os.chdir(self.cwd)
+    else:
+      print("Base folder did not exist. No directory saving\n",self.cwd)
+      self.cwd   = None
+    # hierarchy structure
+    self.hierList = self.db.getDoc("-dataDictionary-")["-hierarchy-"]
+    self.hierStack = ['-hierarchyRoot-']
   
 
   def getQuestions(self):
@@ -36,9 +37,11 @@ class AgileScience:
     executed after database is intialized: create all questions
     - based on data dictionary stored in DB
     - add output, default questions
+
+    Keep separate since all questions are only needed by CLI, not by ReactJS versions
     """
-    doc = self.db.get("-dataDictionary-")
-    allNewQuestions = self.db.get("-userInterface-")
+    doc = self.db.getDoc("-dataDictionary-")
+    allNewQuestions = self.db.getDoc("-userInterface-")
     for data in doc:            #iterate through each data-set entry: e.g. measurement
       if data.startswith("_") or data.startswith("-"):
         continue
@@ -57,7 +60,7 @@ class AgileScience:
         newQuestion = {"type":"input","name": name,"message": questionString}
         newQuestions.append(newQuestion)
       newQuestions.append({"type":"input","name":"comment","message":"#tags, :field:value: comments"})
-      if data not in self.hierarchyList:
+      if data not in self.hierList:
         newQuestions.append({"type":"confirm","name": "linked","message": "Linked to hierarchy?","default": True})
       allNewQuestions[data] = newQuestions
     return allNewQuestions
@@ -73,11 +76,11 @@ class AgileScience:
     Args:
        questions: to be cleaned
     """
-    if self.hierarchyList[-1] != "--marker--":
-      self.hierarchyList.append("--marker--")
+    if self.hierList[0] != "--marker--":
+      self.hierList = ["--marker--"]+self.hierList
     jsonString = json.dumps(questions)
-    jsonString = jsonString.replace("$thisLevel$",self.hierarchyList[self.hierarchyLevel-1])
-    jsonString = jsonString.replace("$nextLevel$",self.hierarchyList[self.hierarchyLevel])
+    jsonString = jsonString.replace("$thisLevel$",self.hierList[len(self.hierStack)-1])
+    jsonString = jsonString.replace("$nextLevel$",self.hierList[len(self.hierStack)])
     jsonObj    = json.loads(jsonString)
     ## changes based on next question
     if "type" not in jsonObj:   #if not an expand or list type
@@ -89,13 +92,13 @@ class AgileScience:
     ## create list of sub-hierarchy
     if jsonObj['type'] == 'list' and len(jsonObj['choices'])==0:
       listItems = []
-      for id in self.db.get(self.hierarchyStack[-1])['childs']:
-        if self.db.get(id)['type']==self.hierarchyList[self.hierarchyLevel]:
-          listItems.append(self.db.get(id)['type']+"_"+self.db.get(id)['name']+"_"+id) 
+      for id in self.db.getDoc(self.hierStack[-1])['childs']:
+        if self.db.getDoc(id)['type']==self.hierList[len(self.hierStack)]:
+          listItems.append(self.db.getDoc(id)['type']+"_"+self.db.getDoc(id)['name']+"_"+id) 
       jsonObj['choices'] = listItems
     if jsonObj['type']  == 'editor':
       jsonObj['eargs']   = self.eargs
-      doc = self.db.get(self.hierarchyStack[-1])
+      doc = self.db.getDoc(self.hierStack[-1])
       jsonObj['default'] = ", ".join(['#'+tag for tag in doc['tags']])+' '+doc['comment']
     return jsonObj
 
@@ -112,27 +115,28 @@ class AgileScience:
       return
     inputString = data['comment']
     if question == '-edit-':
-      data = self.db.get(self.hierarchyStack[-1])
+      data = self.db.getDoc(self.hierStack[-1])
       flagLinked = False    #should not change
     else:
       data['type'] = question
       data['childs'] = []
       flagLinked = False
-      if "linked" in data and data['linked'] and self.hierarchyLevel>0:
-        flagLinked = True
+      if "linked" in data:
+        if data['linked'] and len(self.hierStack)>1:
+          flagLinked = True
+        del data['linked']
       #images
       if data['type'] == 'measurement':
-        print(data)
         if data['alias'] =='':  data['alias']=data['name']
         data['image'] = imageToString(data['name'])
     data.update(  string2TagFieldComment(inputString) )
     print("Data saved",data)
-    _id, _rev = self.db.save(data)
-    if question in self.hierarchyList or flagLinked:
-      parent = self.db.get(self.hierarchyStack[-1])
+    _id, _rev = self.db.saveDoc(data)
+    if question in self.hierList or flagLinked:
+      parent = self.db.getDoc(self.hierStack[-1])
       parent['childs'].append(_id)
-      self.db[parent.id] = parent
-    if self.basePath is not None:
+      self.db.updateDoc(parent)
+    if self.cwd is not None:
       os.makedirs( camelCase(data['name']) )
     return
   
@@ -141,7 +145,7 @@ class AgileScience:
     """
     Wrapper for getting data from database
     """
-    return self.db.get(id)
+    return self.db.getDoc(id)
 
 
 
@@ -153,53 +157,66 @@ class AgileScience:
        document: information on how to change
     """
     if document == "-close-":
-      self.hierarchyLevel -= 1
-      self.hierarchyStack.pop()
-      if self.basePath is not None:
+      self.hierStack.pop()
+      if self.cwd is not None:
         os.chdir('..')
+        self.cwd = '/'.join(self.cwd.split('/')[:-1])
       return
     listItems = document['choice'].split("_")
     if len(listItems)==3:
       levelName, name, id  = listItems
-      levelIdx = self.hierarchyList.index(levelName)
-      self.hierarchyLevel = levelIdx+1
-      self.hierarchyStack.append(id)
-      if self.basePath is not None:
-        print(camelCase(name))
+      levelIdx = self.hierList.index(levelName)
+      self.hierStack.append(id)
+      if self.cwd is not None:
         os.chdir( camelCase(name) )
+        self.cwd += camelCase(name)+'/'
     else:
       print("** ERROR ** change Hierarchy")
     return
 
 
   ### OUTPUT COMMANDS ###
-  def outputHierarchy(self,id,level=0):
+  def outputHierarchy(self):
     """
-    print hierarchical structure in database, it is called recursively
-
-    Args:
-       id: database id
-       level: hierarchical level (should not be used by user)
+    print hierarchical structure in database
     """
-    if id=="-hierarchyRoot-":
-        print("\n===== Hierarchical content of database =====")
-    doc = self.db.get(id)
-    if doc is None or "name" not in doc or "type" not in doc: 
-        print("*** Found incomplete child",id,"in parent")
-        return
-    print("  "*level+doc["type"]+": "+doc["name"],doc["_id"])
-    for childID in doc["childs"]:
-        self.outputHierarchy(childID,level+1)
+    from pprint import pprint
+    # convert into native dictionary tree
+    hierTree = {}
+    for item in self.db.getView("viewHierarchy/viewHierarchy"):
+      hierTree[item.key] = [(i,None) for i in item.value]
+    # create hierarchical tree
+    for keyI in hierTree:
+      for keyJ in hierTree:
+        for idx, childOfI in enumerate(hierTree[keyI]):
+          keyOfChildI, value = childOfI
+          if keyOfChildI == keyJ:
+            hierTree[keyI][idx] = (keyJ, hierTree[keyJ])
+    hierTree = ("-hierarchyRoot-", hierTree["-hierarchyRoot-"])
+    # create long string and print
+    output = self.outputHierarchyString(hierTree)
+    print(output)
     return
+
+  def outputHierarchyString(self, branch, level=0):
+    """
+    Recursively called function to create string representation of hierarchy tree
+    """
+    output = "\t"*level + self.db.getDoc(branch[0])['name']  + "\t" + branch[0]+"\n"
+    for subBranch in branch[1]:
+      output += self.outputHierarchyString(subBranch,level+1)
+    return output
+
 
 
   def outputMeasurements(self):
     """
     print all measurements in list
     """
+
     for item in self.db.getView("viewMeasurements/viewMeasurements"):
         print(item.key,"|   fileName:",item.value)
-        doc = self.db.get(item.key)
+        doc = self.db.getDoc(item.key)
         if "image" in doc:
           stringToImage(doc['image'])
     return
@@ -221,11 +238,4 @@ class AgileScience:
     """
     for item in self.db.getView("viewData/viewProcedures"):
         print(item.key,"|",item.value["name"],"|",item.value["content"],"|")
-    return
-
-
-  ### SAVE VIEWS ###
-  def setView(self):
-    jsCode = "if (doc.type && doc.type=='measurement') {\n    emit(doc._id, doc.name);\n  }"
-    self.db.setView("viewMeasurements","viewMeasurements",jsCode)
     return

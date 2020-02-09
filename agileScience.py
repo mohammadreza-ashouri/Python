@@ -7,34 +7,34 @@ from PyInquirer import prompt
 from asBackend import AgileScience
 
 ### INITIALIZATION
-backend = AgileScience()
-questionSets = backend.getQuestions()
+be = AgileScience()
+questionSets = be.getQuestions()
 
 ### CONTINUOUSLY ASK QUESTIONS until exit
 nextQuestion = '-root-'
 while True:
     #output the current hierarchical level
-    if backend.hierarchyLevel == 0:
-        print("\n=====> You are at the root")
+    if len(be.hierStack) == 1:
+        print("\n==> You are at the root",be.cwd)
     else:
-        levelName = backend.hierarchyList[backend.hierarchyLevel-1]
-        objName   = backend.get(backend.hierarchyStack[-1])['name']
-        print("\n=====> You are in "+levelName+":",objName )
+        levelName = be.hierList[len(be.hierStack)-1]
+        objName   = be.get(be.hierStack[-1])['name']
+        print("\n==> You are in "+levelName+":",objName,be.cwd )
     #prepare questions
     questions = copy.deepcopy(questionSets[nextQuestion])
-    questions = backend.questionCleaner(questions)
+    questions = be.questionCleaner(questions)
     #ask question
     doc = prompt(questions)
     #handle answers
-    if not 'choice' in doc:                         backend.addData(nextQuestion,doc)
+    if 'choice' not in doc:                         be.addData(nextQuestion,doc)
     nextQuestion = "-root-"   #default case
-    if not 'choice' in doc:                         continue
+    if 'choice' not in doc:                         continue
     if doc['choice'] == "-exit-":                   break
     if doc['choice'] in questionSets:               nextQuestion = doc['choice']
-    if doc['choice'] == "Output tree-hierarchy":    backend.outputHierarchy("-hierarchyRoot-")
-    if doc['choice'] == "Output sample list":       backend.outputSamples()
-    if doc['choice'] == "Output measurement list":  backend.outputMeasurements()
-    if doc['choice'] == "Output procedures list":   backend.setView()
-    if doc['choice'] == "new":                      nextQuestion = backend.hierarchyList[backend.hierarchyLevel]
-    if doc['choice'].split("_")[0] in backend.hierarchyList: backend.changeHierarchy(doc)
-    if doc['choice'] == "-close-":                  backend.changeHierarchy("-close-")
+    if doc['choice'] == "Output tree-hierarchy":    be.outputHierarchy()
+    if doc['choice'] == "Output sample list":       be.outputSamples()
+    if doc['choice'] == "Output measurement list":  be.outputMeasurements()
+    if doc['choice'] == "Output procedures list":   be.outputProcedures()
+    if doc['choice'] == "new":                      nextQuestion = be.hierList[len(be.hierStack)]
+    if doc['choice'].split("_")[0] in be.hierList:  be.changeHierarchy(doc)
+    if doc['choice'] == "-close-":                  be.changeHierarchy("-close-")

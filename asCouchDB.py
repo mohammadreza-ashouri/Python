@@ -15,30 +15,53 @@ class Database:
           print("Something unexpected has happend")
           print("\n".join(outString))
           self.db = None
-    if not "-hierarchyRoot-" in self.db:  #create root
-        self.db.save( {"_id":"-hierarchyRoot-", "childs":[],"name":"root","type":""} )
-    if not "-dataDictionary-" in self.db:
+    ## check if default documents exist
+    if "-hierarchyRoot-" not in self.db:  #create root
+        self.db.save( {"_id":"-hierarchyRoot-", "childs":[],"name":"root","type":"root"} )
+    if "-dataDictionary-" not in self.db:
       print("**ERROR** Data structure not defined. Use default one")
       dataDictionary = json.load(open("dataDictionary.json",'r'))
       reply = self.db.save(dataDictionary)
-    if not "-userInterface-" in self.db:
+    if "-userInterface-" not in self.db:
       print("**ERROR** User interaction not defined. Use default one")
       dataDictionary = json.load(open("userInterface.json",'r'))
       reply = self.db.save(dataDictionary)
+    ## check if default views exist
+    jsCode = "if (doc.type && doc.type=='$docType$') {\n    emit(doc._id, doc.name);\n  }"
+    if "_design/viewMeasurements" not in self.db:
+      print("**ERROR** Measurement view not defined. Use default one")
+      self.setView("viewMeasurements","viewMeasurements",jsCode.replace('$docType$','measurement'))
+    if "_design/viewSamples" not in self.db:
+      print("**ERROR** Samples view not defined. Use default one")
+      self.setView("viewSamples","viewSamples",jsCode.replace('$docType$','sample'))
+    if "_design/viewProcedures" not in self.db:
+      print("**ERROR** Procedure view not defined. Use default one")
+      self.setView("viewProcedures","viewProcedures",jsCode.replace('$docType$','procedure'))
+    if "_design/viewHierarchy" not in self.db:
+      print("**ERROR** Hierarchy view not defined. Use default one")
+      self.setView("viewHierarchy","viewHierarchy","if (doc.type) {\n emit(doc._id, doc.childs);\n }")
 
 
-  def get(self,id):
+  def getDoc(self,id):
     """
     Wrapper for get function
     """
     return self.db.get(id)
 
 
-  def save(self,doc):
+  def saveDoc(self,doc):
     """
     Wrapper for save function
     """
     return self.db.save(doc)
+
+
+  def updateDoc(self,doc):
+    """
+    Wrapper for update
+    """
+    self.db[doc.id] = doc
+    return
 
 
   def getView(self,thePath):
@@ -48,7 +71,7 @@ class Database:
     return self.db.view(thePath)
 
 
-  def setView(self,designName, viewName, jsCode):
+  def saveView(self,designName, viewName, jsCode):
     """
     Adopt the view by defining a new jsCode
 
@@ -61,11 +84,11 @@ class Database:
     doc = {"_id": "_design/"+designName, "views": { viewName: {
       "map": ""
       } }, "language": "javascript" }
-    doc["views"]['viewMeasurements']['map'] = jsCode
+    doc["views"][viewName]['map'] = jsCode
     try:
-      id_, rev_ = self.db.save(jsonObj)
+      id_, rev_ = self.db.save(doc)
     except Exception:
-      doc = self.db.get("_design/viewMeasurements")
-      doc["views"]['viewMeasurements']['map'] = jsCode
+      doc = self.db.get("_design/"+designName)
+      doc["views"][viewName]['map'] = jsCode
       id_, rev_ = self.db.save(doc)
     return

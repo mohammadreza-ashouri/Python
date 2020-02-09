@@ -19,8 +19,7 @@
 
   "measurement": [
     {"name":"What is the file name?"},
-    {"alias":"What is the alias name?", "default":"fileName"},
-    {"image":null, "generate":true}
+    {"alias":"What is the alias name?", "default":"fileName"}
   ],
 
 
