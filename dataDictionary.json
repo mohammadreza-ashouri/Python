@@ -3,32 +3,35 @@
   "-hierarchy-":["project","step","task"],
 
 
-  "project": [ 
+  "project": [        "Projects",
     {"name":"What is the name of project?"},
     {"objective":"What is the objective?"},
     {"status":"What is the project status", "list":["active","paused","passive"]}
   ],
-  "step": [ 
+  "step": [           "",
     {"name":"What is the name of step?"}
   ],
-  "task": [ 
+  "task": [           "",
     {"name":"What is the name of task?"},
-    {"procedure":"Which procedure to use",   "list":"id_procedure"}
+    {"procedure":"Which procedure to use"}
   ],
 
 
-  "measurement": [
+  "measurement": [    "Measurements",
     {"name":"What is the file name?"},
-    {"alias":"What is the alias name?", "default":"fileName"}
+    {"alias":"What is the alias name?"},
+    {"image":"",                            "generate":true}
   ],
 
 
-  "sample": [ 
+  "sample": [         "Samples",
     {"name":"What is the name of the sample?"},
-    {"chemistry":"What is its chemical composition?", "required":false}
+    {"chemistry":"What is its chemical composition?"},
+    {"qr_code":"What is its QR-code?"}
   ],
 
-  "procedure": [ 
+  
+  "procedure": [      "Procedures",
     {"name":"What is the name of the procedure?"},
     {"content":"What are the steps?"}
   ]

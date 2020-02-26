@@ -1,3 +1,6 @@
+commonTools.py
 *.pyc
 
 NielsCode/
+__pycache__/
+.vscode/

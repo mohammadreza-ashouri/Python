@@ -1,7 +1,9 @@
-import couchdb, traceback
+import couchdb, traceback, json
+from commonTools import commonTools as cT
 
 class Database:
-
+  """ Class for interaction with couchDB
+  """
   def __init__(self, user, password, databaseName):
     couch = couchdb.Server("http://"+user+":"+password+"@localhost:5984/")
     try:
@@ -15,31 +17,36 @@ class Database:
           print("Something unexpected has happend")
           print("\n".join(outString))
           self.db = None
-    ## check if default documents exist
-    if "-hierarchyRoot-" not in self.db:  #create root
-        self.db.save( {"_id":"-hierarchyRoot-", "childs":[],"name":"root","type":"root"} )
+
+    ## check if default document exist
     if "-dataDictionary-" not in self.db:
-      print("**ERROR** Data structure not defined. Use default one")
+      print("**WARNING** Data structure not defined. Use default one")
       dataDictionary = json.load(open("dataDictionary.json",'r'))
       reply = self.db.save(dataDictionary)
-    if "-userInterface-" not in self.db:
-      print("**ERROR** User interaction not defined. Use default one")
-      dataDictionary = json.load(open("userInterface.json",'r'))
-      reply = self.db.save(dataDictionary)
-    ## check if default views exist
-    jsCode = "if (doc.type && doc.type=='$docType$') {\n    emit(doc._id, doc.name);\n  }"
-    if "_design/viewMeasurements" not in self.db:
-      print("**ERROR** Measurement view not defined. Use default one")
-      self.setView("viewMeasurements","viewMeasurements",jsCode.replace('$docType$','measurement'))
-    if "_design/viewSamples" not in self.db:
-      print("**ERROR** Samples view not defined. Use default one")
-      self.setView("viewSamples","viewSamples",jsCode.replace('$docType$','sample'))
-    if "_design/viewProcedures" not in self.db:
-      print("**ERROR** Procedure view not defined. Use default one")
-      self.setView("viewProcedures","viewProcedures",jsCode.replace('$docType$','procedure'))
-    if "_design/viewHierarchy" not in self.db:
-      print("**ERROR** Hierarchy view not defined. Use default one")
-      self.setView("viewHierarchy","viewHierarchy","if (doc.type) {\n emit(doc._id, doc.childs);\n }")
+      
+    ## check if default views exist #TODO Generate from data_dictionary
+    jsProject = "if (doc.type && doc.type=='project')   {emit(doc.name, [doc.status,doc.objective,doc.tags.length]);}"
+    jsMeasurement= "if (doc.type && doc.type=='measurement'){emit(doc.project, [doc.name,doc.alias,doc.comment,doc.image.length>3]);}"
+    jsProcedure="if (doc.type && doc.type=='procedure') {emit(doc.project, [doc.name,doc.content]);}"    
+    jsSample  = "if (doc.type && doc.type=='sample')    {emit(doc.project, [doc.name,doc.chemistry,doc.comment,doc.qr_code!='']);}"
+    jsDefault = "if (doc.type && doc.type=='$docType$') {emit(doc.project, doc.name);}"
+    doc = self.db.get("-dataDictionary-")
+    typeLabels = cT.dataDictionary2Labels(doc)
+    for dataType,dataLabel in typeLabels:
+      view = "view"+dataLabel
+      if "_design/"+view not in self.db:
+        print("**WARNING** "+view+" not defined. Use default one")
+        if dataType=='project':
+          self.saveView(view,view,jsProject)
+        elif dataType=='measurement':
+          self.saveView(view,view,jsMeasurement)
+        elif dataType=='procedure':
+          self.saveView(view,view,jsProcedure)
+        elif dataType=='sample':
+          self.saveView(view,view,jsSample)
+        else:
+          self.saveView(view,view,jsDefault.replace('$docType$',dataType))
+    return
 
 
   def getDoc(self,id):

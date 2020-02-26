@@ -1,14 +1,14 @@
 import os, json
-from asTools import string2TagFieldComment, camelCase, imageToString, stringToImage
+from asTools import string2TagFieldComment, imageToString, stringToImage
 from asCouchDB import Database
+from commonTools import commonTools as cT
 
 class AgileScience:
+  """ PYTHON BACKEND 
+  """
   def __init__(self):
     """
     open server and define database
-    - verify hierarchyRoot is in database
-    - verify dataDictionary is in database
-    - verify userInterface is in database
     """
     # open configuration file and define database
     jsonFile = open(os.path.expanduser('~')+'/.agileScience.json')
@@ -19,6 +19,7 @@ class AgileScience:
     self.db = Database(user,password,databaseName)
     self.eargs   = configuration["eargs"]
     # open basePath as current working directory
+    self.softwareDirectory = os.path.abspath(os.getcwd())
     self.cwd     = os.path.expanduser('~')+"/"+configuration["baseFolder"]
     if not self.cwd.endswith("/"):
       self.cwd += "/"
@@ -29,40 +30,58 @@ class AgileScience:
       self.cwd   = None
     # hierarchy structure
     self.hierList = self.db.getDoc("-dataDictionary-")["-hierarchy-"]
-    self.hierStack = ['-hierarchyRoot-']
+    self.hierStack = []
+    return
   
 
+  ######################################################
+  ### prepare questions for next user interaction
+  ######################################################
   def getQuestions(self):
     """
     executed after database is intialized: create all questions
     - based on data dictionary stored in DB
     - add output, default questions
 
-    Keep separate since all questions are only needed by CLI, not by ReactJS versions
+    Keep default questions separate since all questions are only needed by CLI, not by ReactJS versions
     """
     doc = self.db.getDoc("-dataDictionary-")
-    allNewQuestions = self.db.getDoc("-userInterface-")
-    for data in doc:            #iterate through each data-set entry: e.g. measurement
-      if data.startswith("_") or data.startswith("-"):
+    allNewQuestions = json.load(open(self.softwareDirectory+"/userInterfaceCLI.json",'r'))
+    self.typeLabels = cT.dataDictionary2Labels(doc)
+    for item in allNewQuestions:
+      if ('choices' in allNewQuestions[item][0]) and \
+         (allNewQuestions[item][0]['choices'] == '$docLabels$'):
+        allNewQuestions[item][0]['choices'] = [j for i,j in self.typeLabels]
+    for docType in doc:            #iterate through each docType: e.g. measurement
+      if docType.startswith("_") or docType.startswith("-"):
         continue
       newQuestions = []
-      for question in doc[data]: #iterate over all data stored within this data-set
+      for question in doc[docType]: #iterate over all data stored within this docType
+        if isinstance(question, str):
+          continue
         ### convert question into json-string that PyInquirer understands
         # decode incoming json
-        keywords = {"list":None,"required":True,"generate":False,"default":None}
+        keywords = {"list":None,"generate":None}
         for item in keywords:
           if item in question:
             keywords[item] = question[item]
             del question[item]
-        if len(question)>1: print("**ERROR** QUESTION ILLDEFINED",question)
+        if len(question)>1: 
+          print("**ERROR** QUESTION ILLDEFINED",question)
         name, questionString = question.popitem()
         # encode outgoing json
+        if keywords['generate'] is not None:
+          continue  #it is generated, no need to ask
         newQuestion = {"type":"input","name": name,"message": questionString}
+        if keywords['list'] is not None:
+          newQuestion['type']='list'
+          if isinstance(keywords['list'], list):
+            newQuestion['choices'] = keywords['list']
         newQuestions.append(newQuestion)
       newQuestions.append({"type":"input","name":"comment","message":"#tags, :field:value: comments"})
-      if data not in self.hierList:
-        newQuestions.append({"type":"confirm","name": "linked","message": "Linked to hierarchy?","default": True})
-      allNewQuestions[data] = newQuestions
+      if docType not in self.hierList:  #those are anyhow linked
+        newQuestions.append({'type':'confirm','name':'flagLinked','message':'Link to hierarchy?'})
+      allNewQuestions[docType] = newQuestions
     return allNewQuestions
 
 
@@ -76,33 +95,50 @@ class AgileScience:
     Args:
        questions: to be cleaned
     """
-    if self.hierList[0] != "--marker--":
-      self.hierList = ["--marker--"]+self.hierList
+    if self.hierList[-1] != "--marker--":
+      self.hierList = self.hierList+["--marker--"]
     jsonString = json.dumps(questions)
     jsonString = jsonString.replace("$thisLevel$",self.hierList[len(self.hierStack)-1])
     jsonString = jsonString.replace("$nextLevel$",self.hierList[len(self.hierStack)])
-    jsonObj    = json.loads(jsonString)
-    ## changes based on next question
-    if "type" not in jsonObj:   #if not an expand or list type
-      return jsonObj
-    if jsonObj['type'] == 'expand':
-      for item in jsonObj:
-        if item != "choices": continue
-        jsonObj[item] = [i for i in jsonObj[item] if "--marker--" not in i["name"]]
-    ## create list of sub-hierarchy
-    if jsonObj['type'] == 'list' and len(jsonObj['choices'])==0:
-      listItems = []
-      for id in self.db.getDoc(self.hierStack[-1])['childs']:
-        if self.db.getDoc(id)['type']==self.hierList[len(self.hierStack)]:
-          listItems.append(self.db.getDoc(id)['type']+"_"+self.db.getDoc(id)['name']+"_"+id) 
-      jsonObj['choices'] = listItems
-    if jsonObj['type']  == 'editor':
-      jsonObj['eargs']   = self.eargs
-      doc = self.db.getDoc(self.hierStack[-1])
-      jsonObj['default'] = ", ".join(['#'+tag for tag in doc['tags']])+' '+doc['comment']
-    return jsonObj
+    jsonObjects= json.loads(jsonString)    
+    for jsonObj in jsonObjects:
+      ## changes based on next question
+      if 'choices' in jsonObj:          #clean list choices
+        choices = jsonObj['choices']
+        choice  = [i for i in choices if '$docLabel$' in i] #find a first choice that has docLabels
+        if len(choice)>0:
+          choice  = choice[0]
+          iChoice = choices.index(choice)
+          for dataType,dataLabel in self.typeLabels:
+            if dataType=='project': continue
+            choices.insert(iChoice+1, choice.replace("$docLabel$",dataLabel))
+          del choices[iChoice]
+        choices = [i for i in choices if '--marker--' not in i]
+        jsonObj['choices'] = choices
+      ## create list of sub-hierarchy: list of projects, list of steps, ...
+      if jsonObj['type'] == 'list' and len(jsonObj['choices'])==0:
+        if len(self.hierStack)==0: #no element in list: look for projects
+          self.thisDoc = self.db.getView('viewProjects/viewProjects')
+          self.nextChoicesID = [i.id for i in self.thisDoc]   #first of matching list: ids
+          self.nextChoices   = [i.key for i in self.thisDoc]  #second of matching list: names
+        else:
+          self.thisDoc = self.db.getDoc(self.hierStack[-1])
+          self.nextChoicesID  = [id for id in self.thisDoc['childs'] if id.startswith('t')]
+          self.nextChoices    = [self.db.getDoc(id)['name'] for id in self.thisDoc['childs'] if id.startswith('t')]
+        jsonObj['choices'] = self.nextChoices
+        if len(jsonObj['choices'])==0:  #if nothing in list
+          print("**WARNING** Nothing to change to")
+          return None
+      if jsonObj['type']  == 'editor':
+        jsonObj['eargs']   = self.eargs
+        doc = self.db.getDoc(self.hierStack[-1])
+        jsonObj['default'] = ", ".join(['#'+tag for tag in doc['tags']])+' '+doc['comment']
+    return jsonObjects
 
 
+  ######################################################
+  ### Change in database
+  ######################################################
   def addData(self,question,data):
     """
     Save data to data base, also after edit
@@ -111,76 +147,101 @@ class AgileScience:
        question: what question triggered the answer
        data: answer of question
     """
-    if len(data)<1:   #no data returned from user
-      return
-    inputString = data['comment']
+    projectID = ""
+    if len(self.hierStack)>0:
+      projectID = self.hierStack[0]
+    if 'flagLinked' in data:
+      flagLinked = data['flagLinked'] and len(self.hierStack)>0
+      del  data['flagLinked']
     if question == '-edit-':
-      data = self.db.getDoc(self.hierStack[-1])
+      temp = self.db.getDoc(self.hierStack[-1])      
+      temp.update(data)
+      data = temp
+      question = data['type']
       flagLinked = False    #should not change
-    else:
-      data['type'] = question
-      data['childs'] = []
-      flagLinked = False
-      if "linked" in data:
-        if data['linked'] and len(self.hierStack)>1:
-          flagLinked = True
-        del data['linked']
-      #images
-      if data['type'] == 'measurement':
-        if data['alias'] =='':  data['alias']=data['name']
-        data['image'] = imageToString(data['name'])
-    data.update(  string2TagFieldComment(inputString) )
-    print("Data saved",data)
+    elif self.cwd is not None:
+      os.makedirs( cT.camelCase(data['name']), exist_ok=True )
+    data = cT.fillDocBeforeCreate(data, question,projectID).to_dict()
+    #TODO add image
+    if data['type']=='measurement':
+      data['image'] = ''
+    # print("Data saved",data)
     _id, _rev = self.db.saveDoc(data)
-    if question in self.hierList or flagLinked:
+    if (question in self.hierList or flagLinked) and data['type']!='project':
       parent = self.db.getDoc(self.hierStack[-1])
       parent['childs'].append(_id)
       self.db.updateDoc(parent)
-    if self.cwd is not None:
-      os.makedirs( camelCase(data['name']) )
     return
   
 
-  def get(self,id):
+  ######################################################
+  ### Get data from database
+  ######################################################
+  def getDoc(self,id):
     """
     Wrapper for getting data from database
     """
     return self.db.getDoc(id)
 
 
-
-  def changeHierarchy(self, document):
+  def changeHierarchy(self, choice):
     """
     Change through text hierarchy structure
 
     Args:
        document: information on how to change
     """
-    if document == "-close-":
+    if choice == "-close-":
       self.hierStack.pop()
       if self.cwd is not None:
         os.chdir('..')
-        self.cwd = '/'.join(self.cwd.split('/')[:-1])
-      return
-    listItems = document['choice'].split("_")
-    if len(listItems)==3:
-      levelName, name, id  = listItems
-      levelIdx = self.hierList.index(levelName)
+        self.cwd = '/'.join(self.cwd.split('/')[:-2])+'/'
+    else:
+      idx = self.nextChoices.index(choice)
+      id  = self.nextChoicesID[idx]
       self.hierStack.append(id)
       if self.cwd is not None:
-        os.chdir( camelCase(name) )
-        self.cwd += camelCase(name)+'/'
-    else:
-      print("** ERROR ** change Hierarchy")
+        os.chdir( cT.camelCase(choice) )
+        self.cwd += cT.camelCase(choice)+'/'
     return
 
 
+  ######################################################
   ### OUTPUT COMMANDS ###
+  ######################################################
+  def output(self,docType):
+    view = 'view'+docType
+    if docType=='Measurements':
+      print('{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format('Name','Alias','Comment','Image','project-ID'))
+    if docType=='Projects':
+      print('{0: <25}|{1: <6}|{2: >5}|{3: <38}|{4: <32}'.format('Name','Status','#Tags','Objective','ID'))
+    if docType=='Procedures':
+      print('{0: <25}|{1: <51}|{2: <32}'.format('Name','Content','project-ID'))
+    if docType=='Samples':
+      print('{0: <25}|{1: <15}|{2: <27}|{3: <7}|{4: <32}'.format('Name','Chemistry','Comment','QR-code','project-ID'))
+    print('-'*110)
+    for item in self.db.getView(view+'/'+view):
+      if docType=='Measurements':
+        print('{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format(
+          item.value[0][:25],item.value[1][:21],item.value[2][:21],str(item.value[3]),item.key))
+      if docType=='Projects':
+        print('{0: <25}|{1: <6}|{2: <5}|{3: <38}|{4: <32}'.format(
+          item.key[:25],item.value[0][:6],item.value[2],item.value[1][:38],item.id))
+      if docType=='Procedures':
+        print('{0: <25}|{1: <51}|{2: <32}'.format(
+          item.value[0][:25],item.value[1][:51],item.key))
+      if docType=='Samples':
+        print('{0: <25}|{1: <15}|{2: <27}|{3: <7}|{4: <32}'.format(
+          item.value[0][:25],item.value[1][:15],item.value[2][:27],str(item.value[3]),item.key))
+    print("\n\n")
+    return
+
+
   def outputHierarchy(self):
     """
     print hierarchical structure in database
     """
-    from pprint import pprint
+    # TODO Convert to js
     # convert into native dictionary tree
     hierTree = {}
     for item in self.db.getView("viewHierarchy/viewHierarchy"):
@@ -198,6 +259,7 @@ class AgileScience:
     print(output)
     return
 
+
   def outputHierarchyString(self, branch, level=0):
     """
     Recursively called function to create string representation of hierarchy tree
@@ -207,35 +269,3 @@ class AgileScience:
       output += self.outputHierarchyString(subBranch,level+1)
     return output
 
-
-
-  def outputMeasurements(self):
-    """
-    print all measurements in list
-    """
-
-    for item in self.db.getView("viewMeasurements/viewMeasurements"):
-        print(item.key,"|   fileName:",item.value)
-        doc = self.db.getDoc(item.key)
-        if "image" in doc:
-          stringToImage(doc['image'])
-    return
-
-
-  def outputSamples(self):
-    """
-    print all samples in table form
-    """
-    print("key|name|chemistry|size")
-    for item in self.db.getView("viewData/viewSamples"):
-        print(item.key,"|",item.value["name"],"|",item.value["chemistry"],"|",item.value["size"])
-    return
-
-
-  def outputProcedures(self):
-    """
-    print all procedures in table form
-    """
-    for item in self.db.getView("viewData/viewProcedures"):
-        print(item.key,"|",item.value["name"],"|",item.value["content"],"|")
-    return

@@ -1,5 +1,10 @@
+#!/usr/bin/python3
+import js2py
+from commonTools import commonTools as cT
+
 import json, re
 import base64, io
+import js2py, os
 from PIL import Image
 
 
@@ -16,42 +21,6 @@ def jsonValidator(data):
   except ValueError as error:
     print("**ERROR** invalid json: %s" % error)
     return False
-
-
-def string2TagFieldComment(comment):
-  """
-  extract tags, fields and comments from string
-
-  Args:
-     comment: input string
-  """
-  reply = {}
-  tags = re.findall("#[\S]+",comment)
-  for tag in tags:
-    comment = comment.replace(tag,"")
-  reply["tags"] = [tag[1:] for tag in tags]
-  fields = re.findall(":[\S]+:[\S]+:",comment)
-  for field in fields:
-    comment = comment.replace(field,"")
-    _, key, value, _ = field.split(":")
-    try:
-      value = float(value)
-    except:
-      pass
-    reply[key] = value
-  reply["comment"] = comment.strip().replace("  "," ")
-  return reply
-
-
-def camelCase(text):
-  """
-  Convert string to camelCase string
-
-  Args:
-     text: input text
-  """
-  camelCase = ''.join(x for x in text.title() if not x.isspace())
-  return camelCase
 
 
 def imageToString(url):
@@ -83,3 +52,16 @@ def stringToImage(aString, show=True):
   if show:
     image.show()
   return image
+
+
+def translateJS2PY():
+  """ translate js-code to python
+  """
+  js2py.translate_file('../ReactJS/src/commonTools.js', 'commonTools.py')
+  return
+
+###########################################
+##### MAIN FUNCTION
+###########################################
+if __name__=="__main__":
+  translateJS2PY()

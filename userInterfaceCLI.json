@@ -1,0 +1,21 @@
+{
+"-edit-": [{"default": "",
+  "eargs": "",
+  "message": "Edit text in MarkDown",
+  "name": "comment",
+  "type": "editor"}],
+ "-output-": [{"choices": "$docLabels$",
+  "message": "How to display?",
+  "name": "choice",
+  "type": "list"}],
+ "-root-": [{"choices": [
+      "Add new $nextLevel$","Change to $nextLevel$","Close $thisLevel$","Edit $thisLevel$",
+      "Add to $docLabel$",  "Output database", "Exit program"],
+  "message": "What do you want to do?",
+  "name": "choice",
+  "type": "list"}],
+ "-use-": [{"choices": [],
+  "message": "Use $nextLevel$:",
+  "name": "choice",
+  "type": "list"}] 
+}
