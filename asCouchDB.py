@@ -25,7 +25,12 @@ class Database:
       reply = self.db.save(dataDictionary)
       
     ## check if default views exist #TODO Generate from data_dictionary
-    jsProject = "if (doc.type && doc.type=='project')   {emit(doc.name, [doc.status,doc.objective,doc.tags.length]);}"
+    ### Old version
+    #jsProject = "if (doc.type && doc.type=='project')   {emit(doc.name, [doc.status,doc.objective,doc.tags.length]);}"
+    #     if (doc.type && (doc.type=='project'||doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}
+    #function (doc) {\nif (doc.type && (doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}if (doc.type && doc.type=='project') {emit(doc._id, [doc.type,doc.name,doc.childs]);}\n}
+    jsProject= {"viewProjects": {"map": "function (doc) {\nif (doc.type && doc.type=='project') {emit(doc.name, [doc.status,doc.objective,doc.tags.length]);}\n}"},
+                "viewHierarchy":{"map": "function (doc) {\nif (doc.type && (doc.type=='project'||doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}\n}"} }
     jsMeasurement= "if (doc.type && doc.type=='measurement'){emit(doc.project, [doc.name,doc.alias,doc.comment,doc.image.length>3]);}"
     jsProcedure="if (doc.type && doc.type=='procedure') {emit(doc.project, [doc.name,doc.content]);}"    
     jsSample  = "if (doc.type && doc.type=='sample')    {emit(doc.project, [doc.name,doc.chemistry,doc.comment,doc.qr_code!='']);}"
@@ -71,11 +76,14 @@ class Database:
     return
 
 
-  def getView(self,thePath):
+  def getView(self,thePath, key=None):
     """
     Wrapper for getting view function
     """
-    return self.db.view(thePath)
+    if key== None:
+      return self.db.view(thePath)
+    else:
+      return self.db.view(thePath, key=key)
 
 
   def saveView(self,designName, viewName, jsCode):
@@ -87,11 +95,15 @@ class Database:
        viewName: name of the view
        jsCode: new code
     """
-    jsCode = "function (doc) {\n" + jsCode +"\n}"
-    doc = {"_id": "_design/"+designName, "views": { viewName: {
-      "map": ""
-      } }, "language": "javascript" }
-    doc["views"][viewName]['map'] = jsCode
+    if isinstance(jsCode, str):
+      jsCode = "function (doc) {\n" + jsCode +"\n}"
+      doc = {"_id": "_design/"+designName, "views": { viewName: {
+        "map": ""
+        } }, "language": "javascript" }
+      doc["views"][viewName]['map'] = jsCode
+    elif isinstance(jsCode, dict):
+      doc = {"_id": "_design/"+designName, "language": "javascript" }
+      doc['views'] = jsCode
     try:
       id_, rev_ = self.db.save(doc)
     except Exception:

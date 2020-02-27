@@ -1,5 +1,5 @@
 import os, json
-from asTools import string2TagFieldComment, imageToString, stringToImage
+from asTools import imageToString, stringToImage
 from asCouchDB import Database
 from commonTools import commonTools as cT
 
@@ -21,6 +21,7 @@ class AgileScience:
     # open basePath as current working directory
     self.softwareDirectory = os.path.abspath(os.getcwd())
     self.cwd     = os.path.expanduser('~')+"/"+configuration["baseFolder"]
+    self.baseDirectory = os.path.expanduser('~')+"/"+configuration["baseFolder"]
     if not self.cwd.endswith("/"):
       self.cwd += "/"
     if os.path.exists(self.cwd):
@@ -31,6 +32,7 @@ class AgileScience:
     # hierarchy structure
     self.hierList = self.db.getDoc("-dataDictionary-")["-hierarchy-"]
     self.hierStack = []
+    self.view      = None   #current view
     return
   
 
@@ -48,10 +50,10 @@ class AgileScience:
     doc = self.db.getDoc("-dataDictionary-")
     allNewQuestions = json.load(open(self.softwareDirectory+"/userInterfaceCLI.json",'r'))
     self.typeLabels = cT.dataDictionary2Labels(doc)
-    for item in allNewQuestions:
+    for item in allNewQuestions:  #make cleaner: go to options directly (no iterations): i.e. change output
       if ('choices' in allNewQuestions[item][0]) and \
          (allNewQuestions[item][0]['choices'] == '$docLabels$'):
-        allNewQuestions[item][0]['choices'] = [j for i,j in self.typeLabels]
+        allNewQuestions[item][0]['choices'] = [j for i,j in self.typeLabels] + ['Hierarchy']
     for docType in doc:            #iterate through each docType: e.g. measurement
       if docType.startswith("_") or docType.startswith("-"):
         continue
@@ -139,7 +141,7 @@ class AgileScience:
   ######################################################
   ### Change in database
   ######################################################
-  def addData(self,question,data):
+  def addData(self,question,data, projectID='', parentID=None):
     """
     Save data to data base, also after edit
 
@@ -147,9 +149,9 @@ class AgileScience:
        question: what question triggered the answer
        data: answer of question
     """
-    projectID = ""
-    if len(self.hierStack)>0:
+    if len(self.hierStack)>0 and projectID=='':
       projectID = self.hierStack[0]
+    flagLinked = parentID is None
     if 'flagLinked' in data:
       flagLinked = data['flagLinked'] and len(self.hierStack)>0
       del  data['flagLinked']
@@ -159,17 +161,23 @@ class AgileScience:
       data = temp
       question = data['type']
       flagLinked = False    #should not change
-    elif self.cwd is not None:
+    elif self.cwd is not None and data['type'] in self.hierList:  #create directory for projects,steps,tasks
       os.makedirs( cT.camelCase(data['name']), exist_ok=True )
+    print(data)
     data = cT.fillDocBeforeCreate(data, question,projectID).to_dict()
-    #TODO add image
     if data['type']=='measurement':
+      #TODO PRIO-1 add image
       data['image'] = ''
-    # print("Data saved",data)
+    print("Data saved",data)
     _id, _rev = self.db.saveDoc(data)
-    if (question in self.hierList or flagLinked) and data['type']!='project':
-      parent = self.db.getDoc(self.hierStack[-1])
+    if (question in self.hierList or flagLinked or parentID is not None) \
+      and data['type']!='project':
+      if parentID is None:
+        parent = self.db.getDoc(self.hierStack[-1])
+      else:
+        parent = self.db.getDoc(parentID)
       parent['childs'].append(_id)
+      print("Parent updated",parent)
       self.db.updateDoc(parent)
     return
   
@@ -203,6 +211,48 @@ class AgileScience:
       if self.cwd is not None:
         os.chdir( cT.camelCase(choice) )
         self.cwd += cT.camelCase(choice)+'/'
+    return
+
+
+  def scanDirectory(self):
+    """ Recursively scan directory tree for new files and print
+    """
+    for root,_,fNames in os.walk(self.cwd):
+      if len(fNames)==0:
+        continue
+      relpath = os.path.relpath(root,start=self.baseDirectory)
+      if len(relpath.split('/'))==3:
+        project,step,task = relpath.split('/')
+      elif len(relpath.split('/'))==2:
+        project,step = relpath.split('/')
+        task = None
+      elif len(relpath.split('/'))==1:
+        project,step,task = relpath.split('/')[0], None, None
+      else:
+        project,step,task = None, None, None
+        print("Error")
+      for fName in fNames:  #all files in this directory
+        #find project id
+        projectID = None
+        for item in self.db.getView('viewProjects/viewProjects'):
+          if project == cT.camelCase(item.key):
+            projectID = item.id
+        #find parent id
+        view = self.db.getView('viewProjects/viewHierarchy', key=projectID)
+        parentID = None
+        if step is None:
+          parentID = projectID
+        elif task is None:
+          for item in view:
+            if item.value[0]=='step' and step == cT.camelCase(item.value[1]):
+              parentID = item.id
+        else:
+          for item in view:
+            if item.value[0]=='step' and step == cT.camelCase(item.value[1]):
+              for childs in item.value[2]:
+                print(childs)  #TODO PRIO-1 iterate trough
+        doc = {'name':fName, 'type':'measurement', 'comment':''}
+        self.addData('measurement',doc,projectID,parentID)
     return
 
 
@@ -240,32 +290,17 @@ class AgileScience:
   def outputHierarchy(self):
     """
     print hierarchical structure in database
+    - convert view into native dictionary
+    - ignore key since it is always the same
     """
-    # TODO Convert to js
-    # convert into native dictionary tree
-    hierTree = {}
-    for item in self.db.getView("viewHierarchy/viewHierarchy"):
-      hierTree[item.key] = [(i,None) for i in item.value]
-    # create hierarchical tree
-    for keyI in hierTree:
-      for keyJ in hierTree:
-        for idx, childOfI in enumerate(hierTree[keyI]):
-          keyOfChildI, value = childOfI
-          if keyOfChildI == keyJ:
-            hierTree[keyI][idx] = (keyJ, hierTree[keyJ])
-    hierTree = ("-hierarchyRoot-", hierTree["-hierarchyRoot-"])
-    # create long string and print
-    output = self.outputHierarchyString(hierTree)
-    print(output)
+    if len(self.hierStack)==0:
+      print('**WARNING** No project selected')
+      return
+    projectID = self.hierStack[0]
+    view = self.db.getView('viewProjects/viewHierarchy', key=projectID)
+    nativeView = {}
+    for item in view:
+      nativeView[item.id] = item.value
+    outString = cT.projectDocsToString(nativeView, projectID,0)
+    print(outString)
     return
-
-
-  def outputHierarchyString(self, branch, level=0):
-    """
-    Recursively called function to create string representation of hierarchy tree
-    """
-    output = "\t"*level + self.db.getDoc(branch[0])['name']  + "\t" + branch[0]+"\n"
-    for subBranch in branch[1]:
-      output += self.outputHierarchyString(subBranch,level+1)
-    return output
-

@@ -34,10 +34,17 @@ while True:
         answer = prompt(questions)
     #handle answers that come not out of '-root-' question
     if 'choice' not in answer:                  #if measurement, project data entered
-        be.addData(nextQuestion,answer)
+        if 'name' in answer:                    #if user stops entry
+            be.addData(nextQuestion,answer)
         nextQuestion = '-root-'
     elif nextQuestion == '-use-':               #change into given project, step, task
         be.changeHierarchy(answer['choice'])
+        nextQuestion = '-root-'
+    elif nextQuestion=='-output-':
+        if answer['choice']=='Hierarchy':
+            be.outputHierarchy()
+        else:
+            be.output(answer['choice'])
         nextQuestion = '-root-'
     #answers that come out of '-root-' question
     elif answer['choice'] in addNewHierarchy:     #if wants to enter project, step, task data
@@ -47,9 +54,6 @@ while True:
         nextQuestion = be.typeLabels[idx][0]
     elif answer['choice'] == "Output database": #if wants to get output
         nextQuestion = '-output-'
-    elif nextQuestion=='-output-':
-        be.output(answer['choice'])
-        nextQuestion = '-root-'
     elif 'Change to' in answer['choice']:       #change project, step, task
         nextQuestion = '-use-'
     elif "Close " in answer['choice']:          #close project, step, task
@@ -57,6 +61,9 @@ while True:
         nextQuestion = '-root-'
     elif "Edit " in answer['choice']:           #edit  project, step, task
         nextQuestion = '-edit-'
+    elif answer['choice'] == "Scan directories":
+        be.scanDirectory()
+        nextQuestion = '-root-'
     elif answer['choice'] == "Exit program":    #exit
         break
     else:

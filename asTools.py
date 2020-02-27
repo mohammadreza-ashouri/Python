@@ -54,14 +54,9 @@ def stringToImage(aString, show=True):
   return image
 
 
-def translateJS2PY():
-  """ translate js-code to python
-  """
-  js2py.translate_file('../ReactJS/src/commonTools.js', 'commonTools.py')
-  return
-
 ###########################################
 ##### MAIN FUNCTION
 ###########################################
 if __name__=="__main__":
-  translateJS2PY()
+  # translate js-code to python
+  js2py.translate_file('../ReactJS/src/commonTools.js', 'commonTools.py')
