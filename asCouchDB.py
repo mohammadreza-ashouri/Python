@@ -24,7 +24,7 @@ class Database:
       dataDictionary = json.load(open("dataDictionary.json",'r'))
       reply = self.db.save(dataDictionary)
       
-    ## check if default views exist #TODO Generate from data_dictionary
+    ## check if default views exist #TODO later: Generate from data_dictionary
     ### Old version
     #jsProject = "if (doc.type && doc.type=='project')   {emit(doc.name, [doc.status,doc.objective,doc.tags.length]);}"
     #     if (doc.type && (doc.type=='project'||doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}

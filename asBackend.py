@@ -1,4 +1,5 @@
 import os, json
+import importlib
 from asTools import imageToString, stringToImage
 from asCouchDB import Database
 from commonTools import commonTools as cT
@@ -165,9 +166,6 @@ class AgileScience:
       os.makedirs( cT.camelCase(data['name']), exist_ok=True )
     print(data)
     data = cT.fillDocBeforeCreate(data, question,projectID).to_dict()
-    if data['type']=='measurement':
-      #TODO PRIO-1 add image
-      data['image'] = ''
     print("Data saved",data)
     _id, _rev = self.db.saveDoc(data)
     if (question in self.hierList or flagLinked or parentID is not None) \
@@ -178,7 +176,7 @@ class AgileScience:
         parent = self.db.getDoc(parentID)
       parent['childs'].append(_id)
       print("Parent updated",parent)
-      self.db.updateDoc(parent)
+      #self.db.updateDoc(parent)
     return
   
 
@@ -250,10 +248,31 @@ class AgileScience:
           for item in view:
             if item.value[0]=='step' and step == cT.camelCase(item.value[1]):
               for childs in item.value[2]:
-                print(childs)  #TODO PRIO-1 iterate trough
-        doc = {'name':fName, 'type':'measurement', 'comment':''}
+                print(childs)  #TODO later: iterate trough
+        image, imgType, measurementType = self.getImage(os.path.join(root,fName))
+        doc = {'name':fName, 'type':'measurement', 'comment':'',\
+               'image':image, 'measurementType':measurementType}
         self.addData('measurement',doc,projectID,parentID)
     return
+
+
+  def getImage(self, filePath):
+    """ get image from datafile: central distribution point
+    """
+    extension = os.path.splitext(filePath)[1][1:]
+    for pyFile in os.listdir(self.softwareDirectory):
+      if not pyFile.startswith("image_"+extension):
+        continue
+      try:
+        module = importlib.import_module(pyFile[:-3])
+        image, imgType, measurementType = module.getImage(filePath)
+        #TODO later: there should be some testing if image is svg if line-type
+        #TODO later: scaling of image to size
+        return image, imgType, measurementType
+      except:
+        print("Failure to produce image with",pyFile," with data file", filePath)
+        print("Try next file")
+    return None, None, None         #default case if nothing is found
 
 
   ######################################################
