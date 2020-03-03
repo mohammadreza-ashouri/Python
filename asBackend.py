@@ -1,5 +1,8 @@
-import os, json
-import importlib
+import os, json, base64
+import importlib, traceback
+from io import StringIO, BytesIO
+import numpy as np
+import matplotlib.pyplot as plt
 from asTools import imageToString, stringToImage
 from asCouchDB import Database
 from commonTools import commonTools as cT
@@ -142,17 +145,19 @@ class AgileScience:
   ######################################################
   ### Change in database
   ######################################################
-  def addData(self,question,data, projectID='', parentID=None):
+  def addData(self,question,data, inheritID=['']):
     """
     Save data to data base, also after edit
 
     Args:
        question: what question triggered the answer
        data: answer of question
+       inheritID: stack of document IDs [project,step,task]
     """
-    if len(self.hierStack)>0 and projectID=='':
-      projectID = self.hierStack[0]
-    flagLinked = parentID is None
+    print("Debug",inheritID)
+    if len(self.hierStack)>0 and inheritID==['']:
+      inheritID = self.hierStack
+    flagLinked = inheritID==['']
     if 'flagLinked' in data:
       flagLinked = data['flagLinked'] and len(self.hierStack)>0
       del  data['flagLinked']
@@ -164,16 +169,14 @@ class AgileScience:
       flagLinked = False    #should not change
     elif self.cwd is not None and data['type'] in self.hierList:  #create directory for projects,steps,tasks
       os.makedirs( cT.camelCase(data['name']), exist_ok=True )
-    print(data)
-    data = cT.fillDocBeforeCreate(data, question,projectID).to_dict()
-    print("Data saved",data)
+    data = cT.fillDocBeforeCreate(data, question,inheritID[0]).to_dict()
     _id, _rev = self.db.saveDoc(data)
-    if (question in self.hierList or flagLinked or parentID is not None) \
+    if 'image' in data:
+      del data['image']
+    print("Data saved",data)
+    if (question in self.hierList or flagLinked or inheritID!=['']) \
       and data['type']!='project':
-      if parentID is None:
-        parent = self.db.getDoc(self.hierStack[-1])
-      else:
-        parent = self.db.getDoc(parentID)
+      parent = self.db.getDoc(inheritID[-1])
       parent['childs'].append(_id)
       print("Parent updated",parent)
       #self.db.updateDoc(parent)
@@ -216,6 +219,7 @@ class AgileScience:
     """ Recursively scan directory tree for new files and print
     """
     for root,_,fNames in os.walk(self.cwd):
+      # find directory names
       if len(fNames)==0:
         continue
       relpath = os.path.relpath(root,start=self.baseDirectory)
@@ -229,50 +233,78 @@ class AgileScience:
       else:
         project,step,task = None, None, None
         print("Error")
+      # find IDs to names
+      projectID, stepID, taskID = None, None, None
+      for item in self.db.getView('viewProjects/viewProjects'):
+        if project == cT.camelCase(item.key):
+          projectID = item.id
+      if projectID is None:
+        print("**ERROR** No project found scanDirectory")
+        return
+      hierStack = [projectID]  #temporary version
+      if step is not None:
+        for itemID in self.db.getDoc(projectID)['childs']:
+          if step == cT.camelCase(self.db.getDoc(itemID)['name']):
+            stepID = itemID
+        if stepID is None:
+          print("**ERROR** No step found scanDirectory")
+          return
+        hierStack.append(stepID)
+      if task is not None:
+        for itemID in self.db.getDoc(stepID)['childs']:
+          if task == cT.camelCase(self.db.getDoc(itemID)['name']):
+            taskID = itemID
+        if taskID is None:
+          print("**ERROR** No task found scanDirectory")
+          return
+        hierStack.append(taskID)
+      # loop through all files and process
       for fName in fNames:  #all files in this directory
-        #find project id
-        projectID = None
-        for item in self.db.getView('viewProjects/viewProjects'):
-          if project == cT.camelCase(item.key):
-            projectID = item.id
-        #find parent id
-        view = self.db.getView('viewProjects/viewHierarchy', key=projectID)
-        parentID = None
-        if step is None:
-          parentID = projectID
-        elif task is None:
-          for item in view:
-            if item.value[0]=='step' and step == cT.camelCase(item.value[1]):
-              parentID = item.id
-        else:
-          for item in view:
-            if item.value[0]=='step' and step == cT.camelCase(item.value[1]):
-              for childs in item.value[2]:
-                print(childs)  #TODO later: iterate trough
-        image, imgType, measurementType = self.getImage(os.path.join(root,fName))
-        doc = {'name':fName, 'type':'measurement', 'comment':'',\
-               'image':image, 'measurementType':measurementType}
-        self.addData('measurement',doc,projectID,parentID)
+        print("\n\nTry to process for file:",fName)
+        doc = self.getImage(os.path.join(root,fName))
+        doc.update({'name':fName, 'type':'measurement', 'comment':''})
+        self.addData('measurement',doc,hierStack)
     return
 
 
   def getImage(self, filePath):
     """ get image from datafile: central distribution point
+
+    maxSize defined here
     """
+    maxSize = 600
     extension = os.path.splitext(filePath)[1][1:]
     for pyFile in os.listdir(self.softwareDirectory):
       if not pyFile.startswith("image_"+extension):
         continue
       try:
         module = importlib.import_module(pyFile[:-3])
-        image, imgType, measurementType = module.getImage(filePath)
-        #TODO later: there should be some testing if image is svg if line-type
-        #TODO later: scaling of image to size
-        return image, imgType, measurementType
+        image, imgType, meta = module.getImage(filePath)
+        if imgType == "line":
+          figfile = StringIO()
+          plt.savefig(figfile, format='svg')
+          image = 'data:image/svg+xml;utf8,<svg' + figfile.getvalue().split('<svg')[1]
+        elif imgType == "waves":
+          ratio = maxSize / image.size[np.argmax(image.size)]
+          image = image.resize( (np.array(image.size)*ratio).astype(np.int) ).convert('RGB')
+          figfile = BytesIO()
+          image.save(figfile, format='JPEG')
+          imageData = base64.b64encode(figfile.getvalue())
+          if not isinstance(imageData, str):   # Python 3, decode from bytes to string
+              imageData = imageData.decode()
+          image = 'data:image/jpg;base64,' + imageData
+        elif imgType == "contours":
+          image = image
+        else:
+          raise NameError('**ERROR** Implementation failed')
+        meta['image'] = image
+        print("Image successfully created")
+        return meta
       except:
+        print(traceback.format_exc())
         print("Failure to produce image with",pyFile," with data file", filePath)
         print("Try next file")
-    return None, None, None         #default case if nothing is found
+    return None         #default case if nothing is found
 
 
   ######################################################
