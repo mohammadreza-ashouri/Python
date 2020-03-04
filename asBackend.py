@@ -179,7 +179,7 @@ class AgileScience:
       parent = self.db.getDoc(inheritID[-1])
       parent['childs'].append(_id)
       print("Parent updated",parent)
-      #self.db.updateDoc(parent)
+      self.db.updateDoc(parent)
     return
   
 

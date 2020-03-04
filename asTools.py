@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 import js2py
-from commonTools import commonTools as cT
 
 import json, re
 import base64, io
 import js2py, os
+import numpy as np
 from PIL import Image
 
 
@@ -54,9 +54,48 @@ def stringToImage(aString, show=True):
   return image
 
 
+def createQRcodeSheet(fileName="../qrCodes.pdf"):
+  """
+  Documentation QR-codes
+  - img = qrcode.make("testString",error_correction=qrcode.constants.ERROR_CORRECT_M)
+  - or ERROR-CORRECT_H for better errorcorrection
+  Sizes:
+  - QR code size 1.5-2cm
+  - with frame 2.25-3cm
+  - Page size 18x27cm; 6x9 = 54
+  """
+  import qrcode
+  from commonTools import commonTools as cT  #don't import globally since it disturbs translation
+  img = qrcode.make(cT.uuidv4(),
+                    error_correction=qrcode.constants.ERROR_CORRECT_M)
+  size = img.size[0]
+  new_im = Image.new('RGB', (6*size,9*size))
+  for i in np.arange(0,6*size,size):
+    for j in np.arange(0,9*size,size):
+      img = qrcode.make(cT.uuidv4(),
+                        error_correction=qrcode.constants.ERROR_CORRECT_M)
+      new_im.paste(img, (i,j))
+  new_im.save(fileName)
+  return
+
+
+def translateJS2PY():
+  """
+  Translate js-code to python-code using js2py lib
+  - remove the last export-lines from commonTools.js
+  """
+  jsString = open('../ReactJS/src/commonTools.js',"r").read()
+  jsString = re.sub(r"export.+;","",jsString)
+  jsFile = io.StringIO(jsString)
+  js2py.translate_file(jsFile, 'commonTools.py')
+
+
+
 ###########################################
 ##### MAIN FUNCTION
 ###########################################
 if __name__=="__main__":
   # translate js-code to python
-  js2py.translate_file('../ReactJS/src/commonTools.js', 'commonTools.py')
+  translateJS2PY()
+  # prepare sheet with QR-codes
+  createQRcodeSheet()
