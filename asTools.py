@@ -69,9 +69,11 @@ def createQRcodeSheet(fileName="../qrCodes.pdf"):
   img = qrcode.make(cT.uuidv4(),
                     error_correction=qrcode.constants.ERROR_CORRECT_M)
   size = img.size[0]
-  new_im = Image.new('RGB', (6*size,9*size))
-  for i in np.arange(0,6*size,size):
-    for j in np.arange(0,9*size,size):
+  hSize = 6*size
+  vSize = 9*size
+  new_im = Image.new('RGB', (hSize,vSize))
+  for i in np.arange(0,hSize,size):
+    for j in np.arange(0,vSize,size):
       img = qrcode.make(cT.uuidv4(),
                         error_correction=qrcode.constants.ERROR_CORRECT_M)
       new_im.paste(img, (i,j))
