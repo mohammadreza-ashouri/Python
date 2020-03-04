@@ -154,7 +154,8 @@ class AgileScience:
        data: answer of question
        inheritID: stack of document IDs [project,step,task]
     """
-    print("Debug",inheritID)
+    if 'type' not in data and question in [i for i,j in self.typeLabels]:  #no type defined but question in list of known doctypes
+      data['type'] = question
     if len(self.hierStack)>0 and inheritID==['']:
       inheritID = self.hierStack
     flagLinked = inheritID==['']
