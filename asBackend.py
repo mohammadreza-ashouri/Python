@@ -154,7 +154,7 @@ class AgileScience:
        data: answer of question
        inheritID: stack of document IDs [project,step,task]
     """
-    if 'type' not in data and question in [i for i,j in self.typeLabels]:  #no type defined but question in list of known doctypes
+    if 'type' not in data and question in [i for i,j in self.typeLabels]+self.hierList:  #no type defined but question in list of known doctypes
       data['type'] = question
     if len(self.hierStack)>0 and inheritID==['']:
       inheritID = self.hierStack
@@ -263,7 +263,7 @@ class AgileScience:
       for fName in fNames:  #all files in this directory
         print("\n\nTry to process for file:",fName)
         doc = self.getImage(os.path.join(root,fName))
-        doc.update({'name':fName, 'type':'measurement', 'comment':''})
+        doc.update({'name':fName, 'type':'measurement', 'comment':'','alias':''})
         self.addData('measurement',doc,hierStack)
     return
 
