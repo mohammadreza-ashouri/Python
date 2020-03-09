@@ -284,7 +284,8 @@ class AgileScience:
         if imgType == "line":
           figfile = StringIO()
           plt.savefig(figfile, format='svg')
-          image = 'data:image/svg+xml;utf8,<svg' + figfile.getvalue().split('<svg')[1]
+          image = figfile.getvalue()
+          # 'data:image/svg+xml;utf8,<svg' + figfile.getvalue().split('<svg')[1]
         elif imgType == "waves":
           ratio = maxSize / image.size[np.argmax(image.size)]
           image = image.resize( (np.array(image.size)*ratio).astype(np.int) ).convert('RGB')
