@@ -34,7 +34,7 @@ while True:
         answer = prompt(questions)
     #handle answers that come not out of '-root-' question
     if 'choice' not in answer:                  #if measurement, project data entered
-        if 'name' in answer:                    #if user stops entry
+        if len(answer)>0:                       #if user stops entry
             be.addData(nextQuestion,answer)
         nextQuestion = '-root-'
     elif nextQuestion == '-use-':               #change into given project, step, task
@@ -64,6 +64,8 @@ while True:
     elif answer['choice'] == "Scan directories":
         be.scanDirectory()
         nextQuestion = '-root-'
+    elif answer['choice'] == "Replicate database":#replicate database
+        be.replicateDB()
     elif answer['choice'] == "Exit program":    #exit
         break
     else:

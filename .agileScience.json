@@ -2,6 +2,12 @@
 "user":"admin",
 "password":"agile",
 "database":"agile_science",
-"baseFolder": "Juelich/asFolder",
-"eargs": {"editor":"gedit","ext":".md"}	
+"baseFolder": "FZJ/asFolder",
+"eargs": {"editor":"gedit","ext":".md"},
+"remote": {
+  "user": "6312f45e-b47e-43fb-b2c8-fd3ba43ea76d-bluemix",
+  "password": "b0296a60a0f8879c09a3ceff62b67c175db9f8354fb84cfb44d7c2b3c961e86f",
+  "url":"https://6312f45e-b47e-43fb-b2c8-fd3ba43ea76d-bluemix.cloudantnosqldb.appdomain.cloud",
+  "database":"agile_science"
+}	
 }

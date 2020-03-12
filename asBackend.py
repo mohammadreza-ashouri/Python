@@ -4,7 +4,8 @@ from io import StringIO, BytesIO
 import numpy as np
 import matplotlib.pyplot as plt
 from asTools import imageToString, stringToImage
-from asCouchDB import Database
+# from asCouchDB import Database
+from asCloudant import Database
 from commonTools import commonTools as cT
 
 class AgileScience:
@@ -21,6 +22,7 @@ class AgileScience:
     password     = configuration["password"]
     databaseName = configuration["database"]
     self.db = Database(user,password,databaseName)
+    self.remoteDB= configuration["remote"]
     self.eargs   = configuration["eargs"]
     # open basePath as current working directory
     self.softwareDirectory = os.path.abspath(os.getcwd())
@@ -36,7 +38,6 @@ class AgileScience:
     # hierarchy structure
     self.hierList = self.db.getDoc("-dataDictionary-")["-hierarchy-"]
     self.hierStack = []
-    self.view      = None   #current view
     return
   
 
@@ -125,8 +126,8 @@ class AgileScience:
       if jsonObj['type'] == 'list' and len(jsonObj['choices'])==0:
         if len(self.hierStack)==0: #no element in list: look for projects
           self.thisDoc = self.db.getView('viewProjects/viewProjects')
-          self.nextChoicesID = [i.id for i in self.thisDoc]   #first of matching list: ids
-          self.nextChoices   = [i.key for i in self.thisDoc]  #second of matching list: names
+          self.nextChoicesID = [i['id'] for i in self.thisDoc]   #first of matching list: ids
+          self.nextChoices   = [i['key'] for i in self.thisDoc]  #second of matching list: names
         else:
           self.thisDoc = self.db.getDoc(self.hierStack[-1])
           self.nextChoicesID  = [id for id in self.thisDoc['childs'] if id.startswith('t')]
@@ -237,8 +238,8 @@ class AgileScience:
       # find IDs to names
       projectID, stepID, taskID = None, None, None
       for item in self.db.getView('viewProjects/viewProjects'):
-        if project == cT.camelCase(item.key):
-          projectID = item.id
+        if project == cT.camelCase(item['key']):
+          projectID = item['id']
       if projectID is None:
         print("**ERROR** No project found scanDirectory")
         return
@@ -326,16 +327,16 @@ class AgileScience:
     for item in self.db.getView(view+'/'+view):
       if docType=='Measurements':
         print('{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format(
-          item.value[0][:25],item.value[1][:21],item.value[2][:21],str(item.value[3]),item.key))
+          item['value'][0][:25],item['value'][1][:21],item['value'][2][:21],str(item['value'][3]),item['key']))
       if docType=='Projects':
         print('{0: <25}|{1: <6}|{2: <5}|{3: <38}|{4: <32}'.format(
-          item.key[:25],item.value[0][:6],item.value[2],item.value[1][:38],item.id))
+          item['key'][:25],item['value'][0][:6],item['value'][2],item['value'][1][:38],item['id']))
       if docType=='Procedures':
         print('{0: <25}|{1: <51}|{2: <32}'.format(
-          item.value[0][:25],item.value[1][:51],item.key))
+          item['value'][0][:25],item['value'][1][:51],item['key']))
       if docType=='Samples':
         print('{0: <25}|{1: <15}|{2: <27}|{3: <7}|{4: <32}'.format(
-          item.value[0][:25],item.value[1][:15],item.value[2][:27],str(item.value[3]),item.key))
+          item['value'][0][:25],item['value'][1][:15],item['value'][2][:27],str(item['value'][3]),item['key']))
     print("\n\n")
     return
 
@@ -353,7 +354,11 @@ class AgileScience:
     view = self.db.getView('viewProjects/viewHierarchy', key=projectID)
     nativeView = {}
     for item in view:
-      nativeView[item.id] = item.value
+      nativeView[item['id']] = item['value']
     outString = cT.projectDocsToString(nativeView, projectID,0)
     print(outString)
+    return
+
+  def replicateDB(self):
+    self.db.replicateDB(self.remoteDB)
     return
