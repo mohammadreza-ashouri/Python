@@ -1,22 +1,18 @@
 {
-"-edit-": [{"default": "",
-    "eargs": "",
-    "message": "Edit text in MarkDown",
-    "name": "comment",
-    "type": "editor"}],
- "-output-": [{"choices": "$docLabels$",
-    "message": "What to display?",
-    "name": "choice",
-    "type": "list"}],
- "-root-": [{"choices": [
-      "Add new $nextLevel$","Change to $nextLevel$","Close $thisLevel$","Edit $thisLevel$",
-      "Add to $docLabel$",  "Output database", "Scan directories", "Replicate database",
-      "Exit program"],
-    "message": "What do you want to do?",
-    "name": "choice",
-    "type": "list"}],
- "-use-": [{"choices": [],
-    "message": "Use $nextLevel$:",
-    "name": "choice",
-    "type": "list"}] 
+"main":[ "Main menu",
+   {"Add new":             "form_",                     "append":"nextLevel"},
+   {"Open":                "menu_change",               "append":"nextLevel"},
+   {"Edit this":           "menu_edit_",                "append":"thisLevel"},
+   {"Close this":          "function_changeHierarchy_", "append":"thisLevel"},
+   {"Add to":              "form_",                     "expand":"docLabel"},
+   {"Output database":     "menu_output"},
+   {"Scan directories":    "function_scanDirectory"},
+   {"Replicate database":  "function_replicateDB"},
+   {"Exit program":        "function_exit"}
+],
+"output": [ "What to display?",
+   {"Output":              "function_output_",          "expand":"docLabel"},
+   {"Output hierarchy":    "function_outputHierarchy"}
+],
+"edit":["Edit text in Markdown"],
 }

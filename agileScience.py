@@ -1,72 +1,261 @@
-#!/usr/bin/python3
-##################################
-####  COMMAND LINE INTERFACE  ####
-##################################
-import copy
-from PyInquirer import prompt
-from asBackend import AgileScience
+import os, json, base64
+import importlib, traceback
+from io import StringIO, BytesIO
+import numpy as np
+import matplotlib.pyplot as plt
+from asTools import imageToString, stringToImage
+# from asCouchDB import Database
+from asCloudant import Database
+from commonTools import commonTools as cT
 
-### INITIALIZATION
-be = AgileScience()
-questionSets = be.getQuestions()
-addNewHierarchy = ['Add new '+i for i in be.hierList]
-addNewDocuments = ['Add to '+ i for j,i in be.typeLabels]
-
-
-### CONTINUOUSLY ASK QUESTIONS until exit
-nextQuestion = '-root-'
-while True:
-    #output the current hierarchical level
-    if len(be.hierStack) == 0:
-        print("\n==> You are at the root",be.cwd)
+class AgileScience:
+  """ PYTHON BACKEND 
+  """
+  def __init__(self):
+    """
+    open server and define database
+    """
+    # open configuration file and define database
+    jsonFile = open(os.path.expanduser('~')+'/.agileScience.json')
+    configuration = json.load(jsonFile)
+    user         = configuration["user"]
+    password     = configuration["password"]
+    databaseName = configuration["database"]
+    self.db = Database(user,password,databaseName)
+    self.remoteDB= configuration["remote"]
+    self.eargs   = configuration["eargs"]
+    # open basePath as current working directory
+    self.softwareDirectory = os.path.abspath(os.getcwd())
+    self.cwd     = os.path.expanduser('~')+"/"+configuration["baseFolder"]
+    self.baseDirectory = os.path.expanduser('~')+"/"+configuration["baseFolder"]
+    if not self.cwd.endswith("/"):
+      self.cwd += "/"
+    if os.path.exists(self.cwd):
+      os.chdir(self.cwd)
     else:
-        levelName = be.hierList[len(be.hierStack)-1]
-        objName   = be.getDoc(be.hierStack[-1])['name']
-        print("\n==> You are in "+levelName+":",objName,be.cwd )
-    #prepare questions
-    questions = copy.deepcopy(questionSets[nextQuestion])
-    questions = be.questionCleaner(questions)
-    #ask question
-    if questions is None:
-        nextQuestion = '-root-'
+      print("Base folder did not exist. No directory saving\n",self.cwd)
+      self.cwd   = None
+    # hierarchy structure
+    self.dataDictionary = self.db.getDoc("-dataDictionary-")
+    self.typeLabels = cT.dataDictionary2Labels(self.dataDictionary)
+    self.hierList = self.dataDictionary["-hierarchy-"]
+    self.hierStack = []
+    self.alive     = True
+    return
+
+
+  def exit(self):
+    """
+    Allows shutting down things
+    """
+    self.alive     = False
+    return
+  
+  ######################################################
+  ### Change in database
+  ######################################################
+  def addData(self,docType,data):
+    """
+    Save data to data base, also after edit
+
+    Args:
+       docType: docType to be stored
+       data: to be stored
+    """
+    if docType == '-edit-':
+      temp = self.db.getDoc(self.hierStack[-1])      
+      temp.update(data)
+      data = temp
+    else:
+      data['type'] = docType
+      if self.cwd is not None and data['type'] in self.hierList:  #create directory for projects,steps,tasks
+        os.makedirs( cT.camelCase(data['name']), exist_ok=True )
+    data = cT.fillDocBeforeCreate(data, docType,self.hierStack[0]).to_dict()
+    _id, _rev = self.db.saveDoc(data)
+    if 'image' in data:
+      del data['image']
+    print("Data saved",data)
+    if len(self.hierStack)>0 and data['type']!='project':
+      parent = self.db.getDoc(self.hierStack[-1])
+      parent['childs'].append(_id)
+      print("Parent updated",parent)
+      self.db.updateDoc(parent)
+    return
+  
+
+  ######################################################
+  ### Get data from database
+  ######################################################
+  def getDoc(self,id):
+    """
+    Wrapper for getting data from database
+    """
+    return self.db.getDoc(id)
+
+
+  def changeHierarchy(self, id):
+    """
+    Change through text hierarchy structure
+
+    Args:
+       document: information on how to change
+    """
+    if id in self.hierList:  #"project", "step", "task" are given: close
+      self.hierStack.pop()
+      if self.cwd is not None:
+        os.chdir('..')
+        self.cwd = '/'.join(self.cwd.split('/')[:-2])+'/'
+    else:                    #existing project ID is given: open that
+      self.hierStack.append(id)
+      if self.cwd is not None:
+        name = self.db.getDoc(id)['name']
+        os.chdir( cT.camelCase(name) )
+        self.cwd += cT.camelCase(name)+'/'
+    return
+
+
+  def scanDirectory(self):
+    """ Recursively scan directory tree for new files and print
+    """
+    for root,_,fNames in os.walk(self.cwd):
+      # find directory names
+      if len(fNames)==0:
         continue
-    else:
-        answer = prompt(questions)
-    #handle answers that come not out of '-root-' question
-    if 'choice' not in answer:                  #if measurement, project data entered
-        if len(answer)>0:                       #if user stops entry
-            be.addData(nextQuestion,answer)
-        nextQuestion = '-root-'
-    elif nextQuestion == '-use-':               #change into given project, step, task
-        be.changeHierarchy(answer['choice'])
-        nextQuestion = '-root-'
-    elif nextQuestion=='-output-':
-        if answer['choice']=='Hierarchy':
-            be.outputHierarchy()
+      relpath = os.path.relpath(root,start=self.baseDirectory)
+      if len(relpath.split('/'))==3:
+        project,step,task = relpath.split('/')
+      elif len(relpath.split('/'))==2:
+        project,step = relpath.split('/')
+        task = None
+      elif len(relpath.split('/'))==1:
+        project,step,task = relpath.split('/')[0], None, None
+      else:
+        project,step,task = None, None, None
+        print("Error")
+      # find IDs to names
+      projectID, stepID, taskID = None, None, None
+      for item in self.db.getView('viewProjects/viewProjects'):
+        if project == cT.camelCase(item['key']):
+          projectID = item['id']
+      if projectID is None:
+        print("**ERROR** No project found scanDirectory")
+        return
+      hierStack = [projectID]  #temporary version
+      if step is not None:
+        for itemID in self.db.getDoc(projectID)['childs']:
+          if step == cT.camelCase(self.db.getDoc(itemID)['name']):
+            stepID = itemID
+        if stepID is None:
+          print("**ERROR** No step found scanDirectory")
+          return
+        hierStack.append(stepID)
+      if task is not None:
+        for itemID in self.db.getDoc(stepID)['childs']:
+          if task == cT.camelCase(self.db.getDoc(itemID)['name']):
+            taskID = itemID
+        if taskID is None:
+          print("**ERROR** No task found scanDirectory")
+          return
+        hierStack.append(taskID)
+      # loop through all files and process
+      for fName in fNames:  #all files in this directory
+        print("\n\nTry to process for file:",fName)
+        doc = self.getImage(os.path.join(root,fName))
+        doc.update({'name':fName, 'type':'measurement', 'comment':'','alias':''})
+        self.addData('measurement',doc,hierStack)
+    return
+
+
+  def getImage(self, filePath):
+    """ get image from datafile: central distribution point
+
+    maxSize defined here
+    """
+    maxSize = 600
+    extension = os.path.splitext(filePath)[1][1:]
+    for pyFile in os.listdir(self.softwareDirectory):
+      if not pyFile.startswith("image_"+extension):
+        continue
+      try:
+        module = importlib.import_module(pyFile[:-3])
+        image, imgType, meta = module.getImage(filePath)
+        if imgType == "line":
+          figfile = StringIO()
+          plt.savefig(figfile, format='svg')
+          image = figfile.getvalue()
+          # 'data:image/svg+xml;utf8,<svg' + figfile.getvalue().split('<svg')[1]
+        elif imgType == "waves":
+          ratio = maxSize / image.size[np.argmax(image.size)]
+          image = image.resize( (np.array(image.size)*ratio).astype(np.int) ).convert('RGB')
+          figfile = BytesIO()
+          image.save(figfile, format='JPEG')
+          imageData = base64.b64encode(figfile.getvalue())
+          if not isinstance(imageData, str):   # Python 3, decode from bytes to string
+              imageData = imageData.decode()
+          image = 'data:image/jpg;base64,' + imageData
+        elif imgType == "contours":
+          image = image
         else:
-            be.output(answer['choice'])
-        nextQuestion = '-root-'
-    #answers that come out of '-root-' question
-    elif answer['choice'] in addNewHierarchy:     #if wants to enter project, step, task data
-        nextQuestion = answer['choice'].split()[-1]
-    elif answer['choice'] in addNewDocuments:
-        idx = addNewDocuments.index( answer['choice'] )
-        nextQuestion = be.typeLabels[idx][0]
-    elif answer['choice'] == "Output database": #if wants to get output
-        nextQuestion = '-output-'
-    elif 'Change to' in answer['choice']:       #change project, step, task
-        nextQuestion = '-use-'
-    elif "Close " in answer['choice']:          #close project, step, task
-        be.changeHierarchy('-close-')
-        nextQuestion = '-root-'
-    elif "Edit " in answer['choice']:           #edit  project, step, task
-        nextQuestion = '-edit-'
-    elif answer['choice'] == "Scan directories":
-        be.scanDirectory()
-        nextQuestion = '-root-'
-    elif answer['choice'] == "Replicate database":#replicate database
-        be.replicateDB()
-    elif answer['choice'] == "Exit program":    #exit
-        break
-    else:
-        print("**WARNING** Non identified case",answer)
+          raise NameError('**ERROR** Implementation failed')
+        meta['image'] = image
+        print("Image successfully created")
+        return meta
+      except:
+        print(traceback.format_exc())
+        print("Failure to produce image with",pyFile," with data file", filePath)
+        print("Try next file")
+    return None         #default case if nothing is found
+
+
+  ######################################################
+  ### OUTPUT COMMANDS ###
+  ######################################################
+  def output(self,docType):
+    view = 'view'+docType
+    if docType=='Measurements':
+      print('{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format('Name','Alias','Comment','Image','project-ID'))
+    if docType=='Projects':
+      print('{0: <25}|{1: <6}|{2: >5}|{3: <38}|{4: <32}'.format('Name','Status','#Tags','Objective','ID'))
+    if docType=='Procedures':
+      print('{0: <25}|{1: <51}|{2: <32}'.format('Name','Content','project-ID'))
+    if docType=='Samples':
+      print('{0: <25}|{1: <15}|{2: <27}|{3: <7}|{4: <32}'.format('Name','Chemistry','Comment','QR-code','project-ID'))
+    print('-'*110)
+    for item in self.db.getView(view+'/'+view):
+      if docType=='Measurements':
+        print('{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format(
+          item['value'][0][:25],item['value'][1][:21],item['value'][2][:21],str(item['value'][3]),item['key']))
+      if docType=='Projects':
+        print('{0: <25}|{1: <6}|{2: <5}|{3: <38}|{4: <32}'.format(
+          item['key'][:25],item['value'][0][:6],item['value'][2],item['value'][1][:38],item['id']))
+      if docType=='Procedures':
+        print('{0: <25}|{1: <51}|{2: <32}'.format(
+          item['value'][0][:25],item['value'][1][:51],item['key']))
+      if docType=='Samples':
+        print('{0: <25}|{1: <15}|{2: <27}|{3: <7}|{4: <32}'.format(
+          item['value'][0][:25],item['value'][1][:15],item['value'][2][:27],str(item['value'][3]),item['key']))
+    print("\n\n")
+    return
+
+
+  def outputHierarchy(self):
+    """
+    print hierarchical structure in database
+    - convert view into native dictionary
+    - ignore key since it is always the same
+    """
+    if len(self.hierStack)==0:
+      print('**WARNING** No project selected')
+      return
+    projectID = self.hierStack[0]
+    view = self.db.getView('viewProjects/viewHierarchy', key=projectID)
+    nativeView = {}
+    for item in view:
+      nativeView[item['id']] = item['value']
+    outString = cT.projectDocsToString(nativeView, projectID,0)
+    print(outString)
+    return
+
+  def replicateDB(self):
+    self.db.replicateDB(self.remoteDB)
+    return
