@@ -11,16 +11,19 @@ from commonTools import commonTools as cT
 class AgileScience:
   """ PYTHON BACKEND 
   """
-  def __init__(self):
+  def __init__(self, databaseName=None):
     """
     open server and define database
+
+    Args:
+        databaseName: name of database, otherwise taken from config file
     """
     # open configuration file and define database
     jsonFile = open(os.path.expanduser('~')+'/.agileScience.json')
     configuration = json.load(jsonFile)
     user         = configuration["user"]
     password     = configuration["password"]
-    databaseName = configuration["database"]
+    databaseName = configuration["database"] if databaseName is None
     self.db = Database(user,password,databaseName)
     self.remoteDB= configuration["remote"]
     self.eargs   = configuration["eargs"]
@@ -37,7 +40,6 @@ class AgileScience:
       self.cwd   = None
     # hierarchy structure
     self.dataDictionary = self.db.getDoc("-dataDictionary-")
-    self.typeLabels = cT.dataDictionary2Labels(self.dataDictionary)
     self.hierList = self.dataDictionary["-hierarchy-"]
     self.hierStack = []
     self.alive     = True
@@ -54,13 +56,14 @@ class AgileScience:
   ######################################################
   ### Change in database
   ######################################################
-  def addData(self,docType,data):
+  def addData(self,docType,data, hierStack=None):
     """
     Save data to data base, also after edit
 
     Args:
        docType: docType to be stored
        data: to be stored
+       hierStack: hierStack from external functions
     """
     if docType == '-edit-':
       temp = self.db.getDoc(self.hierStack[-1])      
@@ -70,7 +73,10 @@ class AgileScience:
       data['type'] = docType
       if self.cwd is not None and data['type'] in self.hierList:  #create directory for projects,steps,tasks
         os.makedirs( cT.camelCase(data['name']), exist_ok=True )
-    data = cT.fillDocBeforeCreate(data, docType,self.hierStack[0]).to_dict()
+    if hierStack is None:
+      hierStack = self.hierStack
+    projectID = hierStack[0] if len(hierStack)>1 else None
+    data = cT.fillDocBeforeCreate(data, docType, projectID).to_dict()
     _id, _rev = self.db.saveDoc(data)
     if 'image' in data:
       del data['image']
@@ -89,6 +95,9 @@ class AgileScience:
   def getDoc(self,id):
     """
     Wrapper for getting data from database
+
+    Args:
+        id: document id
     """
     return self.db.getDoc(id)
 
@@ -98,7 +107,7 @@ class AgileScience:
     Change through text hierarchy structure
 
     Args:
-       document: information on how to change
+       id: information on how to change
     """
     if id in self.hierList:  #"project", "step", "task" are given: close
       self.hierStack.pop()
@@ -115,7 +124,8 @@ class AgileScience:
 
 
   def scanDirectory(self):
-    """ Recursively scan directory tree for new files and print
+    """ 
+    Recursively scan directory tree for new files and print
     """
     for root,_,fNames in os.walk(self.cwd):
       # find directory names
@@ -167,9 +177,12 @@ class AgileScience:
 
 
   def getImage(self, filePath):
-    """ get image from datafile: central distribution point
+    """ 
+    get image from datafile: central distribution point
+    - max image size defined here
 
-    maxSize defined here
+    Args:
+        filePath: path to file    
     """
     maxSize = 600
     extension = os.path.splitext(filePath)[1][1:]
@@ -207,10 +220,24 @@ class AgileScience:
     return None         #default case if nothing is found
 
 
+  def replicateDB(self):
+    """
+    Replicate local database to remote database
+    """
+    self.db.replicateDB(self.remoteDB)
+    return
+
+
   ######################################################
   ### OUTPUT COMMANDS ###
   ######################################################
   def output(self,docType):
+    """
+    output view to screen
+
+    Args:
+        docType: document type to print
+    """
     view = 'view'+docType
     if docType=='Measurements':
       print('{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format('Name','Alias','Comment','Image','project-ID'))
@@ -224,7 +251,7 @@ class AgileScience:
     for item in self.db.getView(view+'/'+view):
       if docType=='Measurements':
         print('{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format(
-          item['value'][0][:25],item['value'][1][:21],item['value'][2][:21],str(item['value'][3]),item['key']))
+          item['value'][0][:25],str(item['value'][1])[:21],item['value'][2][:21],str(item['value'][3]),item['key']))
       if docType=='Projects':
         print('{0: <25}|{1: <6}|{2: <5}|{3: <38}|{4: <32}'.format(
           item['key'][:25],item['value'][0][:6],item['value'][2],item['value'][1][:38],item['id']))
@@ -254,8 +281,4 @@ class AgileScience:
       nativeView[item['id']] = item['value']
     outString = cT.projectDocsToString(nativeView, projectID,0)
     print(outString)
-    return
-
-  def replicateDB(self):
-    self.db.replicateDB(self.remoteDB)
     return

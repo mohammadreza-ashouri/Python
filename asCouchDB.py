@@ -2,7 +2,8 @@ import couchdb, traceback, json
 from commonTools import commonTools as cT
 
 class Database:
-  """ Class for interaction with couchDB
+  """ 
+  Class for interaction with couchDB
   """
   def __init__(self, user, password, databaseName):
     couch = couchdb.Server("http://"+user+":"+password+"@localhost:5984/")
@@ -25,19 +26,18 @@ class Database:
       reply = self.db.save(dataDictionary)
       
     ## check if default views exist #TODO later: Generate from data_dictionary
-    ### Old version
-    #jsProject = "if (doc.type && doc.type=='project')   {emit(doc.name, [doc.status,doc.objective,doc.tags.length]);}"
-    #     if (doc.type && (doc.type=='project'||doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}
-    #function (doc) {\nif (doc.type && (doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}if (doc.type && doc.type=='project') {emit(doc._id, [doc.type,doc.name,doc.childs]);}\n}
-    jsProject= {"viewProjects": {"map": "function (doc) {\nif (doc.type && doc.type=='project') {emit(doc.name, [doc.status,doc.objective,doc.tags.length]);}\n}"},
-                "viewHierarchy":{"map": "function (doc) {\nif (doc.type && (doc.type=='project'||doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}\n}"} }
+    jsProject= {"viewProjects": "if (doc.type && doc.type=='project') {emit(doc.name, [doc.status,doc.objective,doc.tags.length]);}",
+                "viewHierarchy":"if (doc.type && (doc.type=='project'||doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}" }
     jsMeasurement= "if (doc.type && doc.type=='measurement'){emit(doc.project, [doc.name,doc.alias,doc.comment,doc.image.length>3]);}"
     jsProcedure="if (doc.type && doc.type=='procedure') {emit(doc.project, [doc.name,doc.content]);}"    
-    jsSample  = "if (doc.type && doc.type=='sample')    {emit(doc.project, [doc.name,doc.chemistry,doc.comment,doc.qr_code!='']);}"
+    jsSample  ={"viewSamples": "if (doc.type && doc.type=='sample') {emit(doc.project, [doc.name,doc.chemistry,doc.comment,doc.qr_code!='']);}",
+                "viewQR":      "if (doc.type && doc.type=='sample' && doc.qr_code!='') {emit(doc.qr_code, doc.name);}",
     jsDefault = "if (doc.type && doc.type=='$docType$') {emit(doc.project, doc.name);}"
     doc = self.db.get("-dataDictionary-")
-    typeLabels = cT.dataDictionary2Labels(doc)
-    for dataType,dataLabel in typeLabels:
+    res = cT.dataDictionary2DataLabels(doc)
+    self.dataLabels = list(res['dataList'])
+    self.hierarchyLabels = list(res['hierarchyList'])
+    for dataType,dataLabel in self.dataLabels+self.hierarchyLabels:
       view = "view"+dataLabel
       if "_design/"+view not in self.db:
         print("**WARNING** "+view+" not defined. Use default one")

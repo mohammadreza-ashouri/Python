@@ -49,7 +49,10 @@ while be.alive:
             if expand is None:
                 expand = ['']
             else:
-                expand = [' '+j for i,j in be.typeLabels]
+                if nextMenu=='main':
+                    expand = [' '+j for i,j in be.db.dataLabels]
+                else: #output
+                    expand = [' '+j for i,j in be.db.dataLabels+be.db.hierarchyLabels]
             #create list of choices
             for item in expand:
                 question[0]['choices'].append({'name':key+item, 'value':value+item[1:] })
@@ -80,7 +83,7 @@ while be.alive:
         docType = nextMenu.split('_')[1]
         question = []
         if docType not in be.dataDictionary:
-            for type_, label_ in be.typeLabels:
+            for type_, label_ in be.db.dataLabels:
                 if label_ == docType:
                     docType = type_
         for line in be.dataDictionary[docType]: #iterate over all data stored within this docType
@@ -106,15 +109,13 @@ while be.alive:
                 newQuestion['choices'] = keywords['list']
             question.append(newQuestion)
         question.append({"type":"input","name":"comment","message":"#tags, :field:value: comments"})
-        if docType not in be.hierList:  #those are anyhow linked
-            question.append({'type':'confirm','name':'flagLinked','message':'Link to hierarchy?'})
     #####################
     ### ask question  ###
     #####################
-    print("\n\n")
-    pprint(question)
+    # print("\n\n")
+    # pprint(question)
     answer = prompt(question)
-    pprint(answer)
+    # pprint(answer)
     #####################
     ### handle answer ###
     #####################
