@@ -30,7 +30,8 @@ class Database:
         ## check if default views exist
         jsProject = {"viewProjects":  "if (doc.type && doc.type=='project') {emit(doc.name, [doc.status,doc.objective,doc.tags.length]);}",
                      "viewHierarchy": "if (doc.type && (doc.type=='project'||doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}"}
-        jsMeasurement = "if (doc.type && doc.type=='measurement'){emit(doc.project, [doc.name,doc.alias,doc.comment,doc.image.length>3]);}"
+        jsMeasurement = {"viewMeasurements": "if (doc.type && doc.type=='measurement'){emit(doc.project, [doc.name,doc.alias,doc.comment,doc.image.length>3]);}",
+                         "viewMD5"         : "if (doc.type && doc.type=='measurement'){emit(doc.md5sum, doc.name);}"}
         jsProcedure = "if (doc.type && doc.type=='procedure') {emit(doc.project, [doc.name,doc.content]);}"
         jsSample = {"viewSamples": "if (doc.type && doc.type=='sample') {emit(doc.project, [doc.name,doc.chemistry,doc.comment,doc.qr_code!='']);}",
                     "viewQR":      "if (doc.type && doc.type=='sample' && doc.qr_code!='') {emit(doc.qr_code, doc.name);}"}

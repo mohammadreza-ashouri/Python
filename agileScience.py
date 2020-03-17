@@ -1,6 +1,5 @@
-import os, json, base64
+import os, json, base64, hashlib
 import importlib, traceback
-from io import StringIO, BytesIO
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
@@ -67,38 +66,56 @@ class AgileScience:
     ### Change in database
     ######################################################
     def addData(self, docType, data, hierStack=[]):
-        """
-        Save data to data base, also after edit
+      """
+      Save data to data base, also after edit
 
-        Args:
-           docType: docType to be stored
-           data: to be stored
-           hierStack: hierStack from external functions
-        """
-        logging.info('jams.addData Got data: '+docType+' | '+str(hierStack))
-        logging.info(str(data))
-        if docType == '-edit-':
-            temp = self.db.getDoc(self.hierStack[-1])
-            temp.update(data)
-            data = temp
-        else:
-            data['type'] = docType
-            if self.cwd is not None and data['type'] in self.hierList:  # create directory for projects,steps,tasks
-                os.makedirs(cT.camelCase(data['name']), exist_ok=True)
-        if len(hierStack) == 0:
-            hierStack = self.hierStack
-        projectID = hierStack[0] if len(hierStack) > 0 else None
-        data = cT.fillDocBeforeCreate(data, docType, projectID).to_dict()
-        _id, _rev = self.db.saveDoc(data)
-        if 'image' in data:
-            del data['image']
-        logging.debug("Data saved "+str(data))
-        if len(self.hierStack) > 0 and data['type'] != 'project':
-            parent = self.db.getDoc(self.hierStack[-1])
-            parent['childs'].append(_id)
-            logging.debug("Parent updated "+str(parent))
-            self.db.updateDoc(parent)
-        return
+      Logic is complicated: # TODO simplify logic with clear docTypes
+
+      Args:
+          docType: docType to be stored
+          data: to be stored
+          hierStack: hierStack from external functions
+      """
+      logging.info('jams.addData Got data: '+docType+' | '+str(hierStack))
+      # logging.info(str(data))
+      # collect data and prepare
+      if docType == '-edit-':
+        temp = self.db.getDoc(self.hierStack[-1])
+        temp.update(data)
+        data   = temp
+        newDoc = False
+      else:
+        data['type'] = docType
+        newDoc       = True
+      if len(hierStack) == 0:
+        hierStack = self.hierStack
+      projectID = hierStack[0] if len(hierStack) > 0 else None
+      if len(self.hierStack) > 0 and data['type'] != 'project':
+        parent = self.db.getDoc(self.hierStack[-1])
+      else:
+        parent = None
+      dirName = None
+      if newDoc and self.cwd is not None:  #updated information keeps its dirName
+        if data['type'] == 'project':
+          dirName = cT.camelCase(data['name'])
+        elif data['type'] in self.hierList:
+          dirName = ("{:03d}".format(len(parent['childs'])))+'_'+cT.camelCase(data['name'])
+        data['dirName'] = dirName
+      # do default filling and save
+      data = cT.fillDocBeforeCreate(data, docType, projectID).to_dict()
+      _id, _rev = self.db.saveDoc(data)
+      if 'image' in data:
+        del data['image']
+      logging.debug("Data saved "+str(data))
+      if parent is not None:
+        parent['childs'].append(_id)
+        logging.debug("Parent updated "+str(parent))
+        self.db.updateDoc(parent)
+      if dirName is not None:  # create directory for projects,steps,tasks
+        os.makedirs(dirName, exist_ok=True)
+        with open(dirName+'/.id.txt','w') as f:
+          f.write(_id)
+      return
 
 
     ######################################################
@@ -129,9 +146,9 @@ class AgileScience:
         else:  # existing project ID is given: open that
             self.hierStack.append(id)
             if self.cwd is not None:
-                name = self.db.getDoc(id)['name']
-                os.chdir(cT.camelCase(name))
-                self.cwd += cT.camelCase(name)+'/'
+                dirName = self.db.getDoc(id)['dirName']
+                os.chdir(dirName)
+                self.cwd += cT.camelCase(dirName)+'/'
         return
 
 
@@ -182,9 +199,16 @@ class AgileScience:
             # loop through all files and process
             for fName in fNames:  # all files in this directory
                 logging.info("Try to process for file:"+fName)
-                doc = self.getImage(os.path.join(root, fName))
-                doc.update({'name': fName, 'type': 'measurement', 'comment': '', 'alias': ''})
-                self.addData('measurement', doc, hierStack)
+                if fName.endswith('_jams.svg') or fName.endswith('_jams.jpg') or fName == '.id.txt':
+                  continue
+                # test if file already in database
+                md5sum = hashlib.md5(open(fName,'rb').read()).hexdigest()
+                view = self.db.getView('viewMeasurements/viewMD5', key=md5sum)
+                if len(view) > 0:
+                  logging.warning("File"+fName+" is already in db as id "+view[0]['id']+" with filename "+view[0]['value'])
+                else:
+                  doc = self.getImage(os.path.join(root, fName))
+                  self.addData('measurement', doc, hierStack)
         return
 
 
@@ -204,25 +228,25 @@ class AgileScience:
             try:
                 module = importlib.import_module(pyFile[:-3])
                 image, imgType, meta = module.getImage(filePath)
-                if imgType == "line":
-                    figfile = StringIO()
-                    plt.savefig(figfile, format='svg')
-                    image = figfile.getvalue()
+                if imgType == "line":  #no scaling
+                    outFile = os.path.splitext(filePath)[0]+"_jams.svg"
+                    plt.savefig(outFile)
+                    image = open(outFile,'r').read()
                     # 'data:image/svg+xml;utf8,<svg' + figfile.getvalue().split('<svg')[1]
                 elif imgType == "waves":
                     ratio = maxSize / image.size[np.argmax(image.size)]
                     image = image.resize((np.array(image.size)*ratio).astype(np.int)).convert('RGB')
-                    figfile = BytesIO()
-                    image.save(figfile, format='JPEG')
-                    imageData = base64.b64encode(figfile.getvalue())
-                    if not isinstance(imageData, str):   # Python 3, decode from bytes to string
-                        imageData = imageData.decode()
-                    image = 'data:image/jpg;base64,' + imageData
+                    outFile = os.path.splitext(filePath)[0]+"_jams.jpg"
+                    image.save(outFile)
+                    imageData = base64.b64encode(open(outFile,'rb').read())
+                    image = 'data:image/jpg;base64,' + imageData.decode()
                 elif imgType == "contours":
                     image = image
                 else:
                     raise NameError('**ERROR** Implementation failed')
-                meta['image'] = image
+                meta['image']  = image
+                meta['md5sum'] = hashlib.md5(open(filePath,'rb').read()).hexdigest()
+                meta.update({'name': filePath, 'type': 'measurement', 'comment': '', 'alias': ''})
                 logging.info("Image successfully created")
                 return meta
             except:
@@ -296,3 +320,25 @@ class AgileScience:
             nativeView[item['id']] = item['value']
         outString = cT.projectDocsToString(nativeView, projectID, 0)
         return outString
+
+
+    def outputQR(self):
+      """
+      output list of sample qr-codes
+      """
+      outString = '{0: <25}|{1: <40}|{2: <25}'.format('QR', 'Name', 'ID')+'\n'
+      outString += '-'*110+'\n'
+      for item in self.db.getView('viewSamples/viewQR'):
+        outString += '{0: <25}|{1: <40}|{2: <25}'.format(item['key'], item['value'][:40], item['id'])+'\n'
+      return outString
+
+
+    def outputMD5(self):
+      """
+      output list of measurement md5-sums of files
+      """
+      outString = '{0: <32}|{1: <40}|{2: <25}'.format('MD5 sum', 'Name', 'ID')+'\n'
+      outString += '-'*110+'\n'
+      for item in self.db.getView('viewMeasurements/viewMD5'):
+        outString += '{0: <32}|{1: <40}|{2: <25}'.format(item['key'], item['value'][-40:], item['id'])+'\n'
+      return outString
