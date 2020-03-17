@@ -5,7 +5,7 @@ from agileScience import AgileScience
 ### initialization
 databaseName = 'test_db_agile_science'
 dirName      = os.path.expanduser('~')+"/"+databaseName
-os.makedirs( dirName, exist_ok=True )
+os.makedirs(dirName, exist_ok=True)
 be = AgileScience(databaseName)
 
 ### create some test projects
@@ -53,8 +53,8 @@ print(be.output('Samples'))
 print("*** TEST MEASUREMENTS ***")
 be.addData('measurement', {'name': 'filename.txt', 'alias': '', 'comment': '#5 great stuff'})
 be.addData('measurement', {'name': 'filename.jpg', 'alias': 'image', 'comment': '#3 medium stuff'})
-shutil.copy(be.softwareDirectory+'/ExampleMeasurements/Zeiss.tif',dirName+'/TestProject1/')
-shutil.copy(be.softwareDirectory+'/ExampleMeasurements/RobinSteel0000LC.txt',dirName+'/TestProject1/')
+shutil.copy(be.softwareDirectory+'/ExampleMeasurements/Zeiss.tif', dirName+'/TestProject1/')
+shutil.copy(be.softwareDirectory+'/ExampleMeasurements/RobinSteel0000LC.txt', dirName+'/TestProject1/')
 be.scanDirectory()
 print(be.output('Measurements'))
 
@@ -65,5 +65,5 @@ print("Skip replication test since authentication does not seem to work on remot
 ### end of test
 input("Hit enter to finish verification:")
 be.db.client.delete_database(databaseName)
-shutil.rmtree( dirName )
+shutil.rmtree(dirName)
 be.exit()
