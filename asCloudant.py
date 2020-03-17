@@ -1,4 +1,4 @@
-import traceback, json
+import traceback, json, logging
 from cloudant.client import CouchDB, Cloudant
 from cloudant.view import View
 from cloudant.design_document import DesignDocument
@@ -14,8 +14,7 @@ class Database:
     try:
       self.client = CouchDB(user,password,url='http://127.0.0.1:5984',connect=True)
     except Exception:
-      print("Something unexpected has happend")
-      print(traceback.format_exc())
+      logging.error("Something unexpected has happend"+traceback.format_exc())
     if databaseName in self.client:
       self.db = self.client[databaseName]
     else:
@@ -23,7 +22,7 @@ class Database:
 
     ## check if default document exist
     if "-dataDictionary-" not in self.db:
-      print("**WARNING** Data structure not defined. Use default one")
+      logging.warning("**WARNING** Data structure not defined. Use default one")
       dataDictionary = json.load(open("dataDictionary.json",'r'))
       reply = self.db.create_document(dataDictionary)
       
@@ -33,7 +32,7 @@ class Database:
     jsMeasurement= "if (doc.type && doc.type=='measurement'){emit(doc.project, [doc.name,doc.alias,doc.comment,doc.image.length>3]);}"
     jsProcedure="if (doc.type && doc.type=='procedure') {emit(doc.project, [doc.name,doc.content]);}"    
     jsSample  ={"viewSamples": "if (doc.type && doc.type=='sample') {emit(doc.project, [doc.name,doc.chemistry,doc.comment,doc.qr_code!='']);}",
-                "viewQR":      "if (doc.type && doc.type=='sample' && doc.qr_code!='') {emit(doc.qr_code, doc.name);}",
+                "viewQR":      "if (doc.type && doc.type=='sample' && doc.qr_code!='') {emit(doc.qr_code, doc.name);}"}
     jsDefault = "if (doc.type && doc.type=='$docType$') {emit(doc.project, doc.name);}"
     doc = self.db["-dataDictionary-"]
     res = cT.dataDictionary2DataLabels(doc)
@@ -42,7 +41,7 @@ class Database:
     for dataType,dataLabel in self.dataLabels+self.hierarchyLabels:
       view = "view"+dataLabel
       if "_design/"+view not in self.db:
-        print("**WARNING** "+view+" not defined. Use default one")
+        logging.warning("**WARNING** "+view+" not defined. Use default one")
         if dataType=='project':
           self.saveView(view,view,jsProject)
         elif dataType=='measurement':
@@ -75,7 +74,7 @@ class Database:
     """
     Wrapper for update
     """
-    self.db[doc.id] = doc
+    doc.save()
     return
 
 
@@ -112,8 +111,7 @@ class Database:
     try:
       designDoc.save()
     except Exception:
-      print("Something unexpected has happend")
-      print(traceback.format_exc())
+      logging.error("Something unexpected has happend"+traceback.format_exc())
     return
 
 
@@ -125,5 +123,5 @@ class Database:
     client2 = Cloudant(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
     db2 = client2[dbInfo['database']]
     doc = rep.create_replication(self.db, db2)
-    print("**INFORMATION** Should be replicated!")
+    logging.info("Should be replicated!")
     return

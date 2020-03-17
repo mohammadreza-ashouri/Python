@@ -3,8 +3,10 @@ import importlib, traceback
 from io import StringIO, BytesIO
 import numpy as np
 import matplotlib.pyplot as plt
-from asTools import imageToString, stringToImage
+import logging
+
 # from asCouchDB import Database
+from asTools import imageToString, stringToImage
 from asCloudant import Database
 from commonTools import commonTools as cT
 
@@ -19,11 +21,16 @@ class AgileScience:
         databaseName: name of database, otherwise taken from config file
     """
     # open configuration file and define database
+    logging.basicConfig(filename='jams.log',format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
+    logging.debug("\nSTART JAMS")
     jsonFile = open(os.path.expanduser('~')+'/.agileScience.json')
     configuration = json.load(jsonFile)
     user         = configuration["user"]
     password     = configuration["password"]
-    databaseName = configuration["database"] if databaseName is None
+    if databaseName is None:
+      databaseName = configuration["database"]
+    else: #if test
+      configuration['baseFolder'] = databaseName
     self.db = Database(user,password,databaseName)
     self.remoteDB= configuration["remote"]
     self.eargs   = configuration["eargs"]
@@ -36,7 +43,7 @@ class AgileScience:
     if os.path.exists(self.cwd):
       os.chdir(self.cwd)
     else:
-      print("Base folder did not exist. No directory saving\n",self.cwd)
+      logging.warning("Base folder did not exist. No directory saving\n"+self.cwd)
       self.cwd   = None
     # hierarchy structure
     self.dataDictionary = self.db.getDoc("-dataDictionary-")
@@ -56,7 +63,7 @@ class AgileScience:
   ######################################################
   ### Change in database
   ######################################################
-  def addData(self,docType,data, hierStack=None):
+  def addData(self,docType,data, hierStack=[]):
     """
     Save data to data base, also after edit
 
@@ -65,6 +72,8 @@ class AgileScience:
        data: to be stored
        hierStack: hierStack from external functions
     """
+    logging.info('jams.addData Got data: '+docType+' | '+str(hierStack))
+    logging.info(str(data))
     if docType == '-edit-':
       temp = self.db.getDoc(self.hierStack[-1])      
       temp.update(data)
@@ -73,18 +82,18 @@ class AgileScience:
       data['type'] = docType
       if self.cwd is not None and data['type'] in self.hierList:  #create directory for projects,steps,tasks
         os.makedirs( cT.camelCase(data['name']), exist_ok=True )
-    if hierStack is None:
+    if len(hierStack) == 0:
       hierStack = self.hierStack
-    projectID = hierStack[0] if len(hierStack)>1 else None
+    projectID = hierStack[0] if len(hierStack)>0 else None
     data = cT.fillDocBeforeCreate(data, docType, projectID).to_dict()
     _id, _rev = self.db.saveDoc(data)
     if 'image' in data:
       del data['image']
-    print("Data saved",data)
+    logging.debug("Data saved "+str(data))
     if len(self.hierStack)>0 and data['type']!='project':
       parent = self.db.getDoc(self.hierStack[-1])
       parent['childs'].append(_id)
-      print("Parent updated",parent)
+      logging.debug("Parent updated "+str(parent))
       self.db.updateDoc(parent)
     return
   
@@ -125,7 +134,7 @@ class AgileScience:
 
   def scanDirectory(self):
     """ 
-    Recursively scan directory tree for new files and print
+    Recursively scan directory tree for new files
     """
     for root,_,fNames in os.walk(self.cwd):
       # find directory names
@@ -141,14 +150,14 @@ class AgileScience:
         project,step,task = relpath.split('/')[0], None, None
       else:
         project,step,task = None, None, None
-        print("Error")
+        logging.error("jams.scanDirectory Error 1")
       # find IDs to names
       projectID, stepID, taskID = None, None, None
       for item in self.db.getView('viewProjects/viewProjects'):
         if project == cT.camelCase(item['key']):
           projectID = item['id']
       if projectID is None:
-        print("**ERROR** No project found scanDirectory")
+        logging.error("jams.scanDirectory No project found scanDirectory")
         return
       hierStack = [projectID]  #temporary version
       if step is not None:
@@ -156,7 +165,7 @@ class AgileScience:
           if step == cT.camelCase(self.db.getDoc(itemID)['name']):
             stepID = itemID
         if stepID is None:
-          print("**ERROR** No step found scanDirectory")
+          logging.error("jams.scanDirectory No step found scanDirectory")
           return
         hierStack.append(stepID)
       if task is not None:
@@ -164,12 +173,12 @@ class AgileScience:
           if task == cT.camelCase(self.db.getDoc(itemID)['name']):
             taskID = itemID
         if taskID is None:
-          print("**ERROR** No task found scanDirectory")
+          logging.error("jams.scanDirectory No task found scanDirectory")
           return
         hierStack.append(taskID)
       # loop through all files and process
       for fName in fNames:  #all files in this directory
-        print("\n\nTry to process for file:",fName)
+        logging.info("Try to process for file:"+fName)
         doc = self.getImage(os.path.join(root,fName))
         doc.update({'name':fName, 'type':'measurement', 'comment':'','alias':''})
         self.addData('measurement',doc,hierStack)
@@ -211,12 +220,10 @@ class AgileScience:
         else:
           raise NameError('**ERROR** Implementation failed')
         meta['image'] = image
-        print("Image successfully created")
+        logging.info("Image successfully created")
         return meta
       except:
-        print(traceback.format_exc())
-        print("Failure to produce image with",pyFile," with data file", filePath)
-        print("Try next file")
+        logging.warning("Failure to produce image with "+pyFile+" with data file"+filePath+"\n"+traceback.format_exc())
     return None         #default case if nothing is found
 
 
@@ -236,43 +243,43 @@ class AgileScience:
     output view to screen
 
     Args:
-        docType: document type to print
+        docType: document type to output
     """
     view = 'view'+docType
+    outString = ''
     if docType=='Measurements':
-      print('{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format('Name','Alias','Comment','Image','project-ID'))
+      outString += '{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format('Name','Alias','Comment','Image','project-ID')+'\n'
     if docType=='Projects':
-      print('{0: <25}|{1: <6}|{2: >5}|{3: <38}|{4: <32}'.format('Name','Status','#Tags','Objective','ID'))
+      outString += '{0: <25}|{1: <6}|{2: >5}|{3: <38}|{4: <32}'.format('Name','Status','#Tags','Objective','ID')+'\n'
     if docType=='Procedures':
-      print('{0: <25}|{1: <51}|{2: <32}'.format('Name','Content','project-ID'))
+      outString += '{0: <25}|{1: <51}|{2: <32}'.format('Name','Content','project-ID')+'\n'
     if docType=='Samples':
-      print('{0: <25}|{1: <15}|{2: <27}|{3: <7}|{4: <32}'.format('Name','Chemistry','Comment','QR-code','project-ID'))
-    print('-'*110)
+      outString += '{0: <25}|{1: <15}|{2: <27}|{3: <7}|{4: <32}'.format('Name','Chemistry','Comment','QR-code','project-ID')+'\n'
+    outString += '-'*110+'\n'
     for item in self.db.getView(view+'/'+view):
       if docType=='Measurements':
-        print('{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format(
-          item['value'][0][:25],str(item['value'][1])[:21],item['value'][2][:21],str(item['value'][3]),item['key']))
+        outString += '{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format(
+          item['value'][0][:25],str(item['value'][1])[:21],item['value'][2][:21],str(item['value'][3]),item['key'])+'\n'
       if docType=='Projects':
-        print('{0: <25}|{1: <6}|{2: <5}|{3: <38}|{4: <32}'.format(
-          item['key'][:25],item['value'][0][:6],item['value'][2],item['value'][1][:38],item['id']))
+        outString += '{0: <25}|{1: <6}|{2: <5}|{3: <38}|{4: <32}'.format(
+          item['key'][:25],item['value'][0][:6],item['value'][2],item['value'][1][:38],item['id'])+'\n'
       if docType=='Procedures':
-        print('{0: <25}|{1: <51}|{2: <32}'.format(
-          item['value'][0][:25],item['value'][1][:51],item['key']))
+        outString += '{0: <25}|{1: <51}|{2: <32}'.format(
+          item['value'][0][:25],item['value'][1][:51],item['key'])+'\n'
       if docType=='Samples':
-        print('{0: <25}|{1: <15}|{2: <27}|{3: <7}|{4: <32}'.format(
-          item['value'][0][:25],item['value'][1][:15],item['value'][2][:27],str(item['value'][3]),item['key']))
-    print("\n\n")
-    return
+        outString += '{0: <25}|{1: <15}|{2: <27}|{3: <7}|{4: <32}'.format(
+          item['value'][0][:25],item['value'][1][:15],item['value'][2][:27],str(item['value'][3]),item['key'])+'\n'
+    return outString
 
 
   def outputHierarchy(self):
     """
-    print hierarchical structure in database
+    output hierarchical structure in database
     - convert view into native dictionary
     - ignore key since it is always the same
     """
     if len(self.hierStack)==0:
-      print('**WARNING** No project selected')
+      logging.warning('jams.outputHierarchy No project selected')
       return
     projectID = self.hierStack[0]
     view = self.db.getView('viewProjects/viewHierarchy', key=projectID)
@@ -280,5 +287,4 @@ class AgileScience:
     for item in view:
       nativeView[item['id']] = item['value']
     outString = cT.projectDocsToString(nativeView, projectID,0)
-    print(outString)
-    return
+    return outString

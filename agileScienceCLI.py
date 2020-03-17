@@ -130,6 +130,9 @@ while be.alive:
                 res = getattr(be, answer[1] )()
             elif len(answer)>2:
                 res = getattr(be, answer[1] )('_'.join(answer[2:]))
+            else:
+                res = ''
+            print(res)
             nextMenu = 'main'
     else:
         be.addData(docType,answer)

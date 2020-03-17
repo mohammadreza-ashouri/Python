@@ -31,7 +31,7 @@ class Database:
     jsMeasurement= "if (doc.type && doc.type=='measurement'){emit(doc.project, [doc.name,doc.alias,doc.comment,doc.image.length>3]);}"
     jsProcedure="if (doc.type && doc.type=='procedure') {emit(doc.project, [doc.name,doc.content]);}"    
     jsSample  ={"viewSamples": "if (doc.type && doc.type=='sample') {emit(doc.project, [doc.name,doc.chemistry,doc.comment,doc.qr_code!='']);}",
-                "viewQR":      "if (doc.type && doc.type=='sample' && doc.qr_code!='') {emit(doc.qr_code, doc.name);}",
+                "viewQR":      "if (doc.type && doc.type=='sample' && doc.qr_code!='') {emit(doc.qr_code, doc.name);}"}
     jsDefault = "if (doc.type && doc.type=='$docType$') {emit(doc.project, doc.name);}"
     doc = self.db.get("-dataDictionary-")
     res = cT.dataDictionary2DataLabels(doc)
