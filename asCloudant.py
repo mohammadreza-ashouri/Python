@@ -122,6 +122,6 @@ class Database:
     rep = Replicator(self.client)
     client2 = Cloudant(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
     db2 = client2[dbInfo['database']]
-    doc = rep.create_replication(self.db, db2)
+    doc = rep.create_replication(self.db, db2, create_target=True)
     logging.info("Should be replicated!")
     return

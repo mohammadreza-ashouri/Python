@@ -58,6 +58,7 @@ class AgileScience:
     Allows shutting down things
     """
     self.alive     = False
+    logging.debug("\nEND JAMS")
     return
   
   ######################################################
@@ -118,7 +119,7 @@ class AgileScience:
     Args:
        id: information on how to change
     """
-    if id in self.hierList:  #"project", "step", "task" are given: close
+    if id is None or id in self.hierList:  #"project", "step", "task" are given: close
       self.hierStack.pop()
       if self.cwd is not None:
         os.chdir('..')
@@ -227,10 +228,15 @@ class AgileScience:
     return None         #default case if nothing is found
 
 
-  def replicateDB(self):
+  def replicateDB(self, remoteDB=None):
     """
     Replicate local database to remote database
+
+    Args:
+        remoteDB: if given, use this name for external db
     """
+    if remoteDB is not None:
+      self.remoteDB['database'] = remoteDB
     self.db.replicateDB(self.remoteDB)
     return
 
