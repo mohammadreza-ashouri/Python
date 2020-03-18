@@ -180,7 +180,7 @@ class AgileScience:
       # find IDs to names
       projectID, stepID, taskID = None, None, None
       for item in self.db.getView('viewProjects/viewProjects'):
-        if project == cT.camelCase(item['key']):
+        if project == cT.camelCase(item['value'][0]):
           projectID = item['id']
       if projectID is None:
         logging.error("jams.scanDirectory No project found scanDirectory")
@@ -191,17 +191,17 @@ class AgileScience:
           if step == cT.camelCase(self.db.getDoc(itemID)['name']):
               stepID = itemID
         if stepID is None:
-          logging.error("jams.scanDirectory No step found scanDirectory")
-          return
-        hierStack.append(stepID)
-      if task is not None:
+          logging.warning("jams.scanDirectory No step found scanDirectory")
+        else:
+          hierStack.append(stepID)
+      if task is not None and stepID is not None: 
         for itemID in self.db.getDoc(stepID)['childs']:
           if task == cT.camelCase(self.db.getDoc(itemID)['name']):
             taskID = itemID
         if taskID is None:
-          logging.error("jams.scanDirectory No task found scanDirectory")
-          return
-        hierStack.append(taskID)
+          logging.warning("jams.scanDirectory No task found scanDirectory")
+        else:
+          hierStack.append(taskID)
       # loop through all files and process
       for fName in fNames:  # all files in this directory
         logging.info("Try to process for file:"+fName)
@@ -209,7 +209,7 @@ class AgileScience:
           continue
         # test if file already in database
         md5sum = hashlib.md5(open(fName,'rb').read()).hexdigest()
-        view = self.db.getView('viewMeasurements/viewMD5', key=md5sum)
+        view = self.db.getView('viewMD5/viewMD5', key=md5sum)
         if len(view) > 0:
           logging.warning("File"+fName+" is already in db as id "+view[0]['id']+" with filename "+view[0]['value'])
         else:
@@ -282,39 +282,61 @@ class AgileScience:
   ######################################################
   ### OUTPUT COMMANDS ###
   ######################################################
-  def output(self, docType):
+  def output(self, docLabel):
     """
     output view to screen
     - length of output 110 character
 
     Args:
-        docType: document type to output
+        docLabel: document label to output
     """
-    view = 'view'+docType
-    outString = ''
-    if docType == 'Measurements':  
-      outString += '{0: <25}|{1: <25}|{2: <25}|{3: <24}|{4: <7}'.format('Name', 'Comment', 'Tags', 'Type', 'Image')+'\n'
-    if docType == 'Projects':
-      outString += '{0: <25}|{1: <6}|{2: <25}|{3: <51}'.format('Name', 'Status', 'Tags', 'Objective')+'\n'
-    if docType == 'Procedures':
-      outString += '{0: <25}|{1: <25}|{2: <58}'.format('Name', 'Tags', 'Content')+'\n'
-    if docType == 'Samples':
-      outString += '{0: <25}|{1: <50}|{2: <25}|{3: <7}'.format('Name', 'Chemistry', 'Tags', 'QR-code')+'\n'
+    view = 'view'+docLabel
+    outString = []
+    docList = self.db.dataLabels+self.db.hierarchyLabels
+    idx     = list(dict(docList).values()).index(docLabel)
+    docType = list(dict(docList).keys())[idx]
+    for item in self.db.dataDictionary[docType][0][docLabel]:
+      key = list(item.keys())[0]
+      if key=='comment':
+        if item['length'][0]!=0:
+          outputString = '{0: <'+str(item['length'][0])+'}'
+          outString.append(outputString.format('tags') )
+        if item['length'][1]!=0:
+          outputString = '{0: <'+str(item['length'][1])+'}'
+          outString.append(outputString.format('comments') )
+      else:
+        if item['length']!=0:
+          outputString = '{0: <'+str(abs(item['length']))+'}'
+          outString.append(outputString.format(key) )
+    outString = "|".join(outString)+'\n'
     outString += '-'*110+'\n'
-    for item in self.db.getView(view+'/'+view):
-      # print(item)
-      if docType == 'Measurements':
-        outString += '{0: <25}|{1: <25}|{2: <25}|{3: <24}|{4: <7}'.format(
-          item['value'][0][:25], item['value'][1][:25], item['value'][2][:25], item['value'][3][:24], str(item['value'][4]) )+'\n'
-      if docType == 'Projects':
-        outString += '{0: <25}|{1: <6}|{2: <25}|{3: <51}'.format(
-          item['key'][:25], item['value'][0][:6], item['value'][2][:25], item['value'][1][:51])+'\n'
-      if docType == 'Procedures':
-        outString += '{0: <25}|{1: <25}|{2: <58}'.format(
-          item['value'][0][:25], item['value'][1][:25], item['value'][1][:58])+'\n'
-      if docType == 'Samples':
-        outString += '{0: <25}|{1: <50}|{2: <25}|{3: <7}'.format(
-          item['value'][0][:25], item['value'][1][:50], item['value'][2][:25], str(item['value'][3]))+'\n'
+    for lineItem in self.db.getView(view+'/'+view):
+      # print(lineItem)
+      rowString = []
+      idx = 0
+      for item in self.db.dataDictionary[docType][0][docLabel]:
+        key = list(item.keys())[0]
+        if key=='comment':
+          if item['length'][0]!=0:
+            outputString = '{0: <'+str(item['length'][0])+'}'
+            rowString.append(outputString.format(lineItem['value'][idx])[:item['length'][0]] )
+          # if item['length'][0]>0 and item['length'][1]>0:
+          idx += 1
+          if item['length'][1]!=0:
+            outputString = '{0: <'+str(item['length'][1])+'}'
+            rowString.append(outputString.format(lineItem['value'][idx])[:item['length'][1]] )
+        else:
+          if item['length']!=0:
+            outputString = '{0: <'+str(abs(item['length']))+'}'
+            if isinstance(lineItem['value'][idx], str ):
+              formatString = lineItem['value'][idx]
+            else:
+              formatString = ' '.join(lineItem['value'][idx])
+            if item['length']<0:
+              formatString = str(len(formatString)>3)
+            rowString.append(outputString.format(formatString)[:abs(item['length'])] )
+        idx += 1
+      outString += "|".join(rowString)+'\n'
     return outString
 
 
@@ -328,7 +350,7 @@ class AgileScience:
       logging.warning('jams.outputHierarchy No project selected')
       return
     projectID = self.hierStack[0]
-    view = self.db.getView('viewProjects/viewHierarchy', key=projectID)
+    view = self.db.getView('viewHierarchy/viewHierarchy', key=projectID)
     nativeView = {}
     for item in view:
       nativeView[item['id']] = item['value']
@@ -342,7 +364,7 @@ class AgileScience:
     """
     outString = '{0: <36}|{1: <36}|{2: <36}'.format('QR', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
-    for item in self.db.getView('viewSamples/viewQR'):
+    for item in self.db.getView('viewQR/viewQR'):
       outString += '{0: <36}|{1: <36}|{2: <36}'.format(item['key'][:36], item['value'][:36], item['id'][:36])+'\n'
     return outString
 
@@ -353,6 +375,6 @@ class AgileScience:
     """
     outString = '{0: <32}|{1: <40}|{2: <25}'.format('MD5 sum', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
-    for item in self.db.getView('viewMeasurements/viewMD5'):
+    for item in self.db.getView('viewMD5/viewMD5'):
       outString += '{0: <32}|{1: <40}|{2: <25}'.format(item['key'], item['value'][-40:], item['id'])+'\n'
     return outString

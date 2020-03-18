@@ -35,32 +35,32 @@ class Database:
       reply = self.db.create_document(dataDictionary)
 
     ## check if default views exist
-    jsProject = {"viewProjects":  "if (doc.type && doc.type=='project') {emit(doc.name, [doc.status,doc.objective,doc.tags.join(' ')]);}",
-                 "viewHierarchy": "if (doc.type && (doc.type=='project'||doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}"}
-    jsMeasurement = {"viewMeasurements": "if (doc.type && doc.type=='measurement'){emit(doc.project, [doc.name,doc.comment,doc.tags.join(' '),doc.measurementType,doc.image.length>3]);}",
-                     "viewMD5"         : "if (doc.type && doc.type=='measurement'){emit(doc.md5sum, doc.name);}"}
-    jsProcedure = "if (doc.type && doc.type=='procedure') {emit(doc.project, [doc.name,doc.tags.join(' '),doc.content]);}"
-    jsSample = {"viewSamples": "if (doc.type && doc.type=='sample') {emit(doc.project, [doc.name,doc.chemistry,doc.tags.join(' '),doc.qr_code!='']);}",
-                "viewQR":      "if (doc.type && doc.type=='sample' && doc.qr_code!='') {emit(doc.qr_code.join(' '), doc.name);}"}
-    jsDefault = "if (doc.type && doc.type=='$docType$') {emit(doc.project, doc.name);}"
-    doc = self.db["-dataDictionary-"]
-    res = cT.dataDictionary2DataLabels(doc)
+    jsDefault = "if (doc.type && doc.type=='$docType$') {emit(doc.project, [$outputList$]);}"
+    self.dataDictionary = self.db["-dataDictionary-"]
+    res = cT.dataDictionary2DataLabels(self.dataDictionary)
     self.dataLabels = list(res['dataList'])
     self.hierarchyLabels = list(res['hierarchyList'])
-    for dataType, dataLabel in self.dataLabels+self.hierarchyLabels:
-      view = "view"+dataLabel
+    for docType, docLabel in self.dataLabels+self.hierarchyLabels:
+      view = "view"+docLabel
       if "_design/"+view not in self.db:
         logging.warning("**WARNING** "+view+" not defined. Use default one")
-        if dataType == 'project':
-          self.saveView(view, view, jsProject)
-        elif dataType == 'measurement':
-          self.saveView(view, view, jsMeasurement)
-        elif dataType == 'procedure':
-          self.saveView(view, view, jsProcedure)
-        elif dataType == 'sample':
-          self.saveView(view, view, jsSample)
-        else:
-          self.saveView(view, view, jsDefault.replace('$docType$', dataType))
+        jsString = jsDefault.replace('$docType$', docType)
+        outputList = []
+        for item in self.dataDictionary[docType][0][docLabel]:
+          key = list(item.keys())[0]
+          if key == 'image':
+            outputList.append('(doc.'+key+'.length>3).toString()')
+          elif key == 'comment':
+            outputList.append("doc.tags.join(' ')")
+            outputList.append("doc.comment")
+          else:
+            outputList.append('doc.'+key)
+        outputList = ','.join(outputList)
+        jsString = jsString.replace('$outputList$', outputList)
+        self.saveView(view, view, jsString)
+    self.saveView('viewHierarchy','viewHierarchy',"if (doc.type && (doc.type=='project'||doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}")
+    self.saveView('viewMD5','viewMD5',"if (doc.type && doc.type=='measurement'){emit(doc.md5sum, doc.name);}")
+    self.saveView('viewQR','viewQR',  "if (doc.type && doc.type == 'sample' && doc.qr_code != '') {doc.qr_code.forEach(function (thisCode) {emit(thisCode, doc.name);});}")
     return
 
 

@@ -20,6 +20,7 @@ try:
   print("*** TEST PROJECT HIERARCHY ***")
   doc = be.db.getView('viewProjects/viewProjects')
   projID  = [i['id'] for i in doc][0]
+  projDirName = be.getDoc(projID)['dirName']
   be.changeHierarchy(projID)
   be.addData('step',    {'comment': 'More random text', 'name': 'Test step one'})
   be.addData('step',    {'comment': 'Much more random text', 'name': 'Test step two'})
@@ -49,7 +50,7 @@ try:
   be.addData('sample',    {'name': 'Small copper block', 'chemistry': 'Cu99.99999', 'qr_code': '13214124111', 'comment': ''})
   be.addData('sample',    {'name': 'Big iron ore', 'chemistry': 'Fe', 'qr_code': '1321412411', 'comment': ''})
   be.addData('sample',    {'name': 'Ahoj-Brause Pulver', 'chemistry': '???', 'qr_code': '', 'comment': ''})
-  be.addData('sample',    {'name': 'Gummibären', 'chemistry': '???', 'qr_code': '', 'comment': ''})
+  be.addData('sample',    {'name': 'Gummibären', 'chemistry': '???', 'qr_code': '', 'comment': '6 pieces'})
   be.addData('sample',    {'name': 'Lutscher', 'chemistry': '???', 'qr_code': '', 'comment': ''})
   be.addData('sample',    {'name': 'Taschentücher', 'chemistry': '???', 'qr_code': '', 'comment': ''})
   print(be.output('Samples'))
@@ -59,8 +60,8 @@ try:
   print("*** TEST MEASUREMENTS ***")
   be.addData('measurement', {'name': 'filename.txt', 'comment': '#random #5 great stuff'})
   be.addData('measurement', {'name': 'filename.jpg', 'comment': '#3 #other medium stuff'})
-  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/Zeiss.tif', dirName+'/TestProject1/')
-  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/RobinSteel0000LC.txt', dirName+'/TestProject1/')
+  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/Zeiss.tif', dirName+'/'+projDirName+'/')
+  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/RobinSteel0000LC.txt', dirName+'/'+projDirName+'/')
   be.scanDirectory()
   be.scanDirectory()
   print(be.output('Measurements'))
@@ -78,4 +79,5 @@ answer = input("Clean all [Y/n]: ")
 if answer!='n':
   be.db.client.delete_database(databaseName)
   shutil.rmtree(dirName)
+  os.remove('/home/sbrinckm/FZJ/AgileScience/Python/jams.log')
 be.exit()

@@ -109,7 +109,6 @@ while be.alive:
             if isinstance(keywords['list'], list):
                 newQuestion['choices'] = keywords['list']
             question.append(newQuestion)
-        question.append({"type": "input", "name": "comment", "message": "#tags, :field:value: comments"})
     #####################
     ### ask question  ###
     #####################
