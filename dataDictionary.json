@@ -19,7 +19,6 @@
 
   "measurement": [    "Measurements",
     {"name":"What is the file name?"},
-    {"alias":"What is the alias name?"},
     {"image":"",                            "generate":true}
   ],
 

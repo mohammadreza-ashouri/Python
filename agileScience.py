@@ -57,11 +57,12 @@ class AgileScience:
 
   def exit(self):
     """
-    Allows shutting down things
+    Shutting down things
     """
     self.alive     = False
     logging.debug("\nEND JAMS")
     return
+
 
   ######################################################
   ### Change in database
@@ -105,8 +106,9 @@ class AgileScience:
     # do default filling and save
     data = cT.fillDocBeforeCreate(data, docType, projectID).to_dict()
     _id, _rev = self.db.saveDoc(data)
-    if 'image' in data:
-      del data['image']
+    # reduce information before logging
+    if 'image' in data: del data['image']
+    if 'meta'  in data: data['meta']='length='+str(len(data['meta']))
     logging.debug("Data saved "+str(data))
     if parent is not None:
       parent['childs'].append(_id)
@@ -230,9 +232,12 @@ class AgileScience:
     pyPath = self.softwareDirectory+'/'+pyFile
     if os.path.exists(pyPath):
       module = importlib.import_module(pyFile[:-3])
-      image, imgType, meta = module.getImage(filePath)
-      if 'measurementType' not in meta:
-        logging.warning('getImage: measurementType should be set')
+      image, imgType, metaMeasurement = module.getImage(filePath)
+      if 'measurementType' in metaMeasurement:
+        measurementType = metaMeasurement.pop('measurementType')
+      else:
+        logging.error('getImage: measurementType should be set')
+        measurementType = ''
       if imgType == "line":  #no scaling
         outFile = os.path.splitext(filePath)[0]+"_jams.svg"
         plt.savefig(outFile)
@@ -251,14 +256,15 @@ class AgileScience:
         return None
       else:
         raise NameError('**ERROR** Implementation failed')
-      meta['image']  = image
+      meta = {'image': image, 'name': filePath, 'type': 'measurement', 'comment': '',
+              'measurementType':measurementType, 'meta':metaMeasurement}
       meta['md5sum'] = hashlib.md5(open(filePath,'rb').read()).hexdigest()
-      meta.update({'name': filePath, 'type': 'measurement', 'comment': '', 'alias': ''})
       logging.info("Image successfully created")
       return meta
     else:
       logging.warning("getImage: could not find pyFile to convert"+pFile)
       return None # default case if nothing is found
+
 
   def replicateDB(self, remoteDB=None):
     """
@@ -279,34 +285,36 @@ class AgileScience:
   def output(self, docType):
     """
     output view to screen
+    - length of output 110 character
 
     Args:
         docType: document type to output
     """
     view = 'view'+docType
     outString = ''
-    if docType == 'Measurements':
-      outString += '{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format('Name', 'Alias', 'Comment', 'Image', 'project-ID')+'\n'
+    if docType == 'Measurements':  
+      outString += '{0: <25}|{1: <25}|{2: <25}|{3: <24}|{4: <7}'.format('Name', 'Comment', 'Tags', 'Type', 'Image')+'\n'
     if docType == 'Projects':
-      outString += '{0: <25}|{1: <6}|{2: >5}|{3: <38}|{4: <32}'.format('Name', 'Status', '#Tags', 'Objective', 'ID')+'\n'
+      outString += '{0: <25}|{1: <6}|{2: <25}|{3: <51}'.format('Name', 'Status', 'Tags', 'Objective')+'\n'
     if docType == 'Procedures':
-      outString += '{0: <25}|{1: <51}|{2: <32}'.format('Name', 'Content', 'project-ID')+'\n'
+      outString += '{0: <25}|{1: <25}|{2: <58}'.format('Name', 'Tags', 'Content')+'\n'
     if docType == 'Samples':
-      outString += '{0: <25}|{1: <15}|{2: <27}|{3: <7}|{4: <32}'.format('Name', 'Chemistry', 'Comment', 'QR-code', 'project-ID')+'\n'
+      outString += '{0: <25}|{1: <50}|{2: <25}|{3: <7}'.format('Name', 'Chemistry', 'Tags', 'QR-code')+'\n'
     outString += '-'*110+'\n'
     for item in self.db.getView(view+'/'+view):
+      # print(item)
       if docType == 'Measurements':
-        outString += '{0: <25}|{1: <21}|{2: <21}|{3: <7}|{4: <32}'.format(
-          item['value'][0][:25], str(item['value'][1])[:21], item['value'][2][:21], str(item['value'][3]), item['key'])+'\n'
+        outString += '{0: <25}|{1: <25}|{2: <25}|{3: <24}|{4: <7}'.format(
+          item['value'][0][:25], item['value'][1][:25], item['value'][2][:25], item['value'][3][:24], str(item['value'][4]) )+'\n'
       if docType == 'Projects':
-        outString += '{0: <25}|{1: <6}|{2: <5}|{3: <38}|{4: <32}'.format(
-          item['key'][:25], item['value'][0][:6], item['value'][2], item['value'][1][:38], item['id'])+'\n'
+        outString += '{0: <25}|{1: <6}|{2: <25}|{3: <51}'.format(
+          item['key'][:25], item['value'][0][:6], item['value'][2][:25], item['value'][1][:51])+'\n'
       if docType == 'Procedures':
-        outString += '{0: <25}|{1: <51}|{2: <32}'.format(
-          item['value'][0][:25], item['value'][1][:51], item['key'])+'\n'
+        outString += '{0: <25}|{1: <25}|{2: <58}'.format(
+          item['value'][0][:25], item['value'][1][:25], item['value'][1][:58])+'\n'
       if docType == 'Samples':
-        outString += '{0: <25}|{1: <15}|{2: <27}|{3: <7}|{4: <32}'.format(
-          item['value'][0][:25], item['value'][1][:15], item['value'][2][:27], str(item['value'][3]), item['key'])+'\n'
+        outString += '{0: <25}|{1: <50}|{2: <25}|{3: <7}'.format(
+          item['value'][0][:25], item['value'][1][:50], item['value'][2][:25], str(item['value'][3]))+'\n'
     return outString
 
 
@@ -332,10 +340,10 @@ class AgileScience:
     """
     output list of sample qr-codes
     """
-    outString = '{0: <25}|{1: <40}|{2: <25}'.format('QR', 'Name', 'ID')+'\n'
+    outString = '{0: <36}|{1: <36}|{2: <36}'.format('QR', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
     for item in self.db.getView('viewSamples/viewQR'):
-      outString += '{0: <25}|{1: <40}|{2: <25}'.format(item['key'], item['value'][:40], item['id'])+'\n'
+      outString += '{0: <36}|{1: <36}|{2: <36}'.format(item['key'][:36], item['value'][:36], item['id'][:36])+'\n'
     return outString
 
 

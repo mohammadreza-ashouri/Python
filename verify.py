@@ -45,16 +45,20 @@ try:
   ### test samples
   print("*** TEST SAMPLES ***")
   be.changeHierarchy(projID)
-  be.addData('sample',    {'name': 'Big copper block', 'chemistry': 'Cu99.999', 'qr_code': '13214124', 'comment': '#save'})
+  be.addData('sample',    {'name': 'Big copper block', 'chemistry': 'Cu99.999', 'qr_code': '13214124 12341234', 'comment': '#save'})
   be.addData('sample',    {'name': 'Small copper block', 'chemistry': 'Cu99.99999', 'qr_code': '13214124111', 'comment': ''})
   be.addData('sample',    {'name': 'Big iron ore', 'chemistry': 'Fe', 'qr_code': '1321412411', 'comment': ''})
+  be.addData('sample',    {'name': 'Ahoj-Brause Pulver', 'chemistry': '???', 'qr_code': '', 'comment': ''})
+  be.addData('sample',    {'name': 'Gummibären', 'chemistry': '???', 'qr_code': '', 'comment': ''})
+  be.addData('sample',    {'name': 'Lutscher', 'chemistry': '???', 'qr_code': '', 'comment': ''})
+  be.addData('sample',    {'name': 'Taschentücher', 'chemistry': '???', 'qr_code': '', 'comment': ''})
   print(be.output('Samples'))
   print(be.outputQR())
 
   ### test measurements
   print("*** TEST MEASUREMENTS ***")
-  be.addData('measurement', {'name': 'filename.txt', 'alias': '', 'comment': '#5 great stuff'})
-  be.addData('measurement', {'name': 'filename.jpg', 'alias': 'image', 'comment': '#3 medium stuff'})
+  be.addData('measurement', {'name': 'filename.txt', 'comment': '#random #5 great stuff'})
+  be.addData('measurement', {'name': 'filename.jpg', 'comment': '#3 #other medium stuff'})
   shutil.copy(be.softwareDirectory+'/ExampleMeasurements/Zeiss.tif', dirName+'/TestProject1/')
   shutil.copy(be.softwareDirectory+'/ExampleMeasurements/RobinSteel0000LC.txt', dirName+'/TestProject1/')
   be.scanDirectory()
@@ -63,14 +67,15 @@ try:
   print(be.outputMD5())
 
   ### test other functions
-  print("Skip replication test since authentication does not seem to work on remote host")
-  # be.replicateDB(databaseName)
+  print("Replication test")
+  be.replicateDB()
 
 except:
-  print("ERROR OCCURED\n"+ traceback.format_exc() )
+  print("ERROR OCCURED IN VERIFY TESTING\n"+ traceback.format_exc() )
 
 ### end of test
-input("Hit enter to finish verification:")
-be.db.client.delete_database(databaseName)
-shutil.rmtree(dirName)
+answer = input("Clean all [Y/n]: ")
+if answer!='n':
+  be.db.client.delete_database(databaseName)
+  shutil.rmtree(dirName)
 be.exit()
