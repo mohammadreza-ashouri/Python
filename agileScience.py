@@ -71,8 +71,6 @@ class AgileScience:
     """
     Save data to data base, also after edit
 
-    Logic is complicated: # TODO simplify logic with clear docTypes
-
     Args:
         docType: docType to be stored
         data: to be stored
@@ -100,7 +98,7 @@ class AgileScience:
     if newDoc and self.cwd is not None:  #updated information keeps its dirName
       if data['type'] == 'project':
         dirName = cT.camelCase(data['name'])
-      elif data['type'] in self.hierList:
+      elif data['type'] in self.hierList:  #steps, tasks
         dirName = ("{:03d}".format(len(parent['childs'])))+'_'+cT.camelCase(data['name'])
       data['dirName'] = dirName
     # do default filling and save
@@ -116,7 +114,7 @@ class AgileScience:
       self.db.updateDoc(parent)
     if dirName is not None:  # create directory for projects,steps,tasks
       os.makedirs(dirName, exist_ok=True)
-      with open(dirName+'/.id.txt','w') as f:
+      with open(dirName+'/.idJAMS.txt','w') as f:
         f.write(_id)
     return
 
@@ -159,7 +157,7 @@ class AgileScience:
     """ 
     Recursively scan directory tree for new files
 
-    #TODO compare with database version and adopt database
+    #TODO compare directory tree with database version and adopt database
           better inverse: 
           - search database and then get directory names from it
           - and use stored .id.txt file
