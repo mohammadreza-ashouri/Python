@@ -27,14 +27,12 @@ class Database:
       self.db = self.client[databaseName]
     else:
       self.db = self.client.create_database(databaseName)
-
-    ## check if default document exist
+    # check if default document exist and create
     if "-dataDictionary-" not in self.db:
       logging.warning("**WARNING** Data structure not defined. Use default one")
       dataDictionary = json.load(open("dataDictionary.json", 'r'))
       reply = self.db.create_document(dataDictionary)
-
-    ## check if default views exist
+    # check if default views exist and create them
     jsDefault = "if (doc.type && doc.type=='$docType$') {emit(doc.project, [$outputList$]);}"
     self.dataDictionary = self.db["-dataDictionary-"]
     res = cT.dataDictionary2DataLabels(self.dataDictionary)
@@ -43,20 +41,19 @@ class Database:
     for docType, docLabel in self.dataLabels+self.hierarchyLabels:
       view = "view"+docLabel
       if "_design/"+view not in self.db:
-        logging.warning("**WARNING** "+view+" not defined. Use default one")
         jsString = jsDefault.replace('$docType$', docType)
         outputList = []
         for item in self.dataDictionary[docType][0][docLabel]:
           key = list(item.keys())[0]
           if key == 'image':
-            outputList.append('(doc.'+key+'.length>3).toString()')
-          elif key == 'comment':
+            outputList.append('(doc.image.length>3).toString()')
+          elif key == 'tags':
             outputList.append("doc.tags.join(' ')")
-            outputList.append("doc.comment")
           else:
             outputList.append('doc.'+key)
         outputList = ','.join(outputList)
         jsString = jsString.replace('$outputList$', outputList)
+        logging.warning("**WARNING** "+view+" not defined. Use default one:"+jsString)
         self.saveView(view, view, jsString)
     self.saveView('viewHierarchy','viewHierarchy',"if (doc.type && (doc.type=='project'||doc.type=='step'||doc.type=='task')) {emit(doc.project, [doc.type,doc.name,doc.childs]);}")
     self.saveView('viewMD5','viewMD5',"if (doc.type && doc.type=='measurement'){emit(doc.md5sum, doc.name);}")

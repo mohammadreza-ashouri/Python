@@ -297,45 +297,25 @@ class AgileScience:
     docType = list(dict(docList).keys())[idx]
     for item in self.db.dataDictionary[docType][0][docLabel]:
       key = list(item.keys())[0]
-      if key=='comment':
-        if item['length'][0]!=0:
-          outputString = '{0: <'+str(item['length'][0])+'}'
-          outString.append(outputString.format('tags') )
-        if item['length'][1]!=0:
-          outputString = '{0: <'+str(item['length'][1])+'}'
-          outString.append(outputString.format('comments') )
-      else:
-        if item['length']!=0:
-          outputString = '{0: <'+str(abs(item['length']))+'}'
-          outString.append(outputString.format(key) )
+      if item['length']!=0:
+        outputString = '{0: <'+str(abs(item['length']))+'}'
+        outString.append(outputString.format(key) )
     outString = "|".join(outString)+'\n'
     outString += '-'*110+'\n'
     for lineItem in self.db.getView(view+'/'+view):
       # print(lineItem)
       rowString = []
-      idx = 0
-      for item in self.db.dataDictionary[docType][0][docLabel]:
+      for idx, item in enumerate(self.db.dataDictionary[docType][0][docLabel]):
         key = list(item.keys())[0]
-        if key=='comment':
-          if item['length'][0]!=0:
-            outputString = '{0: <'+str(item['length'][0])+'}'
-            rowString.append(outputString.format(lineItem['value'][idx])[:item['length'][0]] )
-          # if item['length'][0]>0 and item['length'][1]>0:
-          idx += 1
-          if item['length'][1]!=0:
-            outputString = '{0: <'+str(item['length'][1])+'}'
-            rowString.append(outputString.format(lineItem['value'][idx])[:item['length'][1]] )
-        else:
-          if item['length']!=0:
-            outputString = '{0: <'+str(abs(item['length']))+'}'
-            if isinstance(lineItem['value'][idx], str ):
-              formatString = lineItem['value'][idx]
-            else:
-              formatString = ' '.join(lineItem['value'][idx])
-            if item['length']<0:
-              formatString = str(len(formatString)>3)
-            rowString.append(outputString.format(formatString)[:abs(item['length'])] )
-        idx += 1
+        if item['length']!=0:
+          outputString = '{0: <'+str(abs(item['length']))+'}'
+          if isinstance(lineItem['value'][idx], str ):
+            formatString = lineItem['value'][idx]
+          else:
+            formatString = ' '.join(lineItem['value'][idx])
+          if item['length']<0:  #test if value as non-trivial length
+            formatString = str(len(lineItem['value'][idx])>3)
+          rowString.append(outputString.format(formatString)[:abs(item['length'])] )
       outString += "|".join(rowString)+'\n'
     return outString
 
