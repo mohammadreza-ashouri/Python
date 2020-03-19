@@ -160,7 +160,9 @@ class AgileScience:
     Recursively scan directory tree for new files
 
     #TODO compare with database version and adopt database
-          better inverse: search database and then get directory names and then use to 
+          better inverse: 
+          - search database and then get directory names from it
+          - and use stored .id.txt file
     """
     for root, _, fNames in os.walk(self.cwd):
       # find directory names
