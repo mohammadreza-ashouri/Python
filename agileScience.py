@@ -205,7 +205,7 @@ class AgileScience:
       # loop through all files and process
       for fName in fNames:  # all files in this directory
         logging.info("Try to process for file:"+fName)
-        if fName.endswith('_jams.svg') or fName.endswith('_jams.jpg') or fName == '.id.txt':
+        if fName.endswith('_jams.svg') or fName.endswith('_jams.jpg') or fName == '.idJAMS.txt':
           continue
         # test if file already in database
         md5sum = hashlib.md5(open(fName,'rb').read()).hexdigest()
@@ -334,7 +334,7 @@ class AgileScience:
     nativeView = {}
     for item in view:
       nativeView[item['id']] = item['value']
-    outString = cT.projectDocsToString(nativeView, projectID, 0)
+    outString = cT.projectDocs2String(nativeView, projectID, 0)
     return outString
 
 

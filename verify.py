@@ -3,7 +3,7 @@ import os, shutil, traceback
 from agileScience import AgileScience
 
 ### initialization
-databaseName = 'test_db_agile_science'
+databaseName = 'agile_science'
 dirName      = os.path.expanduser('~')+"/"+databaseName
 os.makedirs(dirName, exist_ok=True)
 be = AgileScience(databaseName)
@@ -75,8 +75,8 @@ except:
   print("ERROR OCCURED IN VERIFY TESTING\n"+ traceback.format_exc() )
 
 ### end of test
-answer = input("Clean all [Y/n]: ")
-if answer!='n':
+answer = input("Clean all [y/N]: ")
+if answer=='y':
   be.db.client.delete_database(databaseName)
   shutil.rmtree(dirName)
   os.remove('/home/sbrinckm/FZJ/AgileScience/Python/jams.log')

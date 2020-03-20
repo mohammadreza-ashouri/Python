@@ -86,7 +86,7 @@ def translateJS2PY():
     Translate js-code to python-code using js2py lib
     - remove the last export-lines from commonTools.js
     """
-    jsString = open('../ReactJS/src/commonTools.js', "r").read()
+    jsString = open('../ReactDOM/src/commonTools.js', "r").read()
     jsString = re.sub(r"export.+;", "", jsString)
     jsFile = io.StringIO(jsString)
     js2py.translate_file(jsFile, 'commonTools.py')
