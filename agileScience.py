@@ -1,18 +1,18 @@
+""" Python Backend
+"""
 import os, json, base64, hashlib
 import importlib, traceback
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
-
-# from asCouchDB import Database
 from asTools import imageToString, stringToImage
 from asCloudant import Database
 from commonTools import commonTools as cT
 
 
 class AgileScience:
-  """ 
-  PYTHON BACKEND 
+  """
+  PYTHON BACKEND
   """
 
   def __init__(self, databaseName=None):
@@ -77,7 +77,6 @@ class AgileScience:
         hierStack: hierStack from external functions
     """
     logging.info('jams.addData Got data: '+docType+' | '+str(hierStack))
-    # logging.info(str(data))
     # collect data and prepare
     if docType == '-edit-':
       temp = self.db.getDoc(self.hierStack[-1])
@@ -154,11 +153,11 @@ class AgileScience:
 
 
   def scanDirectory(self):
-    """ 
+    """
     Recursively scan directory tree for new files
 
     #TODO compare directory tree with database version and adopt database
-          better inverse: 
+          better inverse:
           - search database and then get directory names from it
           - and use stored .id.txt file
     """
@@ -194,7 +193,7 @@ class AgileScience:
           logging.warning("jams.scanDirectory No step found scanDirectory")
         else:
           hierStack.append(stepID)
-      if task is not None and stepID is not None: 
+      if task is not None and stepID is not None:
         for itemID in self.db.getDoc(stepID)['childs']:
           if task == cT.camelCase(self.db.getDoc(itemID)['name']):
             taskID = itemID
@@ -219,12 +218,12 @@ class AgileScience:
 
 
   def getImage(self, filePath):
-    """ 
+    """
     get image from datafile: central distribution point
     - max image size defined here
 
     Args:
-        filePath: path to file    
+        filePath: path to file
     """
     maxSize = 600
     extension = os.path.splitext(filePath)[1][1:]
@@ -303,7 +302,6 @@ class AgileScience:
     outString = "|".join(outString)+'\n'
     outString += '-'*110+'\n'
     for lineItem in self.db.getView(view+'/'+view):
-      # print(lineItem)
       rowString = []
       for idx, item in enumerate(self.db.dataDictionary[docType][0][docLabel]):
         key = list(item.keys())[0]

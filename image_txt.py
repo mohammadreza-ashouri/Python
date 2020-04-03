@@ -1,4 +1,5 @@
-import matplotlib.pyplot as plt
+"""create measurement data from .tif file
+"""
 from nanoIndent import Indentation
 
 

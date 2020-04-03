@@ -7,11 +7,12 @@ from PyInquirer import prompt, Separator
 from pprint import pprint
 from agileScience import AgileScience
 
-### initialization
+### INITIALIZATION
 be = AgileScience()
+# keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
 menuOutline = json.load(open(be.softwareDirectory+"/userInterfaceCLI.json", 'r'))
-#keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
 nextMenu = 'main'
+### MAIN LOOP
 while be.alive:
     #output the current hierarchical level
     if len(be.hierStack) == 0:
@@ -24,7 +25,7 @@ while be.alive:
     ### prepare menu  ###
     #####################
     if nextMenu in menuOutline and nextMenu != 'edit':
-        #main  and output menu is outlined
+        #main and output menu are outlined in file, use those
         nextMenu = copy.deepcopy(menuOutline[nextMenu])
         question = [{'type': 'list', 'name': 'choice', 'message': nextMenu[0], 'choices':[]}]
         for idx, item in enumerate(nextMenu):
@@ -80,6 +81,7 @@ while be.alive:
         for name, value in zip(names, values):
             question[0]['choices'].append({'name': name, 'value': 'function_changeHierarchy_'+value})
     else:
+        #ask for measurements, samples, procedures
         #create form (=sequence of questions for string input) is dynamically created from dataDictonary
         docType = nextMenu.split('_')[1]
         question = []

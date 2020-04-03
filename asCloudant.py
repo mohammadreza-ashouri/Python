@@ -1,3 +1,5 @@
+"""Class for interaction with couchDB
+"""
 import traceback, json, logging
 from cloudant.client import CouchDB, Cloudant
 from cloudant.document import Document

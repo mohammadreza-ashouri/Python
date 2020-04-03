@@ -11,8 +11,9 @@ from PIL import Image
 def jsonValidator(data):
     """
     for debugging, test if valid json object
+    - not really used
 
-    Args: 
+    Args:
        data: string to test
     """
     try:
@@ -26,6 +27,7 @@ def jsonValidator(data):
 def imageToString(url):
     """
     convert png file to b64-string
+    - not really used
 
     future: test if jpeg and png strings are the same
     do I need to save jpeg, png as marker in list ['png',64byte]
@@ -42,6 +44,7 @@ def imageToString(url):
 def stringToImage(aString, show=True):
     """
     convert a b64-string to png file
+    - not really used
 
     Args:
        aString: 64byte string of image
@@ -99,5 +102,5 @@ def translateJS2PY():
 if __name__ == "__main__":
     # translate js-code to python
     translateJS2PY()
-    # prepare sheet with QR-codes
+    # prepare new sheet with QR-codes, does not hurt to create new
     createQRcodeSheet()
