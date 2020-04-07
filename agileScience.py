@@ -53,7 +53,7 @@ class AgileScience:
     self.dataDictionary = self.db.getDoc("-dataDictionary-")
     self.hierList = self.dataDictionary["-hierarchy-"]
     self.hierStack = []
-    self.curentID  = None
+    self.currentID  = None
     self.alive     = True
     return
 
@@ -87,54 +87,55 @@ class AgileScience:
     logging.info('jams.addData Got data: '+docType+' | '+str(hierStack))
     data['user']   = self.userID
     data['client'] = 'python version 0.1'
-    # collect data and prepare
-    if docType == '-edit-':
-      temp = self.db.getDoc(self.hierStack[-1])
-      temp.update(data)
-      data   = temp
-      newDoc = False
-    else:
-      data['type'] = docType
-      newDoc       = True
     if len(hierStack) == 0:
       hierStack = list(self.hierStack)
-    if docType in self.hierList:  #should not have childnumber in other cases for debugging
-      if docType=='project':
-        data['childNum'] = 0
+    # collect data and prepare
+    if docType != '-edit-':
+      #new document
+      data['type'] = docType
+      newDoc       = True
+      if docType in self.hierList:  #should not have childnumber in other cases for debugging
+        if docType=='project':
+          data['childNum'] = 0
+        else:
+          thisStack = ' '.join(self.hierStack)
+          view = self.db.getView('viewHierarchy/viewHierarchy', key=self.hierStack[0])
+          thisChildNumber = 0
+          for item in view:
+            if item['value'][2]=='project': continue
+            if item['value'][0] == thisStack:
+              thisChildNumber += 1
+          data['childNum'] = thisChildNumber
+      # find directory name
+      dirName = None
+      if newDoc and self.cwd is not None:  #updated information keeps its dirName
+        if data['type'] == 'project':
+          dirName = cT.camelCase(data['name'])
+        elif data['type'] in self.hierList:  #steps, tasks
+          dirName = ("{:03d}".format(thisChildNumber))+'_'+cT.camelCase(data['name'])
+        data['dirName'] = dirName
+      # do default filling and save
+      if docType in self.hierList:
+        prefix = 't'
       else:
-        thisStack = ' '.join(self.hierStack)
-        view = self.db.getView('viewHierarchy/viewHierarchy', key=self.hierStack[0])
-        thisChildNumber = 0
-        for item in view:
-          if item['value'][2]=='project': continue
-          if item['value'][0] == thisStack:
-            thisChildNumber += 1
-        data['childNum'] = thisChildNumber
-    # find directory name
-    dirName = None
-    if newDoc and self.cwd is not None:  #updated information keeps its dirName
-      if data['type'] == 'project':
-        dirName = cT.camelCase(data['name'])
-      elif data['type'] in self.hierList:  #steps, tasks
-        dirName = ("{:03d}".format(thisChildNumber))+'_'+cT.camelCase(data['name'])
-      data['dirName'] = dirName
-    # do default filling and save
-    if docType in self.hierList:
-      prefix = 't'
+        prefix = docType[0]
+      # if new use fillDocBeforeCreate
+      data = cT.fillDocBeforeCreate(data, docType, hierStack, prefix).to_dict()
+      _id, _rev = self.db.saveDoc(data)
+      # create directory for projects,steps,tasks
+      if dirName is not None:
+        os.makedirs(dirName, exist_ok=True)
+        with open(dirName+'/.idJAMS.txt','w') as f:
+          f.write(_id)
     else:
-      prefix = docType[0]
-    data = cT.fillDocBeforeCreate(data, docType, hierStack, prefix).to_dict()
-    _id, _rev = self.db.saveDoc(data)
-    self.curentID = _id
+      #update document
+      data = cT.fillDocBeforeCreate(data, '--', hierStack[:-1], '--').to_dict()
+      _id, _rev = self.db.updateDoc(data,self.hierStack[-1])
+    self.currentID = _id
     # reduce information before logging
     if 'image' in data: del data['image']
     if 'meta'  in data: data['meta']='length='+str(len(data['meta']))
     logging.debug("Data saved "+str(data))
-    # create directory for projects,steps,tasks
-    if dirName is not None:
-      os.makedirs(dirName, exist_ok=True)
-      with open(dirName+'/.idJAMS.txt','w') as f:
-        f.write(_id)
     return
 
 

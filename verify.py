@@ -27,7 +27,7 @@ try:
   be.changeHierarchy(projID)
   be.addData('step',    {'comment': 'More random text', 'name': 'Test step one'})
   be.addData('step',    {'comment': 'Much more random text', 'name': 'Test step two'})
-  tempID = be.curentID
+  tempID = be.currentID
   be.addData('step',    {'comment': 'Even more random text', 'name': 'Test step three'})
   be.changeHierarchy(tempID)
   be.addData('task',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
@@ -35,6 +35,10 @@ try:
   be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
   be.changeHierarchy(None)
   print(be.outputHierarchy())
+
+  ### edit project
+  print("*** TEST EDIT PROJECT ***")
+  be.addData('-edit-', {'comment': '#tag1 A random text plus edition\n'})
 
   ### test procedures
   print("*** TEST PROCEDURES ***")

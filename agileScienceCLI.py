@@ -72,7 +72,7 @@ while be.alive:
             # no project in list: get a VIEW
             doc    = be.db.getView('viewProjects/viewProjects')
             values = [i['id'] for i in doc]
-            names  = [i['key'] for i in doc]
+            names  = [i['value'][0] for i in doc]
         else:
             # at least a project: get its childs
             doc    = be.db.getDoc(be.hierStack[-1])
@@ -122,6 +122,7 @@ while be.alive:
     ### handle answer ###
     #####################
     if 'choice' in answer:
+        # forms that ask further questions
         answer = answer['choice'].split('_')
         if answer[0] == 'menu':
             nextMenu = answer[1]
@@ -137,6 +138,10 @@ while be.alive:
             print(res)
             nextMenu = 'main'
     else:
-        be.addData(docType, answer)
+        # all data collected, save it
+        if nextMenu=='edit': #edit-> update data
+            be.addData('-edit-', answer)
+        else:
+            be.addData(docType, answer)
         nextMenu = 'main'
     continue

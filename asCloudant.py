@@ -102,18 +102,42 @@ class Database:
     return (res['_id'], res['_rev'])
 
 
-  def updateDoc(self, doc):
+  def updateDoc(self, change, docID):
     """
-    Wrapper for update
+    Update document by
+    - saving changes to revDoc (revision document)
+    - updating document concurrently
+    - create a docID for revision document
+    - save this docID also in list of revisions
+    - Bonus: save "_rev" to revDoc in order to track that updates cannot happen by accident
 
     Args:
-        doc: document to update
+        change: updated items
+        docID:  id of document to change
     """
-    if isinstance(doc, Document):
-      doc.save()
+    doc = self.db[docID]
+    revDoc = {}
+    for item in change:
+      if item in ['type','revisions','inheritance','_id','_rev']:    #remove items cannot come from change
+        continue
+      if change[item]!=doc[item]:
+        revDoc[item] = doc[item]
+        doc[item]    = change[item]
+    #produce _id of revDoc
+    idParts = docID.split('-')
+    if len(idParts)==2:   #if initial document: no copy
+      revDoc['_id'] = docID+'-0'
+    else:                 #if revisions of document exist
+      revDoc['_id'] = '-'.join(idParts[:-1])+'-'+str(int(idParts[-1])+1)
+    #add id to revisions and save
+    if doc['revisions']==['']:
+      doc['revisions'] = [revDoc['_id']]
     else:
-      logging.error("asCloudant.updateDoc: no cloudant document")
-    return
+      doc['revisions'] = doc['revisions']+[revDoc['_id']]
+    doc.save()
+    revDoc['revisionCurrent'] = doc['_rev']
+    res = self.db.create_document(revDoc)
+    return doc['_id'], doc['_rev']
 
 
   def getView(self, thePath, key=None):
