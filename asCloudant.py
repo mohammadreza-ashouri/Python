@@ -25,17 +25,18 @@ class Database:
       self.client = CouchDB(user, password, url='http://127.0.0.1:5984', connect=True)
     except Exception:
       logging.error("Something unexpected has happend"+traceback.format_exc())
-    if databaseName in self.client:
-      self.db = self.client[databaseName]
+    self.databaseName = databaseName
+    if self.databaseName in self.client:
+      self.db = self.client[self.databaseName]
     else:
-      self.db = self.client.create_database(databaseName)
+      self.db = self.client.create_database(self.databaseName)
     # check if default document exist and create
     if "-dataDictionary-" not in self.db:
       logging.warning("**WARNING** Data structure not defined. Use default one")
       dataDictionary = json.load(open("dataDictionary.json", 'r'))
       reply = self.db.create_document(dataDictionary)
     # check if default views exist and create them
-    jsDefault = "if (doc.type && doc.type=='$docType$') {emit(doc.projectID, [$outputList$]);}"
+    jsDefault = "if (doc.type && doc.type=='$docType$') {emit($key$, [$outputList$]);}"
     self.dataDictionary = self.db["-dataDictionary-"]
     res = cT.dataDictionary2DataLabels(self.dataDictionary)
     self.dataLabels = list(res['dataList'])
@@ -43,7 +44,10 @@ class Database:
     for docType, docLabel in self.dataLabels+self.hierarchyLabels:
       view = "view"+docLabel
       if "_design/"+view not in self.db:
-        jsString = jsDefault.replace('$docType$', docType)
+        if docType=='project':
+          jsString = jsDefault.replace('$docType$', docType).replace('$key$','doc._id')
+        else:
+          jsString = jsDefault.replace('$docType$', docType).replace('$key$','doc.inheritance[0]')
         outputList = []
         for item in self.dataDictionary[docType][0][docLabel]:
           key = list(item.keys())[0]
@@ -57,9 +61,23 @@ class Database:
         jsString = jsString.replace('$outputList$', outputList)
         logging.warning("**WARNING** "+view+" not defined. Use default one:"+jsString)
         self.saveView(view, view, jsString)
-    self.saveView('viewHierarchy','viewHierarchy',"if (doc.type && (doc.type=='project'||doc.type=='step'||doc.type=='task')) {emit(doc.projectID, [doc.type,doc.name,doc.childs]);}")
-    self.saveView('viewMD5','viewMD5',"if (doc.type && doc.type=='measurement'){emit(doc.md5sum, doc.name);}")
-    self.saveView('viewQR','viewQR',  "if (doc.type && doc.type == 'sample' && doc.qr_code != '') {doc.qr_code.forEach(function (thisCode) {emit(thisCode, doc.name);});}")
+    jsString = "if (doc.type && (doc.type==='step'||doc.type=='task')) {emit(doc.inheritance[0], [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}\n"
+    jsString += "if (doc.type && (doc.type==='project'))               {emit(doc._id,            [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}"
+    self.saveView('viewHierarchy','viewHierarchy',jsString)
+    self.saveView('viewMD5','viewMD5',"if (doc.type && doc.type==='measurement'){emit(doc.md5sum, doc.name);}")
+    self.saveView('viewQR','viewQR',  "if (doc.type && doc.type === 'sample' && doc.qr_code[0] !== '') {doc.qr_code.forEach(function (thisCode) {emit(thisCode, doc.name);});}")
+    return
+
+
+  def exit(self, deleteDB=False):
+    """
+    Shutting down things
+
+    Args:
+      deleteDB: remove database
+    """
+    if deleteDB:
+      self.db.client.delete_database(self.databaseName)
     return
 
 
@@ -139,16 +157,22 @@ class Database:
     return
 
 
-  def replicateDB(self, dbInfo):
+  def replicateDB(self, dbInfo, removeAtStart=False):
     """
     Replication to another instance
 
     Args:
         dbInfo: info on the remote database
+        removeAtStart: remove remote DB before starting new
     """
     rep = Replicator(self.client)
     client2 = Cloudant(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
-    db2 = client2[dbInfo['database']]
+    if dbInfo['database'] in client2.all_dbs() and removeAtStart:
+        client2.delete_database(dbInfo['database'])
+    if dbInfo['database'] in client2.all_dbs():
+      db2 = client2[dbInfo['database']]
+    else:
+      db2 = client2.create_database(dbInfo['database'])
     doc = rep.create_replication(self.db, db2, create_target=True)
     logging.info("Should have been replicated!")
     return

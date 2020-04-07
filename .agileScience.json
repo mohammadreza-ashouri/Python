@@ -1,6 +1,7 @@
 {
 "user":"admin",
 "password":"agile",
+"userID": "sb-0bacab30726e181fe1e34d82e59a8ce9",
 "database":"agile_science",
 "baseFolder": "FZJ/asFolder",
 "eargs": {"editor":"gedit","ext":".md"},
@@ -9,5 +10,5 @@
   "password": "b0296a60a0f8879c09a3ceff62b67c175db9f8354fb84cfb44d7c2b3c961e86f",
   "url":"https://6312f45e-b47e-43fb-b2c8-fd3ba43ea76d-bluemix.cloudantnosqldb.appdomain.cloud",
   "database":"agile_science"
-}	
+}
 }

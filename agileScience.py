@@ -5,6 +5,7 @@ import importlib, traceback
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
+from pprint import pprint
 from asTools import imageToString, stringToImage
 from asCloudant import Database
 from commonTools import commonTools as cT
@@ -34,6 +35,7 @@ class AgileScience:
     else:  # if test
         configuration['baseFolder'] = databaseName
     self.db = Database(user, password, databaseName)
+    self.userID   = configuration["userID"]
     self.remoteDB = configuration["remote"]
     self.eargs   = configuration["eargs"]
     # open basePath as current working directory
@@ -51,14 +53,20 @@ class AgileScience:
     self.dataDictionary = self.db.getDoc("-dataDictionary-")
     self.hierList = self.dataDictionary["-hierarchy-"]
     self.hierStack = []
+    self.curentID  = None
     self.alive     = True
     return
 
 
-  def exit(self):
+  def exit(self, deleteDB=False):
     """
     Shutting down things
+
+    Args:
+      deleteDB: remove database
     """
+    os.chdir(self.softwareDirectory)
+    self.db.exit(deleteDB)
     self.alive     = False
     logging.debug("\nEND JAMS")
     return
@@ -77,6 +85,8 @@ class AgileScience:
         hierStack: hierStack from external functions
     """
     logging.info('jams.addData Got data: '+docType+' | '+str(hierStack))
+    data['user']   = self.userID
+    data['client'] = 'python version 0.1'
     # collect data and prepare
     if docType == '-edit-':
       temp = self.db.getDoc(self.hierStack[-1])
@@ -87,31 +97,41 @@ class AgileScience:
       data['type'] = docType
       newDoc       = True
     if len(hierStack) == 0:
-      hierStack = self.hierStack
-    projectID = hierStack[0] if len(hierStack) > 0 else None
-    if len(self.hierStack) > 0 and data['type'] != 'project':
-      parent = self.db.getDoc(self.hierStack[-1])
-    else:
-      parent = None
+      hierStack = list(self.hierStack)
+    if docType in self.hierList:  #should not have childnumber in other cases for debugging
+      if docType=='project':
+        data['childNum'] = 0
+      else:
+        thisStack = ' '.join(self.hierStack)
+        view = self.db.getView('viewHierarchy/viewHierarchy', key=self.hierStack[0])
+        thisChildNumber = 0
+        for item in view:
+          if item['value'][2]=='project': continue
+          if item['value'][0] == thisStack:
+            thisChildNumber += 1
+        data['childNum'] = thisChildNumber
+    # find directory name
     dirName = None
     if newDoc and self.cwd is not None:  #updated information keeps its dirName
       if data['type'] == 'project':
         dirName = cT.camelCase(data['name'])
       elif data['type'] in self.hierList:  #steps, tasks
-        dirName = ("{:03d}".format(len(parent['childs'])))+'_'+cT.camelCase(data['name'])
+        dirName = ("{:03d}".format(thisChildNumber))+'_'+cT.camelCase(data['name'])
       data['dirName'] = dirName
     # do default filling and save
-    data = cT.fillDocBeforeCreate(data, docType, projectID).to_dict()
+    if docType in self.hierList:
+      prefix = 't'
+    else:
+      prefix = docType[0]
+    data = cT.fillDocBeforeCreate(data, docType, hierStack, prefix).to_dict()
     _id, _rev = self.db.saveDoc(data)
+    self.curentID = _id
     # reduce information before logging
     if 'image' in data: del data['image']
     if 'meta'  in data: data['meta']='length='+str(len(data['meta']))
     logging.debug("Data saved "+str(data))
-    if parent is not None:
-      parent['childs'].append(_id)
-      logging.debug("Parent updated "+str(parent))
-      self.db.updateDoc(parent)
-    if dirName is not None:  # create directory for projects,steps,tasks
+    # create directory for projects,steps,tasks
+    if dirName is not None:
       os.makedirs(dirName, exist_ok=True)
       with open(dirName+'/.idJAMS.txt','w') as f:
         f.write(_id)
@@ -184,9 +204,13 @@ class AgileScience:
       if projectID is None:
         logging.error("jams.scanDirectory No project found scanDirectory")
         return
+      view = self.db.getView('viewHierarchy/viewHierarchy', key=projectID)
+      nativeView = {}
+      for item in view:
+        nativeView[item['id']] = item['value']
       hierStack = [projectID]  # temporary version
       if step is not None:
-        for itemID in self.db.getDoc(projectID)['childs']:
+        for itemID in cT.getChildren(nativeView,projectID):
           if step == cT.camelCase(self.db.getDoc(itemID)['name']):
               stepID = itemID
         if stepID is None:
@@ -194,7 +218,7 @@ class AgileScience:
         else:
           hierStack.append(stepID)
       if task is not None and stepID is not None:
-        for itemID in self.db.getDoc(stepID)['childs']:
+        for itemID in cT.getChildren(nativeView,stepID):
           if task == cT.camelCase(self.db.getDoc(itemID)['name']):
             taskID = itemID
         if taskID is None:
@@ -265,16 +289,17 @@ class AgileScience:
       return None # default case if nothing is found
 
 
-  def replicateDB(self, remoteDB=None):
+  def replicateDB(self, remoteDB=None, removeAtStart=False):
     """
     Replicate local database to remote database
 
     Args:
         remoteDB: if given, use this name for external db
+        removeAtStart: remove remote DB before starting new
     """
     if remoteDB is not None:
       self.remoteDB['database'] = remoteDB
-    self.db.replicateDB(self.remoteDB)
+    self.db.replicateDB(self.remoteDB, removeAtStart)
     return
 
 
@@ -312,7 +337,13 @@ class AgileScience:
           else:
             formatString = ' '.join(lineItem['value'][idx])
           if item['length']<0:  #test if value as non-trivial length
-            formatString = str(len(lineItem['value'][idx])>3)
+            if lineItem['value'][idx]=='true' or lineItem['value'][idx]=='false':
+              formatString = lineItem['value'][idx]
+            elif len(lineItem['value'][idx])>1 or len(lineItem['value'][idx][0])>3:
+              formatString = 'true'
+            else:
+              formatString = 'false'
+            # formatString = True if formatString=='true' else False
           rowString.append(outputString.format(formatString)[:abs(item['length'])] )
       outString += "|".join(rowString)+'\n'
     return outString
@@ -332,7 +363,7 @@ class AgileScience:
     nativeView = {}
     for item in view:
       nativeView[item['id']] = item['value']
-    outString = cT.projectDocs2String(nativeView, projectID, 0)
+    outString = cT.hierarchy2String(nativeView)
     return outString
 
 

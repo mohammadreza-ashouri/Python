@@ -1,5 +1,5 @@
 {
-  "_id": "-dataDictionary-",  
+  "_id": "-dataDictionary-",
   "-hierarchy-":["project","step","task"],
 
   "project": [
@@ -44,12 +44,12 @@
       {"qr_code":"What is its QR-code?",        "length":-5}
     ]}
   ],
-  
+
   "procedure": [
     {"Procedures":[
       {"name":"What is the name of the procedure?","length":25},
       {"tags":"",                                  "length":25, "generate":true},
-      {"comment":"#tags comments :field:value:",   "length":0},    
+      {"comment":"#tags comments :field:value:",   "length":0},
       {"content":"What are the steps?",            "length":58}
     ]}
   ]

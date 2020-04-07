@@ -1,11 +1,14 @@
 #!/usr/bin/python3
 import os, shutil, traceback
 from agileScience import AgileScience
+import asTools
 
 ### initialization
-databaseName = 'agile_science'
+databaseName = 'temporary_test'
 dirName      = os.path.expanduser('~')+"/"+databaseName
 os.makedirs(dirName, exist_ok=True)
+be = AgileScience(databaseName)
+be.exit(deleteDB=True)
 be = AgileScience(databaseName)
 
 try:
@@ -24,10 +27,9 @@ try:
   be.changeHierarchy(projID)
   be.addData('step',    {'comment': 'More random text', 'name': 'Test step one'})
   be.addData('step',    {'comment': 'Much more random text', 'name': 'Test step two'})
+  tempID = be.curentID
   be.addData('step',    {'comment': 'Even more random text', 'name': 'Test step three'})
-  doc    = be.getDoc(be.hierStack[-1])
-  stepID  = doc['childs'][0]
-  be.changeHierarchy(stepID)
+  be.changeHierarchy(tempID)
   be.addData('task',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
   be.addData('task',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
   be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
@@ -69,15 +71,9 @@ try:
 
   ### test other functions
   print("Replication test")
-  be.replicateDB()
+  be.replicateDB(databaseName,True)
+  be.exit()
 
 except:
   print("ERROR OCCURED IN VERIFY TESTING\n"+ traceback.format_exc() )
 
-### end of test
-answer = input("Clean all [y/N]: ")
-if answer=='y':
-  be.db.client.delete_database(databaseName)
-  shutil.rmtree(dirName)
-  os.remove('/home/sbrinckm/FZJ/AgileScience/Python/jams.log')
-be.exit()
