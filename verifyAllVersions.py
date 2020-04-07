@@ -19,6 +19,9 @@ else:
   print(output)
 """
 result = subprocess.run(['git','status'], stdout=subprocess.PIPE)
-output = result.stdout.decode('utf-8')#.split('\n')
-print(output)
+output = result.stdout.decode('utf-8').split('\n')
+if output[-2]=='nothing to commit, working tree clean':
+  print("  Git tree is clean")
+else:
+  print(output)
 os.chdir('..')
