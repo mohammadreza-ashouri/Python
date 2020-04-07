@@ -1,6 +1,12 @@
 {
   "_id": "-dataDictionary-",
   "-hierarchy-":["project","step","task"],
+  "-names-":{
+    "main":["name","tags","comments","dirName"],
+    "database":["_id","_rev","type","hierarchy","user","client","revisions"],
+    "special":["image","meta","md5sum","qr_code"]
+  },
+
 
   "project": [
     {"Projects":[

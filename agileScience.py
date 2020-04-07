@@ -99,7 +99,7 @@ class AgileScience:
           data['childNum'] = 0
         else:
           thisStack = ' '.join(self.hierStack)
-          view = self.db.getView('viewHierarchy/viewHierarchy', key=self.hierStack[0])
+          view = self.db.getView('viewHierarchy/viewHierarchy', key=self.hierStack[0]) #not faster with cT.getChildren
           thisChildNumber = 0
           for item in view:
             if item['value'][2]=='project': continue
@@ -119,7 +119,6 @@ class AgileScience:
         prefix = 't'
       else:
         prefix = docType[0]
-      # if new use fillDocBeforeCreate
       data = cT.fillDocBeforeCreate(data, docType, hierStack, prefix).to_dict()
       _id, _rev = self.db.saveDoc(data)
       # create directory for projects,steps,tasks
