@@ -1,7 +1,7 @@
 """ Python Backend
 """
 import os, json, base64, hashlib
-import importlib, traceback
+import importlib
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
@@ -24,8 +24,8 @@ class AgileScience:
         databaseName: name of database, otherwise taken from config file
     """
     # open configuration file and define database
-    logging.basicConfig(filename='jams.log', format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
-    logging.debug("\nSTART JAMS")
+    logging.basicConfig(filename='jams.log', filemode='w', format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
+    logging.info("\nSTART JAMS")
     jsonFile = open(os.path.expanduser('~')+'/.agileScience.json')
     configuration = json.load(jsonFile)
     user         = configuration["user"]
@@ -69,6 +69,7 @@ class AgileScience:
     self.db.exit(deleteDB)
     self.alive     = False
     logging.debug("\nEND JAMS")
+    logging.shutdown()
     return
 
 
@@ -94,38 +95,47 @@ class AgileScience:
       #new document
       data['type'] = docType
       newDoc       = True
-      if docType in self.hierList:  #should not have childnumber in other cases for debugging
-        if docType=='project':
-          data['childNum'] = 0
-        else:
-          thisStack = ' '.join(self.hierStack)
-          view = self.db.getView('viewHierarchy/viewHierarchy', key=self.hierStack[0]) #not faster with cT.getChildren
-          thisChildNumber = 0
-          for item in view:
-            if item['value'][2]=='project': continue
-            if item['value'][0] == thisStack:
-              thisChildNumber += 1
-          data['childNum'] = thisChildNumber
+      if docType in self.hierList and docType!='project':
+        #should not have childnumber in other cases for debugging
+        thisStack = ' '.join(self.hierStack)
+        view = self.db.getView('viewHierarchy/viewHierarchy', key=self.hierStack[0]) #not faster with cT.getChildren
+        thisChildNumber = 0
+        for item in view:
+          if item['value'][2]=='project': continue
+          if item['value'][0] == thisStack:
+            thisChildNumber += 1
+        data['childNum'] = thisChildNumber
       # find directory name
-      dirName = None
-      if newDoc and self.cwd is not None:  #updated information keeps its dirName
-        if data['type'] == 'project':
-          dirName = cT.camelCase(data['name'])
-        elif data['type'] in self.hierList:  #steps, tasks
-          dirName = ("{:03d}".format(thisChildNumber))+'_'+cT.camelCase(data['name'])
-        data['dirName'] = dirName
+      if newDoc and docType in self.hierList and self.cwd is not None:
+        #updated information keeps its dirName
+        if docType=='project': thisChildNumber = -1
+        data['dirName'] = self.createDirName(data['name'],data['type'],thisChildNumber)
       # do default filling and save
       if docType in self.hierList:
         prefix = 't'
       else:
         prefix = docType[0]
+      if docType == 'measurement':
+        if '//' not in data['name'] and os.path.basename(data['name']) == data['name']:
+          data['name'] = self.cwd + data['name']
       data = cT.fillDocBeforeCreate(data, docType, hierStack, prefix).to_dict()
       _id, _rev = self.db.saveDoc(data)
-      # create directory for projects,steps,tasks
-      if dirName is not None:
-        os.makedirs(dirName, exist_ok=True)
-        with open(dirName+'/.idJAMS.txt','w') as f:
-          f.write(_id)
+      if 'dirName' in data:
+        # create directory for projects,steps,tasks
+        os.makedirs(data['dirName'], exist_ok=True)
+        with open(data['dirName']+'/id_jams.json','w') as f:
+          data['_rev'] = _rev
+          f.write(json.dumps(data))
+      elif self.cwd is not None:
+        # create information for measurement,sample,procedure on disk
+        if docType == 'measurement' and '//' in data['name']: #includes url
+          pathName = self.cwd+os.path.basename(data['name'])
+        else:
+          pathName = data['name']
+        pathName = pathName.replace('.','_')+"_jams.json"
+        with open(pathName,'w') as f:
+          data['_rev'] = _rev
+          f.write(json.dumps(data))
     else:
       #update document
       data = cT.fillDocBeforeCreate(data, '--', hierStack[:-1], '--').to_dict()
@@ -136,6 +146,23 @@ class AgileScience:
     if 'meta'  in data: data['meta']='length='+str(len(data['meta']))
     logging.debug("Data saved "+str(data))
     return
+
+
+  def createDirName(self,name,docType,thisChildNumber):
+    """ create directory-name by using camelCase and a prefix
+
+    Args:
+       name: name with spaces etc.
+       docType: document type used for prefix
+       thisChildNumber: number of myself
+    """
+    if 'project' in docType:
+      return cT.camelCase(name)
+    else:  #steps, tasks
+      if isinstance(thisChildNumber, str):
+        thisChildNumber = int(thisChildNumber)
+      return ("{:03d}".format(thisChildNumber))+'_'+cT.camelCase(name)
+
 
 
   ######################################################
@@ -168,78 +195,113 @@ class AgileScience:
       if self.cwd is not None:
         dirName = self.db.getDoc(id)['dirName']
         os.chdir(dirName)
-        self.cwd += cT.camelCase(dirName)+'/'
+        self.cwd += dirName+'/'
+    return
+
+  def scanTree(self):
+    """ Set up everything and starting from this document (project, step, ...) call scanDirectory
+    - branch refers to things in database
+    - directories refers to things on harddisk
+    """
+    projectBranch = self.outputHierarchy(onlyHierarchy=False, addID=True)
+    thisBranch = self.getSubBranch(projectBranch.split("\n"),self.hierStack[-1])
+    self.scanDirectory(self.cwd,thisBranch,self.hierStack[-1])
     return
 
 
-  def scanDirectory(self):
+  def scanDirectory(self,directory,branch,docID):
+    """ recursively called function
+    branch = string
     """
-    Recursively scan directory tree for new files
-
-    #TODO compare directory tree with database version and adopt database
-          better inverse:
-          - search database and then get directory names from it
-          - and use stored .id.txt file
-    """
-    for root, _, fNames in os.walk(self.cwd):
-      # find directory names
-      if len(fNames) == 0:
+    logging.debug("scanDirectory docID: "+docID+"  end of path: "+directory[25:])
+    contentDir = os.listdir(directory)
+    # check all subbranches, projects, steps, tasks
+    branch = branch.split("\n")
+    numSpacesChilds = len(branch[1]) - len(branch[1].lstrip())
+    for line in branch:
+      if line.strip()=='': break
+      if (len(line)-len(line.lstrip())) == numSpacesChilds:
+        thatDocType, thatName, thatDocID, thatChildNum = line.split(": ")
+        if thatDocID.startswith('t-'):
+          dirName = self.createDirName(thatName,thatDocType.strip(),thatChildNum)
+          if dirName in contentDir:
+            #db-branch exists in folder
+            contentDir.remove(dirName)
+            subBranch = self.getSubBranch(branch, thatDocID)
+            self.scanDirectory(directory+dirName+'/', subBranch, thatDocID)
+          else:
+            #db-branch does not exist in folder
+            logging.error(" db-branch |"+thatName+"|"+dirName+"| does not exist in folder: "+directory)
+        else:
+          thatDocType = thatDocType.strip()
+          if '//' in thatName:
+            print("TODO how to compare if remote data")
+          filePath = thatName.replace('.','_')+"_jams.json"
+          self.compareDiskDB(thatDocID, filePath)
+          contentDir.remove(os.path.basename(filePath))
+    # handle known file in directory
+    if 'id_jams.json' in contentDir:
+      self.compareDiskDB(docID, directory+"id_jams.json")
+      contentDir.remove('id_jams.json')
+    # files in directory but not in DB
+    for fName in contentDir:
+      if fName.endswith("_jams.svg") or fName.endswith("_jams.png") or fName.endswith("_jams.jpg"):
+        continue  #files that do not need to be accounted for
+      if fName.endswith("_jams.json"):
+        logging.warning("JAMS.json file dangling in folder: "+directory+"    fileName: "+fName)
         continue
-      relpath = os.path.relpath(root, start=self.baseDirectory)
-      if len(relpath.split('/')) == 3:
-        project, step, task = relpath.split('/')
-      elif len(relpath.split('/')) == 2:
-        project, step = relpath.split('/')
-        task = None
-      elif len(relpath.split('/')) == 1:
-        project, step, task = relpath.split('/')[0], None, None
+      logging.warning("File in directory that are not in db: "+fName)
+      # test if file already in database
+      md5sum = hashlib.md5(open(directory+fName,'rb').read()).hexdigest()
+      view = self.db.getView('viewMD5/viewMD5', key=md5sum)
+      if len(view) > 0:
+        logging.warning("File"+fName+" is already in db as id "+view[0]['id']+" with filename "+view[0]['value'])
       else:
-        project, step, task = None, None, None
-        logging.error("jams.scanDirectory Error 1")
-      # find IDs to names
-      projectID, stepID, taskID = None, None, None
-      for item in self.db.getView('viewProjects/viewProjects'):
-        if project == cT.camelCase(item['value'][0]):
-          projectID = item['id']
-      if projectID is None:
-        logging.error("jams.scanDirectory No project found scanDirectory")
-        return
-      view = self.db.getView('viewHierarchy/viewHierarchy', key=projectID)
-      nativeView = {}
-      for item in view:
-        nativeView[item['id']] = item['value']
-      hierStack = [projectID]  # temporary version
-      if step is not None:
-        for itemID in cT.getChildren(nativeView,projectID):
-          if step == cT.camelCase(self.db.getDoc(itemID)['name']):
-              stepID = itemID
-        if stepID is None:
-          logging.warning("jams.scanDirectory No step found scanDirectory")
-        else:
-          hierStack.append(stepID)
-      if task is not None and stepID is not None:
-        for itemID in cT.getChildren(nativeView,stepID):
-          if task == cT.camelCase(self.db.getDoc(itemID)['name']):
-            taskID = itemID
-        if taskID is None:
-          logging.warning("jams.scanDirectory No task found scanDirectory")
-        else:
-          hierStack.append(taskID)
-      # loop through all files and process
-      for fName in fNames:  # all files in this directory
-        logging.info("Try to process for file:"+fName)
-        if fName.endswith('_jams.svg') or fName.endswith('_jams.jpg') or fName == '.idJAMS.txt':
-          continue
-        # test if file already in database
-        md5sum = hashlib.md5(open(fName,'rb').read()).hexdigest()
-        view = self.db.getView('viewMD5/viewMD5', key=md5sum)
-        if len(view) > 0:
-          logging.warning("File"+fName+" is already in db as id "+view[0]['id']+" with filename "+view[0]['value'])
-        else:
-          doc = self.getImage(os.path.join(root, fName))
-          self.addData('measurement', doc, hierStack)
+        newDoc = self.getImage(directory+fName)
+        parentDoc = self.db.getDoc(docID)
+        hierStack = parentDoc['inheritance']+[docID]
+        self.addData('measurement', newDoc, hierStack)
+        logging.warning("added file "+fName+" is to database")
     return
 
+
+  def getSubBranch(self, branch,docID):
+    """
+    branch = array
+    """
+    thisBranch  = ""
+    numSpaces   = -1
+    useLine     = False
+    for line in branch:
+      if line.strip()=='': break
+      thatDocType, thatName, thatID, thatChildNum = line.split(": ")
+      if thatID==docID:
+        numSpaces = len(line)-len(line.lstrip())
+        useLine     = True
+      elif numSpaces==len(line)-len(line.lstrip()):
+        useLine     = False
+      if useLine:
+        thisBranch += thatDocType+": "+thatName+": "+thatID+": "+thatChildNum+"\n"
+    return thisBranch
+
+
+  def compareDiskDB(self, docID, fileName):
+    docDisk = json.load(open(fileName, 'r'))
+    docDB   = self.db.getDoc(docID)
+    if docDisk == docDB:
+      logging.info("Disk and database agree "+fileName+" id:"+docID)
+    else:
+      logging.error("Disk and database DO NOT agree "+fileName+" id:"+docID)
+      logging.debug(json.dumps(docDB))
+      logging.debug(json.dumps(docDisk))
+    if 'md5sum' in docDB and docDB['md5sum']!='':
+      md5sumDisk = hashlib.md5(open(docDB['name'],'rb').read()).hexdigest()
+      if docDB['md5sum'] == md5sumDisk:
+        logging.info("MD5sums agree")
+      else:
+        logging.error("MD5sums DO NOT agree")
+        logging.debug(docDB)
+    return
 
   def getImage(self, filePath):
     """
@@ -254,13 +316,10 @@ class AgileScience:
     pyFile = "image_"+extension+".py"
     pyPath = self.softwareDirectory+'/'+pyFile
     if os.path.exists(pyPath):
+      # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
       image, imgType, metaMeasurement = module.getImage(filePath)
-      if 'measurementType' in metaMeasurement:
-        measurementType = metaMeasurement.pop('measurementType')
-      else:
-        logging.error('getImage: measurementType should be set')
-        measurementType = ''
+      # depending on imgType: produce image
       if imgType == "line":  #no scaling
         outFile = os.path.splitext(filePath)[0]+"_jams.svg"
         plt.savefig(outFile)
@@ -274,19 +333,21 @@ class AgileScience:
         imageData = base64.b64encode(open(outFile,'rb').read())
         image = 'data:image/jpg;base64,' + imageData.decode()
       elif imgType == "contours":
-        image = image
+        image, metaMeasurement = '', {'measurementType':''}
         logging.error("getImage Not implemented yet 1")
-        return None
       else:
-        raise NameError('**ERROR** Implementation failed')
-      meta = {'image': image, 'name': filePath, 'type': 'measurement', 'comment': '',
-              'measurementType':measurementType, 'meta':metaMeasurement}
-      meta['md5sum'] = hashlib.md5(open(filePath,'rb').read()).hexdigest()
-      logging.info("Image successfully created")
-      return meta
+        image, metaMeasurement = '', {'measurementType':''}
+        logging.error('getImage Not implemented yet 2')
     else:
-      logging.warning("getImage: could not find pyFile to convert"+pFile)
-      return None # default case if nothing is found
+      image, metaMeasurement = '', {'measurementType':''}
+      logging.warning("getImage: could not find pyFile to convert"+pyFile)
+    #produce meta information
+    measurementType = metaMeasurement.pop('measurementType')
+    meta = {'image': image, 'name': filePath, 'type': 'measurement', 'comment': '',
+            'measurementType':measurementType, 'meta':metaMeasurement}
+    meta['md5sum'] = hashlib.md5(open(filePath,'rb').read()).hexdigest()
+    logging.info("Image successfully created")
+    return meta
 
 
   def replicateDB(self, remoteDB=None, removeAtStart=False):
@@ -349,11 +410,15 @@ class AgileScience:
     return outString
 
 
-  def outputHierarchy(self):
+  def outputHierarchy(self, onlyHierarchy=True, addID=False):
     """
     output hierarchical structure in database
     - convert view into native dictionary
     - ignore key since it is always the same
+
+    Args:
+       onlyHierarchy: only print project,steps,tasks or print all (incl. measurements...)[default print all]
+       addID: add docID to output
     """
     if len(self.hierStack) == 0:
       logging.warning('jams.outputHierarchy No project selected')
@@ -362,8 +427,11 @@ class AgileScience:
     view = self.db.getView('viewHierarchy/viewHierarchy', key=projectID)
     nativeView = {}
     for item in view:
+      if onlyHierarchy and not item['id'].startswith('t-'):
+        continue
       nativeView[item['id']] = item['value']
-    outString = cT.hierarchy2String(nativeView)
+    outString = cT.hierarchy2String(nativeView, addID)
+    outString = outString.replace(': undefined\n',': -1\n')
     return outString
 
 

@@ -23,8 +23,8 @@ try:
   print("*** TEST PROJECT HIERARCHY ***")
   doc = be.db.getView('viewProjects/viewProjects')
   projID  = [i['id'] for i in doc][0]
-  projDirName = be.getDoc(projID)['dirName']
   be.changeHierarchy(projID)
+  projDirName = be.cwd
   be.addData('step',    {'comment': 'More random text', 'name': 'Test step one'})
   be.addData('step',    {'comment': 'Much more random text', 'name': 'Test step two'})
   tempID = be.currentID
@@ -32,6 +32,11 @@ try:
   be.changeHierarchy(tempID)
   be.addData('task',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
   be.addData('task',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
+  be.changeHierarchy(be.currentID)
+  stepDirName = be.cwd
+  be.addData('measurement', {'name': 'fallInPot.txt', 'comment': 'great fall'})
+  # be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
+  be.changeHierarchy(None)
   be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
   be.changeHierarchy(None)
   print(be.outputHierarchy())
@@ -63,19 +68,23 @@ try:
   print(be.outputQR())
 
   ### test measurements
-  print("*** TEST MEASUREMENTS ***")
+  print("*** TEST MEASUREMENTS AND SCANNING ***")
   be.addData('measurement', {'name': 'filename.txt', 'comment': '#random #5 great stuff'})
   be.addData('measurement', {'name': 'filename.jpg', 'comment': '#3 #other medium stuff'})
-  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/Zeiss.tif', dirName+'/'+projDirName+'/')
-  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/RobinSteel0000LC.txt', dirName+'/'+projDirName+'/')
-  be.scanDirectory()
-  be.scanDirectory()
+  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/Zeiss.tif', projDirName+'/')
+  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName+'/')
+  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName+'/')
+  be.scanTree()
+  be.scanTree()
   print(be.output('Measurements'))
   print(be.outputMD5())
 
   ### test other functions
-  print("Replication test")
-  be.replicateDB(databaseName,True)
+  # print("Replication test")
+  # be.replicateDB(databaseName,True)
+  print("*** FINAL HIERARCHY ***")
+  print(be.outputHierarchy(False))
+
   be.exit()
 
 except:

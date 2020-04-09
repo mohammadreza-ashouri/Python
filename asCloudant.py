@@ -36,7 +36,7 @@ class Database:
       dataDictionary = json.load(open("dataDictionary.json", 'r'))
       reply = self.db.create_document(dataDictionary)
     # check if default views exist and create them
-    jsDefault = "if (doc.type && doc.type=='$docType$') {emit($key$, [$outputList$]);}"
+    jsDefault = "if ('type' in doc && doc.type=='$docType$') {emit($key$, [$outputList$]);}"
     self.dataDictionary = self.db["-dataDictionary-"]
     res = cT.dataDictionary2DataLabels(self.dataDictionary)
     self.dataLabels = list(res['dataList'])
@@ -61,11 +61,14 @@ class Database:
         jsString = jsString.replace('$outputList$', outputList)
         logging.warning("**WARNING** "+view+" not defined. Use default one:"+jsString)
         self.saveView(view, view, jsString)
-    jsString = "if (doc.type && (doc.type==='step'||doc.type=='task')) {emit(doc.inheritance[0], [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}\n"
-    jsString += "if (doc.type && (doc.type==='project'))               {emit(doc._id,            [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}"
+    jsString  = "if ('type' in doc) {\n"
+    jsString += "if (doc.type==='project') {emit(doc._id, [doc.inheritance.join(' '),9999,doc.type,doc.name]);}\n"
+    jsString += "else if ('childNum' in doc)    {emit(doc.inheritance[0], [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}\n"
+    jsString += "else {emit(doc.inheritance[0], [doc.inheritance.join(' '),9999,doc.type,doc.name]);}\n"
+    jsString += "}"
     self.saveView('viewHierarchy','viewHierarchy',jsString)
-    self.saveView('viewMD5','viewMD5',"if (doc.type && doc.type==='measurement'){emit(doc.md5sum, doc.name);}")
-    self.saveView('viewQR','viewQR',  "if (doc.type && doc.type === 'sample' && doc.qr_code[0] !== '') {doc.qr_code.forEach(function (thisCode) {emit(thisCode, doc.name);});}")
+    self.saveView('viewMD5','viewMD5',"if ('type' in doc && doc.type==='measurement'){emit(doc.md5sum, doc.name);}")
+    self.saveView('viewQR','viewQR',  "if ('type' in doc && doc.type === 'sample' && doc.qr_code[0] !== '') {doc.qr_code.forEach(function (thisCode) {emit(thisCode, doc.name);});}")
     return
 
 
