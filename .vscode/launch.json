@@ -5,27 +5,18 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: Current File",
-      "type": "python",
-      "request": "launch",
-      "program": "${file}",
-      "console": "externalTerminal"
-    },
-    {
       "name": "Verify",
       "type": "python",
       "request": "launch",
-      "program": "verify.py",
-      "console": "integratedTerminal",
-      "cwd": "/home/sbrinckm/FZJ/AgileScience/Python"
+      "program": "${workspaceFolder}/verify.py",
+      "console": "externalTerminal"
     },
     {
       "name": "AgileScience CLI",
       "type": "python",
       "request": "launch",
-      "program": "agileScienceCLI.py",
-      "console": "integratedTerminal",
-      "cwd": "/home/sbrinckm/FZJ/AgileScience/Python"
+      "program": "${workspaceFolder}/agileScienceCLI.py",
+      "console": "externalTerminal",
     }
   ]
 }

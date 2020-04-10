@@ -1,9 +1,10 @@
 #!/usr/bin/python3
-import os, shutil, traceback
+import os, shutil, traceback, sys
 from agileScience import AgileScience
 import asTools
 
 ### initialization
+sys.path.append('/home/sbrinckm/FZJ/Code/Nanotribology')  #allow debugging in vscode which strips the python-path
 databaseName = 'temporary_test'
 dirName      = os.path.expanduser('~')+"/"+databaseName
 os.makedirs(dirName, exist_ok=True)
@@ -24,7 +25,7 @@ try:
   doc = be.db.getView('viewProjects/viewProjects')
   projID  = [i['id'] for i in doc][0]
   be.changeHierarchy(projID)
-  projDirName = be.cwd
+  projDirName = be.basePath+be.cwd
   be.addData('step',    {'comment': 'More random text', 'name': 'Test step one'})
   be.addData('step',    {'comment': 'Much more random text', 'name': 'Test step two'})
   tempID = be.currentID
@@ -33,7 +34,7 @@ try:
   be.addData('task',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
   be.addData('task',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
   be.changeHierarchy(be.currentID)
-  stepDirName = be.cwd
+  stepDirName = be.basePath+be.cwd
   be.addData('measurement', {'name': 'fallInPot.txt', 'comment': 'great fall'})
   # be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
   be.changeHierarchy(None)
@@ -71,9 +72,9 @@ try:
   print("*** TEST MEASUREMENTS AND SCANNING ***")
   be.addData('measurement', {'name': 'filename.txt', 'comment': '#random #5 great stuff'})
   be.addData('measurement', {'name': 'filename.jpg', 'comment': '#3 #other medium stuff'})
-  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/Zeiss.tif', projDirName+'/')
-  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName+'/')
-  shutil.copy(be.softwareDirectory+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName+'/')
+  shutil.copy(be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
+  shutil.copy(be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
+  shutil.copy(be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
   be.scanTree()
   be.scanTree()
   print(be.output('Measurements'))

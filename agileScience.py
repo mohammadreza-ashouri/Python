@@ -1,10 +1,11 @@
 """ Python Backend
 """
-import os, json, base64, hashlib
+import os, json, base64, hashlib, shutil
 import importlib
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
+from io import StringIO, BytesIO
 from pprint import pprint
 from asTools import imageToString, stringToImage
 from asCloudant import Database
@@ -38,16 +39,17 @@ class AgileScience:
     self.userID   = configuration["userID"]
     self.remoteDB = configuration["remote"]
     self.eargs   = configuration["eargs"]
-    # open basePath as current working directory
-    self.softwareDirectory = os.path.abspath(os.getcwd())
-    self.cwd     = os.path.expanduser('~')+"/"+configuration["baseFolder"]
-    self.baseDirectory = os.path.expanduser('~')+"/"+configuration["baseFolder"]
-    if not self.cwd.endswith("/"):
-        self.cwd += "/"
-    if os.path.exists(self.cwd):
-        os.chdir(self.cwd)
+    # open basePath (root of directory tree) as current working directory
+    # self.cwd is the addition to basePath
+    self.softwarePath = os.path.abspath(os.getcwd())
+    self.basePath     = os.path.expanduser('~')+"/"+configuration["baseFolder"]
+    self.cwd          = ""
+    if not self.basePath.endswith("/"):
+        self.basePath += "/"
+    if os.path.exists(self.basePath):
+        os.chdir(self.basePath)
     else:
-        logging.warning("Base folder did not exist. No directory saving\n"+self.cwd)
+        logging.warning("Base folder did not exist. No directory saving\n"+self.basePath)
         self.cwd   = None
     # hierarchy structure
     self.dataDictionary = self.db.getDoc("-dataDictionary-")
@@ -65,7 +67,7 @@ class AgileScience:
     Args:
       deleteDB: remove database
     """
-    os.chdir(self.softwareDirectory)
+    os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
     self.alive     = False
     logging.debug("\nEND JAMS")
@@ -105,42 +107,49 @@ class AgileScience:
           if item['value'][0] == thisStack:
             thisChildNumber += 1
         data['childNum'] = thisChildNumber
-      # find directory name
-      if newDoc and docType in self.hierList and self.cwd is not None:
-        #updated information keeps its dirName
-        if docType=='project': thisChildNumber = -1
-        data['dirName'] = self.createDirName(data['name'],data['type'],thisChildNumber)
-      # do default filling and save
       if docType in self.hierList:
         prefix = 't'
       else:
         prefix = docType[0]
-      if docType == 'measurement':
-        if '//' not in data['name'] and os.path.basename(data['name']) == data['name']:
-          data['name'] = self.cwd + data['name']
-      data = cT.fillDocBeforeCreate(data, docType, hierStack, prefix).to_dict()
-      _id, _rev = self.db.saveDoc(data)
-      if 'dirName' in data:
-        # create directory for projects,steps,tasks
-        os.makedirs(data['dirName'], exist_ok=True)
-        with open(data['dirName']+'/id_jams.json','w') as f:
-          data['_rev'] = _rev
-          f.write(json.dumps(data))
-      elif self.cwd is not None:
-        # create information for measurement,sample,procedure on disk
-        if docType == 'measurement' and '//' in data['name']: #includes url
-          pathName = self.cwd+os.path.basename(data['name'])
+      # find path name on local file system; name can be anything
+      if self.cwd is not None:
+        if docType in self.hierList:
+          #project, step, task
+          if docType=='project': thisChildNumber = -1
+          data['path'] = self.createDirName(data['name'],data['type'],thisChildNumber)
         else:
-          pathName = data['name']
-        pathName = pathName.replace('.','_')+"_jams.json"
-        with open(pathName,'w') as f:
-          data['_rev'] = _rev
-          f.write(json.dumps(data))
+          #measurement, sample, procedure
+          if '://' in data['name']:                                 #make up name
+            data['path'] = self.cwd + cT.camelCase( os.path.basename(data['name']))
+            data.update( self.getImage(data['name']) )
+          elif os.path.exists(self.basePath+data['name']):          #file exists
+            data['path'] = data['name']
+            data.update( self.getImage(data['path']) )
+            data['name'] = os.path.basename(data['name'])
+          elif os.path.exists(self.basePath+self.cwd+data['name']): #file exists
+            data['path'] = self.cwd+data['name']
+            data.update( self.getImage(data['path']) )
+          else:                                                     #make up name
+            data['path'] = self.cwd + cT.camelCase( os.path.basename(data['name']))
+      ## add data to database
+      data = cT.fillDocBeforeCreate(data, docType, hierStack, prefix).to_dict()
+      data = self.db.saveDoc(data)
     else:
       #update document
       data = cT.fillDocBeforeCreate(data, '--', hierStack[:-1], '--').to_dict()
-      _id, _rev = self.db.updateDoc(data,self.hierStack[-1])
-    self.currentID = _id
+      data = self.db.updateDoc(data,self.hierStack[-1])
+    ## adoptation of directory tree, information on disk
+    if self.cwd is not None:
+      if data['type'] in self.hierList:
+        #project, step, task
+        os.makedirs(self.basePath+data['path'], exist_ok=True)
+        with open(self.basePath+data['path']+'/id_jams.json','w') as f:  #local path
+          f.write(json.dumps(data))
+      else:
+        #measurement, sample, procedure
+        with open(self.basePath+data['path'].replace('.','_'),'w') as f:
+          f.write(json.dumps(data))
+    self.currentID = data['_id']
     # reduce information before logging
     if 'image' in data: del data['image']
     if 'meta'  in data: data['meta']='length='+str(len(data['meta']))
@@ -193,7 +202,8 @@ class AgileScience:
     else:  # existing project ID is given: open that
       self.hierStack.append(id)
       if self.cwd is not None:
-        dirName = self.db.getDoc(id)['dirName']
+        path = self.db.getDoc(id)['path']
+        dirName = path.split('/')[-1]
         os.chdir(dirName)
         self.cwd += dirName+'/'
     return
@@ -214,7 +224,7 @@ class AgileScience:
     branch = string
     """
     logging.debug("scanDirectory docID: "+docID+"  end of path: "+directory[25:])
-    contentDir = os.listdir(directory)
+    contentDir = os.listdir(self.basePath+directory)
     # check all subbranches, projects, steps, tasks
     branch = branch.split("\n")
     numSpacesChilds = len(branch[1]) - len(branch[1].lstrip())
@@ -237,7 +247,9 @@ class AgileScience:
           if '//' in thatName:
             print("TODO how to compare if remote data")
           filePath = thatName.replace('.','_')+"_jams.json"
-          self.compareDiskDB(thatDocID, filePath)
+          print('\n\nHHH',thatName)
+          self.compareDiskDB(thatDocID, directory+filePath)
+          print("Debug",contentDir,filePath)
           contentDir.remove(os.path.basename(filePath))
     # handle known file in directory
     if 'id_jams.json' in contentDir:
@@ -252,11 +264,12 @@ class AgileScience:
         continue
       logging.warning("File in directory that are not in db: "+fName)
       # test if file already in database
-      md5sum = hashlib.md5(open(directory+fName,'rb').read()).hexdigest()
+      md5sum = hashlib.md5(open(self.basePath+directory+fName,'rb').read()).hexdigest()
       view = self.db.getView('viewMD5/viewMD5', key=md5sum)
       if len(view) > 0:
         logging.warning("File"+fName+" is already in db as id "+view[0]['id']+" with filename "+view[0]['value'])
       else:
+        print("debug1",directory,fName)
         newDoc = self.getImage(directory+fName)
         parentDoc = self.db.getDoc(docID)
         hierStack = parentDoc['inheritance']+[docID]
@@ -285,17 +298,20 @@ class AgileScience:
     return thisBranch
 
 
-  def compareDiskDB(self, docID, fileName):
-    docDisk = json.load(open(fileName, 'r'))
+  def compareDiskDB(self, docID, filePath):
+    """
+    filePath = not full path
+    """
+    docDisk = json.load(open(self.basePath+filePath, 'r'))
     docDB   = self.db.getDoc(docID)
     if docDisk == docDB:
-      logging.info("Disk and database agree "+fileName+" id:"+docID)
+      logging.info("Disk and database agree "+filePath+" id:"+docID)
     else:
-      logging.error("Disk and database DO NOT agree "+fileName+" id:"+docID)
+      logging.error("Disk and database DO NOT agree "+filePath+" id:"+docID)
       logging.debug(json.dumps(docDB))
       logging.debug(json.dumps(docDisk))
     if 'md5sum' in docDB and docDB['md5sum']!='':
-      md5sumDisk = hashlib.md5(open(docDB['name'],'rb').read()).hexdigest()
+      md5sumDisk = hashlib.md5(open(self.basePath+docDB['name'],'rb').read()).hexdigest()
       if docDB['md5sum'] == md5sumDisk:
         logging.info("MD5sums agree")
       else:
@@ -314,30 +330,50 @@ class AgileScience:
     maxSize = 600
     extension = os.path.splitext(filePath)[1][1:]
     pyFile = "image_"+extension+".py"
-    pyPath = self.softwareDirectory+'/'+pyFile
+    pyPath = self.softwarePath+'/'+pyFile
+    if '//' in filePath:
+      outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_jams'
+    else:
+      outFile = self.basePath+filePath.replace('.','_')+'_jams'
     if os.path.exists(pyPath):
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
-      image, imgType, metaMeasurement = module.getImage(filePath)
+      image, imgType, metaMeasurement = module.getImage(self.basePath+filePath)
       # depending on imgType: produce image
       if imgType == "line":  #no scaling
-        outFile = os.path.splitext(filePath)[0]+"_jams.svg"
-        plt.savefig(outFile)
-        image = open(outFile,'r').read()
+        figfile = StringIO()
+        plt.savefig(figfile, format='svg')
+        image = figfile.getvalue()
         # 'data:image/svg+xml;utf8,<svg' + figfile.getvalue().split('<svg')[1]
+        if self.cwd is not None:
+          with open(outFile+'.svg','w') as f:
+            figfile.seek(0)
+            shutil.copyfileobj(figfile, f)
       elif imgType == "waves":
         ratio = maxSize / image.size[np.argmax(image.size)]
         image = image.resize((np.array(image.size)*ratio).astype(np.int)).convert('RGB')
-        outFile = os.path.splitext(filePath)[0]+"_jams.jpg"
-        image.save(outFile)
-        imageData = base64.b64encode(open(outFile,'rb').read())
-        image = 'data:image/jpg;base64,' + imageData.decode()
+        figfile = BytesIO()
+        image.save(figfile, format='JPEG')
+        imageData = base64.b64encode(figfile.getvalue()).decode()
+        image = 'data:image/jpg;base64,' + imageData
+        if self.cwd is not None:
+          with open(outFile+'.jpg','wb') as f:
+            figfile.seek(0)
+            shutil.copyfileobj(figfile, f)
       elif imgType == "contours":
-        image, metaMeasurement = '', {'measurementType':''}
-        logging.error("getImage Not implemented yet 1")
+        ratio = maxSize / image.size[np.argmax(image.size)]
+        image = image.resize((np.array(image.size)*ratio).astype(np.int))
+        figfile = BytesIO()
+        image.save(figfile, format='PNG')
+        imageData = base64.b64encode(figfile.getvalue()).decode()
+        image = 'data:image/png;base64,' + imageData
+        if self.cwd is not None:
+          with open(outFile+'.png','wb') as f:
+            figfile.seek(0)
+            shutil.copyfileobj(figfile, f)
       else:
         image, metaMeasurement = '', {'measurementType':''}
-        logging.error('getImage Not implemented yet 2')
+        logging.error('getImage Not implemented yet 1'+str(imgType))
     else:
       image, metaMeasurement = '', {'measurementType':''}
       logging.warning("getImage: could not find pyFile to convert"+pyFile)
@@ -345,7 +381,7 @@ class AgileScience:
     measurementType = metaMeasurement.pop('measurementType')
     meta = {'image': image, 'name': filePath, 'type': 'measurement', 'comment': '',
             'measurementType':measurementType, 'meta':metaMeasurement}
-    meta['md5sum'] = hashlib.md5(open(filePath,'rb').read()).hexdigest()
+    meta['md5sum'] = hashlib.md5(open(self.basePath+filePath,'rb').read()).hexdigest()
     logging.info("Image successfully created")
     return meta
 

@@ -102,7 +102,7 @@ class Database:
         doc: document to save
     """
     res = self.db.create_document(doc)
-    return (res['_id'], res['_rev'])
+    return res
 
 
   def updateDoc(self, change, docID):
@@ -140,7 +140,7 @@ class Database:
     doc.save()
     revDoc['revisionCurrent'] = doc['_rev']
     res = self.db.create_document(revDoc)
-    return doc['_id'], doc['_rev']
+    return doc
 
 
   def getView(self, thePath, key=None):
