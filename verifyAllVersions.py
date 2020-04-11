@@ -6,6 +6,7 @@ import subprocess, os, time
 
 
 ## TEST PYTHON CODE
+print('\n\n==== PYTHON ====')
 os.chdir('Python')
 result = subprocess.run(['./verify.py'], stdout=subprocess.PIPE)
 time.sleep(30)
@@ -15,12 +16,13 @@ if output[-2]=='Replication test' and logFile[-2]=='END JAMS':  #last item is al
   print("Python success")
 else:
   print("Python failure")
-  print(output)
+  print('\n'.join(output))
 result = subprocess.run(['git','status'], stdout=subprocess.PIPE)
 time.sleep(3)
 output = result.stdout.decode('utf-8').split('\n')
 if output[-2]=='nothing to commit, working tree clean':
   print("  Git tree is clean")
 else:
-  print(output)
+  print("Git not committed")
+  print('\n'.join(output[5:-3]))
 os.chdir('..')

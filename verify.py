@@ -80,11 +80,13 @@ try:
   print(be.output('Measurements'))
   print(be.outputMD5())
 
-  ### test other functions
-  # print("Replication test")
-  # be.replicateDB(databaseName,True)
+  ### Output including data
   print("*** FINAL HIERARCHY ***")
   print(be.outputHierarchy(False))
+
+  ### test other functions
+  print("Replication test")
+  be.replicateDB(databaseName,True)
 
   be.exit()
 
