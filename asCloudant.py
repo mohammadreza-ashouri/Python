@@ -26,7 +26,7 @@ class Database:
     except Exception:
       logging.error("Something unexpected has happend"+traceback.format_exc())
     self.databaseName = databaseName
-    if self.databaseName in self.client:
+    if self.databaseName in self.client.all_dbs():
       self.db = self.client[self.databaseName]
     else:
       self.db = self.client.create_database(self.databaseName)
@@ -36,11 +36,11 @@ class Database:
       dataDictionary = json.load(open("dataDictionary.json", 'r'))
       reply = self.db.create_document(dataDictionary)
     # check if default views exist and create them
-    jsDefault = "if ('type' in doc && doc.type=='$docType$') {emit($key$, [$outputList$]);}"
     self.dataDictionary = self.db["-dataDictionary-"]
     res = cT.dataDictionary2DataLabels(self.dataDictionary)
     self.dataLabels = list(res['dataList'])
     self.hierarchyLabels = list(res['hierarchyList'])
+    jsDefault = "if ('type' in doc && doc.type=='$docType$') {emit($key$, [$outputList$]);}"
     for docType, docLabel in self.dataLabels+self.hierarchyLabels:
       view = "view"+docLabel
       if "_design/"+view not in self.db:
@@ -61,14 +61,17 @@ class Database:
         jsString = jsString.replace('$outputList$', outputList)
         logging.warning("**WARNING** "+view+" not defined. Use default one:"+jsString)
         self.saveView(view, view, jsString)
-    jsString  = "if ('type' in doc) {\n"
-    jsString += "if (doc.type==='project') {emit(doc._id, [doc.inheritance.join(' '),9999,doc.type,doc.name]);}\n"
-    jsString += "else if ('childNum' in doc)    {emit(doc.inheritance[0], [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}\n"
-    jsString += "else {emit(doc.inheritance[0], [doc.inheritance.join(' '),9999,doc.type,doc.name]);}\n"
-    jsString += "}"
-    self.saveView('viewHierarchy','viewHierarchy',jsString)
-    self.saveView('viewMD5','viewMD5',"if ('type' in doc && doc.type==='measurement'){emit(doc.md5sum, doc.name);}")
-    self.saveView('viewQR','viewQR',  "if ('type' in doc && doc.type === 'sample' && doc.qr_code[0] !== '') {doc.qr_code.forEach(function (thisCode) {emit(thisCode, doc.name);});}")
+    if "_design/viewHierarchy" not in self.db:
+      jsString  = "if ('type' in doc) {\n"
+      jsString += "if ('childNum' in doc)    {emit(doc.inheritance[0], [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}\n"
+      jsString += "else {emit(doc.inheritance[0], [doc.inheritance.join(' '),9999,doc.type,doc.name]);}\n"
+      jsString += "}"
+      jsString2 = "if ('path' in doc){emit(doc.inheritance[0], [doc.path,doc.type]);}"
+      self.saveView('viewHierarchy','.',{"viewHierarchy":jsString,"viewPaths":jsString2})
+    if "_design/viewMD5" not in self.db:
+      self.saveView('viewMD5','viewMD5',"if ('type' in doc && doc.type==='measurement'){emit(doc.md5sum, doc.name);}")
+    if "_design/viewQR" not in self.db:
+      self.saveView('viewQR','viewQR',  "if ('type' in doc && doc.type === 'sample' && doc.qr_code[0] !== '') {doc.qr_code.forEach(function (thisCode) {emit(thisCode, doc.name);});}")
     return
 
 
@@ -166,8 +169,8 @@ class Database:
 
     Args:
         designName: name of the design
-        viewName: name of the view
-        jsCode: new code
+        viewName: name of the view (ignored if jsCode==dictionary)
+        jsCode: new code (string or dict of multiple)
     """
     designDoc = DesignDocument(self.db, designName)
     if isinstance(jsCode, str):

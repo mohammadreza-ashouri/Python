@@ -96,7 +96,6 @@ class AgileScience:
     if docType != '-edit-':
       #new document
       data['type'] = docType
-      newDoc       = True
       if docType in self.hierList and docType!='project':
         #should not have childnumber in other cases for debugging
         thisStack = ' '.join(self.hierStack)
@@ -116,7 +115,7 @@ class AgileScience:
         if docType in self.hierList:
           #project, step, task
           if docType=='project': thisChildNumber = -1
-          data['path'] = self.createDirName(data['name'],data['type'],thisChildNumber)
+          data['path'] = self.cwd + self.createDirName(data['name'],data['type'],thisChildNumber)
         else:
           #measurement, sample, procedure
           if '://' in data['name']:                                 #make up name
@@ -130,7 +129,9 @@ class AgileScience:
             data['path'] = self.cwd+data['name']
             data.update( self.getImage(data['path']) )
           else:                                                     #make up name
-            data['path'] = self.cwd + cT.camelCase( os.path.basename(data['name']))
+            fileName = os.path.basename(data['name'])
+            fileName, extension = os.path.splitext(fileName)
+            data['path'] = self.cwd + cT.camelCase(fileName)+extension
       ## add data to database
       data = cT.fillDocBeforeCreate(data, docType, hierStack, prefix).to_dict()
       data = self.db.saveDoc(data)
@@ -147,13 +148,10 @@ class AgileScience:
           f.write(json.dumps(data))
       else:
         #measurement, sample, procedure
-        with open(self.basePath+data['path'].replace('.','_'),'w') as f:
+        with open(self.basePath+data['path'].replace('.','_')+'_jams.json','w') as f:
           f.write(json.dumps(data))
     self.currentID = data['_id']
-    # reduce information before logging
-    if 'image' in data: del data['image']
-    if 'meta'  in data: data['meta']='length='+str(len(data['meta']))
-    logging.debug("Data saved "+str(data))
+    logging.debug("Data saved "+data['_id']+' '+data['_rev']+' '+data['type'])
     return
 
 
@@ -199,6 +197,7 @@ class AgileScience:
       if self.cwd is not None:
         os.chdir('..')
         self.cwd = '/'.join(self.cwd.split('/')[:-2])+'/'
+        if self.cwd=='/': self.cwd=''
     else:  # existing project ID is given: open that
       self.hierStack.append(id)
       if self.cwd is not None:
@@ -208,14 +207,96 @@ class AgileScience:
         self.cwd += dirName+'/'
     return
 
-  def scanTree(self):
+  def scanTree(self, slow=True):
     """ Set up everything and starting from this document (project, step, ...) call scanDirectory
     - branch refers to things in database
     - directories refers to things on harddisk
     """
-    projectBranch = self.outputHierarchy(onlyHierarchy=False, addID=True)
-    thisBranch = self.getSubBranch(projectBranch.split("\n"),self.hierStack[-1])
-    self.scanDirectory(self.cwd,thisBranch,self.hierStack[-1])
+    if len(self.hierStack) == 0:
+      logging.warning('jams.outputHierarchy No project selected')
+      return
+    # collect all information
+    view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0])
+    database = {}
+    for item in view:
+      thisPath = item['value'][0]
+      if thisPath.startswith(self.cwd[:-1]):
+        database[thisPath] = [item['id'], item['value'][1]]
+    for path, _, files in os.walk('.'):
+      path = os.path.normpath(self.cwd+path)
+      if path in database:
+        #database and directory agree regarding project/step/task
+        docFile = json.load(open(self.basePath+path+'/id_jams.json'))
+        if docFile['path']==path and docFile['_id']==database[path][0] and docFile['type']==database[path][1]:
+          logging.debug(path+'fast test successful on project/step/task')
+        else:
+          logging.error(path+'fast test successful on project/step/task')
+          logging.error(docFile['path'],docFile['_id'],docFile['type'])
+          logging.error(path, database[path])
+        if slow:
+          docDB = self.db.getDoc(docFile['_id'])
+          if docDB==docFile:
+            logging.debug(path+'slow test successful on project/step/task')
+          else:
+            logging.error(path+'slow test UNsuccessful on project/step/task')
+            logging.error(docDB)
+            logging.error(docFile)
+      else:
+        print("ERROR** "+path+' directory (project/step/task) not in database')
+      for file in files:
+        if file == 'id_jams.json': continue
+        if file.endswith('_jams.json'):
+          jsonFileName = path+os.sep+file
+          fileName = jsonFileName[:-10]
+          if fileName[-4]=='_':
+            fileName = fileName[:-4]+'.'+fileName[-3:]
+        elif '_jams.' in file:
+          continue
+        else:
+          fileName = path+os.sep+file
+          jsonFileName = fileName.replace('.','_')+'_jams.json'
+        if fileName in database:
+          if database[fileName] is False:
+            continue #do not verify data-file and its json file twice
+          #database and directory agree regarding project/step/task
+          docFile = json.load(open(self.basePath+jsonFileName))
+          if docFile['path']==fileName and docFile['_id']==database[fileName][0] and docFile['type']==database[fileName][1]:
+            logging.debug(fileName+' fast test successful on project/step/task')
+          else:
+            logging.error(fileName+' fast test successful on project/step/task')
+            logging.error(docFile['path'],docFile['_id'],docFile['type'])
+            #logging.error(fileName, database[fileName])
+          if slow:
+            docDB = self.db.getDoc(docFile['_id'])
+            if docDB==docFile:
+              logging.debug(fileName+' slow test successful on project/step/task')
+            else:
+              logging.error(fileName+' slow test UNsuccessful on project/step/task')
+              logging.error(docDB)
+              logging.error(docFile)
+          database[fileName] = False #mark as already processed
+        else:
+          #not in database, create database entry
+          logging.info(file+'| data not in database')
+          filePath  = path+os.sep+file
+          newDoc    = {'name':filePath}
+          docID     = database[path][0]
+          parentDoc = self.db.getDoc(docID)
+          hierStack = parentDoc['inheritance']+[docID]
+          self.addData('measurement', newDoc, hierStack)
+      database[path] = False
+    ## After all files are done
+    if any(database.values()):
+      logging.error("Database has documents that are not on disk")
+      logging.error(database)
+
+      # path = root.split(os.sep)
+      # print((len(path) - 1) * '-+-', os.path.basename(root))
+      # for file in files:
+      #     print(len(path) * '---', file)
+    # projectBranch = self.outputHierarchy(onlyHierarchy=False, addIDPath=True)
+    # thisBranch = self.getSubBranch(projectBranch.split("\n"),self.hierStack[-1])
+    # self.scanDirectory(self.cwd,thisBranch,self.hierStack[-1])
     return
 
 
@@ -329,16 +410,17 @@ class AgileScience:
     """
     maxSize = 600
     extension = os.path.splitext(filePath)[1][1:]
+    absFilePath = self.basePath+filePath
     pyFile = "image_"+extension+".py"
     pyPath = self.softwarePath+'/'+pyFile
-    if '//' in filePath:
-      outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_jams'
-    else:
-      outFile = self.basePath+filePath.replace('.','_')+'_jams'
     if os.path.exists(pyPath):
+      if '://' in absFilePath:
+        outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_jams'
+      else:
+        outFile = absFilePath.replace('.','_')+'_jams'
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
-      image, imgType, metaMeasurement = module.getImage(self.basePath+filePath)
+      image, imgType, metaMeasurement = module.getImage(absFilePath)
       # depending on imgType: produce image
       if imgType == "line":  #no scaling
         figfile = StringIO()
@@ -381,7 +463,7 @@ class AgileScience:
     measurementType = metaMeasurement.pop('measurementType')
     meta = {'image': image, 'name': filePath, 'type': 'measurement', 'comment': '',
             'measurementType':measurementType, 'meta':metaMeasurement}
-    meta['md5sum'] = hashlib.md5(open(self.basePath+filePath,'rb').read()).hexdigest()
+    meta['md5sum'] = hashlib.md5(open(absFilePath,'rb').read()).hexdigest()
     logging.info("Image successfully created")
     return meta
 
