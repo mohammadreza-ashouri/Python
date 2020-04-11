@@ -171,20 +171,9 @@ class AgileScience:
       return ("{:03d}".format(thisChildNumber))+'_'+cT.camelCase(name)
 
 
-
   ######################################################
-  ### Get data from database
+  ### Disk directory/folder methods
   ######################################################
-  def getDoc(self, id):
-    """
-    Wrapper for getting data from database
-
-    Args:
-        id: document id
-    """
-    return self.db.getDoc(id)
-
-
   def changeHierarchy(self, id):
     """
     Change through text hierarchy structure
@@ -207,8 +196,9 @@ class AgileScience:
         self.cwd += dirName+'/'
     return
 
+
   def scanTree(self, slow=True):
-    """ Set up everything and starting from this document (project, step, ...) call scanDirectory
+    """ Set up everything
     - branch refers to things in database
     - directories refers to things on harddisk
     """
@@ -289,116 +279,8 @@ class AgileScience:
     if any(database.values()):
       logging.error("Database has documents that are not on disk")
       logging.error(database)
-
-      # path = root.split(os.sep)
-      # print((len(path) - 1) * '-+-', os.path.basename(root))
-      # for file in files:
-      #     print(len(path) * '---', file)
-    # projectBranch = self.outputHierarchy(onlyHierarchy=False, addIDPath=True)
-    # thisBranch = self.getSubBranch(projectBranch.split("\n"),self.hierStack[-1])
-    # self.scanDirectory(self.cwd,thisBranch,self.hierStack[-1])
     return
 
-
-  def scanDirectory(self,directory,branch,docID):
-    """ recursively called function
-    branch = string
-    """
-    logging.debug("scanDirectory docID: "+docID+"  end of path: "+directory[25:])
-    contentDir = os.listdir(self.basePath+directory)
-    # check all subbranches, projects, steps, tasks
-    branch = branch.split("\n")
-    numSpacesChilds = len(branch[1]) - len(branch[1].lstrip())
-    for line in branch:
-      if line.strip()=='': break
-      if (len(line)-len(line.lstrip())) == numSpacesChilds:
-        thatDocType, thatName, thatDocID, thatChildNum = line.split(": ")
-        if thatDocID.startswith('t-'):
-          dirName = self.createDirName(thatName,thatDocType.strip(),thatChildNum)
-          if dirName in contentDir:
-            #db-branch exists in folder
-            contentDir.remove(dirName)
-            subBranch = self.getSubBranch(branch, thatDocID)
-            self.scanDirectory(directory+dirName+'/', subBranch, thatDocID)
-          else:
-            #db-branch does not exist in folder
-            logging.error(" db-branch |"+thatName+"|"+dirName+"| does not exist in folder: "+directory)
-        else:
-          thatDocType = thatDocType.strip()
-          if '//' in thatName:
-            print("TODO how to compare if remote data")
-          filePath = thatName.replace('.','_')+"_jams.json"
-          print('\n\nHHH',thatName)
-          self.compareDiskDB(thatDocID, directory+filePath)
-          print("Debug",contentDir,filePath)
-          contentDir.remove(os.path.basename(filePath))
-    # handle known file in directory
-    if 'id_jams.json' in contentDir:
-      self.compareDiskDB(docID, directory+"id_jams.json")
-      contentDir.remove('id_jams.json')
-    # files in directory but not in DB
-    for fName in contentDir:
-      if fName.endswith("_jams.svg") or fName.endswith("_jams.png") or fName.endswith("_jams.jpg"):
-        continue  #files that do not need to be accounted for
-      if fName.endswith("_jams.json"):
-        logging.warning("JAMS.json file dangling in folder: "+directory+"    fileName: "+fName)
-        continue
-      logging.warning("File in directory that are not in db: "+fName)
-      # test if file already in database
-      md5sum = hashlib.md5(open(self.basePath+directory+fName,'rb').read()).hexdigest()
-      view = self.db.getView('viewMD5/viewMD5', key=md5sum)
-      if len(view) > 0:
-        logging.warning("File"+fName+" is already in db as id "+view[0]['id']+" with filename "+view[0]['value'])
-      else:
-        print("debug1",directory,fName)
-        newDoc = self.getImage(directory+fName)
-        parentDoc = self.db.getDoc(docID)
-        hierStack = parentDoc['inheritance']+[docID]
-        self.addData('measurement', newDoc, hierStack)
-        logging.warning("added file "+fName+" is to database")
-    return
-
-
-  def getSubBranch(self, branch,docID):
-    """
-    branch = array
-    """
-    thisBranch  = ""
-    numSpaces   = -1
-    useLine     = False
-    for line in branch:
-      if line.strip()=='': break
-      thatDocType, thatName, thatID, thatChildNum = line.split(": ")
-      if thatID==docID:
-        numSpaces = len(line)-len(line.lstrip())
-        useLine     = True
-      elif numSpaces==len(line)-len(line.lstrip()):
-        useLine     = False
-      if useLine:
-        thisBranch += thatDocType+": "+thatName+": "+thatID+": "+thatChildNum+"\n"
-    return thisBranch
-
-
-  def compareDiskDB(self, docID, filePath):
-    """
-    filePath = not full path
-    """
-    docDisk = json.load(open(self.basePath+filePath, 'r'))
-    docDB   = self.db.getDoc(docID)
-    if docDisk == docDB:
-      logging.info("Disk and database agree "+filePath+" id:"+docID)
-    else:
-      logging.error("Disk and database DO NOT agree "+filePath+" id:"+docID)
-      logging.debug(json.dumps(docDB))
-      logging.debug(json.dumps(docDisk))
-    if 'md5sum' in docDB and docDB['md5sum']!='':
-      md5sumDisk = hashlib.md5(open(self.basePath+docDB['name'],'rb').read()).hexdigest()
-      if docDB['md5sum'] == md5sumDisk:
-        logging.info("MD5sums agree")
-      else:
-        logging.error("MD5sums DO NOT agree")
-        logging.debug(docDB)
-    return
 
   def getImage(self, filePath):
     """
@@ -466,6 +348,19 @@ class AgileScience:
     meta['md5sum'] = hashlib.md5(open(absFilePath,'rb').read()).hexdigest()
     logging.info("Image successfully created")
     return meta
+
+
+  ######################################################
+  ### Get data from database
+  ######################################################
+  def getDoc(self, id):
+    """
+    Wrapper for getting data from database
+
+    Args:
+        id: document id
+    """
+    return self.db.getDoc(id)
 
 
   def replicateDB(self, remoteDB=None, removeAtStart=False):
