@@ -80,6 +80,7 @@ try:
   be.scanTree(produceData=True, compareData=False, compareDoc=False)
   be.scanTree(produceData=False, compareData=True, compareDoc=False)
   be.scanTree(produceData=False, compareData=True, compareDoc=True)
+  be.cleanTree()
   #use shutil to 1move data, 2copy data, 3rename file, 4rename folder
   print(be.output('Measurements'))
   print(be.outputMD5())

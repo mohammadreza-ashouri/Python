@@ -140,7 +140,7 @@ class AgileScience:
       #update document
       data = cT.fillDocBeforeCreate(data, '--', hierStack[:-1], '--').to_dict()
       data = self.db.updateDoc(data,self.hierStack[-1])
-    ## adoptation of directory tree, information on disk
+    ## adaptation of directory tree, information on disk
     if self.cwd is not None:
       if data['type'] in self.hierList:
         #project, step, task
@@ -207,6 +207,7 @@ class AgileScience:
       logging.warning('jams.scanTree: cannot produce and compare at the same time')
       produceData = False
     if compareDoc: compareData=True
+
     # get information from database
     view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0])
     database = {}
@@ -214,6 +215,7 @@ class AgileScience:
       thisPath = item['value'][0]
       if thisPath.startswith(self.cwd[:-1]):
         database[thisPath] = [item['id'], item['value'][1], item['value'][2]]
+
     # iterate directory-tree and compare
     for path, _, files in os.walk('.'):
       #compare path: project/step/task
@@ -252,25 +254,14 @@ class AgileScience:
               logging.error(docFile)
       else:
         logging.error(path+' directory (project/step/task) not in database')
+
       # FILES
       # compare data=files in each path (in each project, step, ..)
       for file in files:
-        if file == 'data_jams.json' or file == '.id_jams.json':
-          continue #was compared before
-        ##DON'T CHECK .json files, the data is checked with the real file and the json-file does not have an md5-sum
-        # if file.endswith('_jams.json'):
-        #   jsonFileName = path+os.sep+file
-        #   fileName = jsonFileName[:-10]
-        #   if fileName[-4]=='_':
-        #     fileName = fileName[:-4]+'.'+fileName[-3:]
-        elif '_jams.' in file:
-          continue
-        else:
-          fileName = path+os.sep+file
-          jsonFileName = fileName.replace('.','_')+'_jams.json'
+        if '_jams.' in file: continue
+        fileName = path+os.sep+file
+        jsonFileName = fileName.replace('.','_')+'_jams.json'
         if fileName in database:
-          if database[fileName] is False:
-            continue #do not verify data-file and its json file twice
           md5File = hashlib.md5(open(self.basePath+fileName,'rb').read()).hexdigest()
           if md5File==database[fileName][2]:
             logging.debug(fileName+'md5-test successful on project/step/task')
@@ -298,9 +289,8 @@ class AgileScience:
                 logging.error(fileName+' slow test NOT successful on project/step/task')
                 logging.error(docDB)
                 logging.error(docFile)
-          database[fileName] = False #mark as already processed
+          del database[fileName]
         else:
-          # if '_jams.' in file: continue  #comment out since all jams files are ignored
           #not in database, create database entry
           logging.info(file+'| data not in database')
           filePath  = path+os.sep+file
@@ -309,15 +299,14 @@ class AgileScience:
           parentDoc = self.db.getDoc(docID)
           hierStack = parentDoc['inheritance']+[docID]
           self.addData('measurement', newDoc, hierStack)
-      database[path] = False
+      del database[path]
     ## After all files are done
     if produceData:
       for key in database:
-        if database[key]:
-          data = self.db.getDoc(database[key][0])
-          jsonFileName = key.replace('.','_')+'_jams.json'
-          with open(self.basePath+jsonFileName,'w') as f:
-              f.write(json.dumps(data))
+        data = self.db.getDoc(database[key][0])
+        jsonFileName = key.replace('.','_')+'_jams.json'
+        with open(self.basePath+jsonFileName,'w') as f:
+          f.write(json.dumps(data))
     else:
       nonProcessed = [key for key in database if database[key]!=False]
       if any(database.values()):
@@ -326,15 +315,31 @@ class AgileScience:
     return
 
 
-  def getImage(self, filePath):
+  def cleanTree(self, all=True):
+    """
+    clean all _jams.json files
+    - id files are kept
+    """
+    if all:
+      directory = self.basePath
+    else:
+      directory = self.cwd
+    for path, _, files in os.walk(directory):
+      for file in files:
+        if file.endswith('_jams.json') and file!='.id_jams.json':
+          filePath = os.path.normpath(path+os.sep+file)
+          os.remove(filePath)
+
+
+  def getImage(self, filePath, maxSize=600):
     """
     get image from datafile: central distribution point
     - max image size defined here
 
     Args:
         filePath: path to file
+        maxSize: maximum size of jpeg images
     """
-    maxSize = 600
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = filePath
