@@ -36,7 +36,7 @@ try:
   be.changeHierarchy(be.currentID)
   stepDirName = be.basePath+be.cwd
   be.addData('measurement', {'name': 'fallInPot.txt', 'comment': 'great fall'})
-  # be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
+  be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
   be.changeHierarchy(None)
   be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
   be.changeHierarchy(None)
@@ -75,8 +75,12 @@ try:
   shutil.copy(be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
   shutil.copy(be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
   shutil.copy(be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
-  be.scanTree()
-  be.scanTree()
+  be.scanTree(produceData=False, compareData=False, compareDoc=False)
+  #use shutil to 1move data, 2copy data, 3rename file, 4rename folder
+  be.scanTree(produceData=True, compareData=False, compareDoc=False)
+  be.scanTree(produceData=False, compareData=True, compareDoc=False)
+  be.scanTree(produceData=False, compareData=True, compareDoc=True)
+  #use shutil to 1move data, 2copy data, 3rename file, 4rename folder
   print(be.output('Measurements'))
   print(be.outputMD5())
 

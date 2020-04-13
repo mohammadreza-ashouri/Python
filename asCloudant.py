@@ -66,7 +66,10 @@ class Database:
       jsString += "if ('childNum' in doc)    {emit(doc.inheritance[0], [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}\n"
       jsString += "else {emit(doc.inheritance[0], [doc.inheritance.join(' '),9999,doc.type,doc.name]);}\n"
       jsString += "}"
-      jsString2 = "if ('path' in doc){emit(doc.inheritance[0], [doc.path,doc.type]);}"
+      jsString2 = "if ('path' in doc){\n"
+      jsString2+= "if ('md5sum' in doc) {emit(doc.inheritance[0], [doc.path,doc.type,doc.md5sum]);}\n"
+      jsString2+= "else                 {emit(doc.inheritance[0], [doc.path,doc.type,'']);}\n"
+      jsString2+= "}"
       self.saveView('viewHierarchy','.',{"viewHierarchy":jsString,"viewPaths":jsString2})
     if "_design/viewMD5" not in self.db:
       self.saveView('viewMD5','viewMD5',"if ('type' in doc && doc.type==='measurement'){emit(doc.md5sum, doc.name);}")

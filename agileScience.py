@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import logging
 from io import StringIO, BytesIO
+from urllib import request
 from pprint import pprint
 from asTools import imageToString, stringToImage
 from asCloudant import Database
@@ -144,11 +145,7 @@ class AgileScience:
       if data['type'] in self.hierList:
         #project, step, task
         os.makedirs(self.basePath+data['path'], exist_ok=True)
-        with open(self.basePath+data['path']+'/id_jams.json','w') as f:  #local path
-          f.write(json.dumps(data))
-      else:
-        #measurement, sample, procedure
-        with open(self.basePath+data['path'].replace('.','_')+'_jams.json','w') as f:
+        with open(self.basePath+data['path']+'/.id_jams.json','w') as f:  #local path
           f.write(json.dumps(data))
     self.currentID = data['_id']
     logging.debug("Data saved "+data['_id']+' '+data['_rev']+' '+data['type'])
@@ -197,49 +194,75 @@ class AgileScience:
     return
 
 
-  def scanTree(self, slow=True):
+  def scanTree(self, produceData=False, compareData=True, compareDoc=True):
     """ Set up everything
     - branch refers to things in database
     - directories refers to things on harddisk
+    compareDoc: download doc from DB, slow
     """
     if len(self.hierStack) == 0:
-      logging.warning('jams.outputHierarchy No project selected')
+      logging.warning('jams.scanTree: No project selected')
       return
-    # collect all information
+    if produceData and (compareData or compareDoc):
+      logging.warning('jams.scanTree: cannot produce and compare at the same time')
+      produceData = False
+    if compareDoc: compareData=True
+    # get information from database
     view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0])
     database = {}
     for item in view:
       thisPath = item['value'][0]
       if thisPath.startswith(self.cwd[:-1]):
-        database[thisPath] = [item['id'], item['value'][1]]
+        database[thisPath] = [item['id'], item['value'][1], item['value'][2]]
+    # iterate directory-tree and compare
     for path, _, files in os.walk('.'):
+      #compare path: project/step/task
       path = os.path.normpath(self.cwd+path)
       if path in database:
         #database and directory agree regarding project/step/task
-        docFile = json.load(open(self.basePath+path+'/id_jams.json'))
-        if docFile['path']==path and docFile['_id']==database[path][0] and docFile['type']==database[path][1]:
-          logging.debug(path+'fast test successful on project/step/task')
+        #check id-file
+        idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
+        if idFile['path']==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
+          logging.debug(path+'id-test successful on project/step/task')
         else:
-          logging.error(path+'fast test successful on project/step/task')
+          logging.error(path+'id-test NOT successful on project/step/task')
           logging.error(docFile['path'],docFile['_id'],docFile['type'])
           logging.error(path, database[path])
-        if slow:
-          docDB = self.db.getDoc(docFile['_id'])
-          if docDB==docFile:
-            logging.debug(path+'slow test successful on project/step/task')
+        if produceData:
+          #if you have to produce
+          data = self.db.getDoc(database[path][0])
+          with open(self.basePath+path+'/data_jams.json','w') as f:
+            f.write(json.dumps(data))
+        elif compareData:
+          #if you have to compare
+          docFile = json.load(open(self.basePath+path+'/data_jams.json'))
+          if docFile['path']==path and docFile['_id']==database[path][0] and docFile['type']==database[path][1]:
+            logging.debug(path+'fast test successful on project/step/task')
           else:
-            logging.error(path+'slow test UNsuccessful on project/step/task')
-            logging.error(docDB)
-            logging.error(docFile)
+            logging.error(path+'fast test NOT successful on project/step/task')
+            logging.error(docFile['path'],docFile['_id'],docFile['type'])
+            logging.error(path, database[path])
+          if compareDoc:
+            docDB = self.db.getDoc(docFile['_id'])
+            if docDB==docFile:
+              logging.debug(path+'slow test successful on project/step/task')
+            else:
+              logging.error(path+'slow test NOT successful on project/step/task')
+              logging.error(docDB)
+              logging.error(docFile)
       else:
-        print("ERROR** "+path+' directory (project/step/task) not in database')
+        logging.error(path+' directory (project/step/task) not in database')
+      # FILES
+      # compare data=files in each path (in each project, step, ..)
       for file in files:
-        if file == 'id_jams.json': continue
-        if file.endswith('_jams.json'):
-          jsonFileName = path+os.sep+file
-          fileName = jsonFileName[:-10]
-          if fileName[-4]=='_':
-            fileName = fileName[:-4]+'.'+fileName[-3:]
+        if file == 'data_jams.json' or file == '.id_jams.json':
+          continue #was compared before
+        ##DON'T CHECK .json files, the data is checked with the real file and the json-file does not have an md5-sum
+        # if file.endswith('_jams.json'):
+        #   jsonFileName = path+os.sep+file
+        #   fileName = jsonFileName[:-10]
+        #   if fileName[-4]=='_':
+        #     fileName = fileName[:-4]+'.'+fileName[-3:]
         elif '_jams.' in file:
           continue
         else:
@@ -248,24 +271,36 @@ class AgileScience:
         if fileName in database:
           if database[fileName] is False:
             continue #do not verify data-file and its json file twice
-          #database and directory agree regarding project/step/task
-          docFile = json.load(open(self.basePath+jsonFileName))
-          if docFile['path']==fileName and docFile['_id']==database[fileName][0] and docFile['type']==database[fileName][1]:
-            logging.debug(fileName+' fast test successful on project/step/task')
+          md5File = hashlib.md5(open(self.basePath+fileName,'rb').read()).hexdigest()
+          if md5File==database[fileName][2]:
+            logging.debug(fileName+'md5-test successful on project/step/task')
           else:
-            logging.error(fileName+' fast test successful on project/step/task')
-            logging.error(docFile['path'],docFile['_id'],docFile['type'])
-            #logging.error(fileName, database[fileName])
-          if slow:
-            docDB = self.db.getDoc(docFile['_id'])
-            if docDB==docFile:
-              logging.debug(fileName+' slow test successful on project/step/task')
+            logging.error(fileName+'md5-test successful on project/step/task')
+          if produceData and not fileName.endswith('_jams.json'):
+            #if you have to produce
+            data = self.db.getDoc(database[fileName][0])
+            with open(self.basePath+jsonFileName,'w') as f:
+              f.write(json.dumps(data))
+          elif compareData:
+            #database and directory agree regarding project/step/task
+            docFile = json.load(open(self.basePath+jsonFileName))
+            if docFile['path']==fileName and docFile['_id']==database[fileName][0] and docFile['type']==database[fileName][1]:
+              logging.debug(fileName+' fast test successful on project/step/task')
             else:
-              logging.error(fileName+' slow test UNsuccessful on project/step/task')
-              logging.error(docDB)
-              logging.error(docFile)
+              logging.error(fileName+' fast test NOT successful on project/step/task')
+              logging.error(docFile['path'],docFile['_id'],docFile['type'])
+              #logging.error(fileName, database[fileName])
+            if compareDoc:
+              docDB = self.db.getDoc(docFile['_id'])
+              if docDB==docFile:
+                logging.debug(fileName+' slow test successful on project/step/task')
+              else:
+                logging.error(fileName+' slow test NOT successful on project/step/task')
+                logging.error(docDB)
+                logging.error(docFile)
           database[fileName] = False #mark as already processed
         else:
+          # if '_jams.' in file: continue  #comment out since all jams files are ignored
           #not in database, create database entry
           logging.info(file+'| data not in database')
           filePath  = path+os.sep+file
@@ -276,9 +311,18 @@ class AgileScience:
           self.addData('measurement', newDoc, hierStack)
       database[path] = False
     ## After all files are done
-    if any(database.values()):
-      logging.error("Database has documents that are not on disk")
-      logging.error(database)
+    if produceData:
+      for key in database:
+        if database[key]:
+          data = self.db.getDoc(database[key][0])
+          jsonFileName = key.replace('.','_')+'_jams.json'
+          with open(self.basePath+jsonFileName,'w') as f:
+              f.write(json.dumps(data))
+    else:
+      nonProcessed = [key for key in database if database[key]!=False]
+      if any(database.values()):
+        logging.warning("Database has documents that are not on disk")
+        logging.warning(nonProcessed)
     return
 
 
@@ -292,14 +336,15 @@ class AgileScience:
     """
     maxSize = 600
     extension = os.path.splitext(filePath)[1][1:]
-    absFilePath = self.basePath+filePath
+    if '://' in filePath:
+      absFilePath = filePath
+      outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_jams'
+    else:
+      absFilePath = self.basePath + filePath
+      outFile = absFilePath.replace('.','_')+'_jams'
     pyFile = "image_"+extension+".py"
     pyPath = self.softwarePath+'/'+pyFile
     if os.path.exists(pyPath):
-      if '://' in absFilePath:
-        outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_jams'
-      else:
-        outFile = absFilePath.replace('.','_')+'_jams'
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
       image, imgType, metaMeasurement = module.getImage(absFilePath)
@@ -340,12 +385,15 @@ class AgileScience:
         logging.error('getImage Not implemented yet 1'+str(imgType))
     else:
       image, metaMeasurement = '', {'measurementType':''}
-      logging.warning("getImage: could not find pyFile to convert"+pyFile)
+      logging.warning("getImage: could not find pyFile to convert "+pyFile)
     #produce meta information
     measurementType = metaMeasurement.pop('measurementType')
     meta = {'image': image, 'name': filePath, 'type': 'measurement', 'comment': '',
             'measurementType':measurementType, 'meta':metaMeasurement}
-    meta['md5sum'] = hashlib.md5(open(absFilePath,'rb').read()).hexdigest()
+    if '://' in absFilePath:
+      meta['md5sum'] = hashlib.md5(request.urlopen(absFilePath).read()).hexdigest()
+    else:
+      meta['md5sum'] = hashlib.md5(open(absFilePath,'rb').read()).hexdigest()
     logging.info("Image successfully created")
     return meta
 

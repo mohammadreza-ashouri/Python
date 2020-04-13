@@ -23,6 +23,6 @@ output = result.stdout.decode('utf-8').split('\n')
 if output[-2]=='nothing to commit, working tree clean':
   print("  Git tree is clean")
 else:
-  print("Git not committed")
+  print("Git tree is not clean")
   print('\n'.join(output[5:-3]))
 os.chdir('..')
