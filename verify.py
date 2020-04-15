@@ -76,7 +76,17 @@ try:
   shutil.copy(be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
   shutil.copy(be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
   be.scanTree(produceData=False, compareData=False, compareDoc=False)
+
+  #try to confuse software
+  projID1  = [i['id'] for i in doc][1]
+  be.changeHierarchy(projID1) #change into non-existant path
+  be.changeHierarchy(None)
+  be.changeHierarchy(projID1) #change into existant path
+  projDirName1 = be.basePath+be.cwd
+  shutil.copy(projDirName+'/Zeiss.tif',projDirName1+'/Zeiss.tif')
   #use shutil to 1move data, 2copy data, 3rename file, 4rename folder
+
+  ### second scanning
   be.scanTree(produceData=True, compareData=False, compareDoc=False)
   be.scanTree(produceData=False, compareData=True, compareDoc=False)
   be.scanTree(produceData=False, compareData=True, compareDoc=True)
@@ -85,8 +95,10 @@ try:
   print(be.output('Measurements'))
   print(be.outputMD5())
 
-  ### Output including data
+  ### Output including data: change back into folder that has content
   print("*** FINAL HIERARCHY ***")
+  be.changeHierarchy(None)
+  be.changeHierarchy(projID)
   print(be.outputHierarchy(False))
 
   ### test other functions

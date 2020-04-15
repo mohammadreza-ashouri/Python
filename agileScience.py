@@ -27,6 +27,9 @@ class AgileScience:
     """
     # open configuration file and define database
     logging.basicConfig(filename='jams.log', filemode='w', format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
     logging.info("\nSTART JAMS")
     jsonFile = open(os.path.expanduser('~')+'/.agileScience.json')
     configuration = json.load(jsonFile)
@@ -88,7 +91,7 @@ class AgileScience:
         data: to be stored
         hierStack: hierStack from external functions
     """
-    logging.info('jams.addData Got data: '+docType+' | '+str(hierStack))
+    logging.debug('jams.addData Got data: '+docType+' | hierStack'+str(hierStack))
     data['user']   = self.userID
     data['client'] = 'python version 0.1'
     if len(hierStack) == 0:
@@ -116,23 +119,35 @@ class AgileScience:
         if docType in self.hierList:
           #project, step, task
           if docType=='project': thisChildNumber = -1
-          data['path'] = self.cwd + self.createDirName(data['name'],data['type'],thisChildNumber)
+          data['path'] = [self.cwd + self.createDirName(data['name'],data['type'],thisChildNumber)]
         else:
           #measurement, sample, procedure
           if '://' in data['name']:                                 #make up name
-            data['path'] = self.cwd + cT.camelCase( os.path.basename(data['name']))
-            data.update( self.getImage(data['name']) )
+            md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()
+            #TODO what to do when request fails: try: except:
+            data['path'] = [self.cwd + cT.camelCase( os.path.basename(data['name']))]
+            filePath = data['name']
           elif os.path.exists(self.basePath+data['name']):          #file exists
-            data['path'] = data['name']
-            data.update( self.getImage(data['path']) )
+            md5sum = hashlib.md5(open(self.basePath+data['name'],'rb').read()).hexdigest()
+            data['path'] = [data['name']]
+            filePath = data['path'][0]
             data['name'] = os.path.basename(data['name'])
           elif os.path.exists(self.basePath+self.cwd+data['name']): #file exists
-            data['path'] = self.cwd+data['name']
-            data.update( self.getImage(data['path']) )
+            md5sum = hashlib.md5(open(self.basePath+self.cwd+data['name'],'rb').read()).hexdigest()
+            data['path'] = [self.cwd+data['name']]
+            filePath = data['path'][0]
           else:                                                     #make up name
+            md5sum  = None
             fileName = os.path.basename(data['name'])
             fileName, extension = os.path.splitext(fileName)
-            data['path'] = self.cwd + cT.camelCase(fileName)+extension
+            data['path'] = [self.cwd + cT.camelCase(fileName)+extension]
+          if md5sum is not None:
+            view = self.db.getView('viewMD5/viewMD5',md5sum)
+            if len(view)>0:
+              #update only path, no addition
+              self.db.updateDoc(data,view[0]['id'])
+              return
+            data.update( self.getImage(filePath,md5sum) )
       ## add data to database
       data = cT.fillDocBeforeCreate(data, docType, hierStack, prefix).to_dict()
       data = self.db.saveDoc(data)
@@ -144,8 +159,8 @@ class AgileScience:
     if self.cwd is not None:
       if data['type'] in self.hierList:
         #project, step, task
-        os.makedirs(self.basePath+data['path'], exist_ok=True)
-        with open(self.basePath+data['path']+'/.id_jams.json','w') as f:  #local path
+        os.makedirs(self.basePath+data['path'][0], exist_ok=True)
+        with open(self.basePath+data['path'][0]+'/.id_jams.json','w') as f:  #local path
           f.write(json.dumps(data))
     self.currentID = data['_id']
     logging.debug("Data saved "+data['_id']+' '+data['_rev']+' '+data['type'])
@@ -185,12 +200,17 @@ class AgileScience:
         self.cwd = '/'.join(self.cwd.split('/')[:-2])+'/'
         if self.cwd=='/': self.cwd=''
     else:  # existing project ID is given: open that
-      self.hierStack.append(id)
       if self.cwd is not None:
-        path = self.db.getDoc(id)['path']
+        path = self.db.getDoc(id)['path'][0]
         dirName = path.split('/')[-1]
-        os.chdir(dirName)
-        self.cwd += dirName+'/'
+        if os.path.exists(dirName):
+          os.chdir(dirName)
+          self.cwd += dirName+'/'
+        else:
+          logging.error(self.cwd+": Cannot change into non-existant directory "+dirName)
+          print(self.cwd+": Cannot change into non-existant directory "+dirName)
+          return
+      self.hierStack.append(id)
     return
 
 
@@ -224,11 +244,11 @@ class AgileScience:
         #database and directory agree regarding project/step/task
         #check id-file
         idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
-        if idFile['path']==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
+        if idFile['path'][0]==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
           logging.debug(path+'id-test successful on project/step/task')
         else:
           logging.error(path+'id-test NOT successful on project/step/task')
-          logging.error(docFile['path'],docFile['_id'],docFile['type'])
+          logging.error(docFile['path'][0],docFile['_id'],docFile['type'])
           logging.error(path, database[path])
         if produceData:
           #if you have to produce
@@ -237,12 +257,13 @@ class AgileScience:
             f.write(json.dumps(data))
         elif compareData:
           #if you have to compare
+          #TODO MOVE into separate function
           docFile = json.load(open(self.basePath+path+'/data_jams.json'))
-          if docFile['path']==path and docFile['_id']==database[path][0] and docFile['type']==database[path][1]:
+          if docFile['path'][0]==path and docFile['_id']==database[path][0] and docFile['type']==database[path][1]:
             logging.debug(path+'fast test successful on project/step/task')
           else:
             logging.error(path+'fast test NOT successful on project/step/task')
-            logging.error(docFile['path'],docFile['_id'],docFile['type'])
+            logging.error(docFile['path'][0],docFile['_id'],docFile['type'])
             logging.error(path, database[path])
           if compareDoc:
             docDB = self.db.getDoc(docFile['_id'])
@@ -275,11 +296,11 @@ class AgileScience:
           elif compareData:
             #database and directory agree regarding project/step/task
             docFile = json.load(open(self.basePath+jsonFileName))
-            if docFile['path']==fileName and docFile['_id']==database[fileName][0] and docFile['type']==database[fileName][1]:
+            if docFile['path'][0]==fileName and docFile['_id']==database[fileName][0] and docFile['type']==database[fileName][1]:
               logging.debug(fileName+' fast test successful on project/step/task')
             else:
               logging.error(fileName+' fast test NOT successful on project/step/task')
-              logging.error(docFile['path'],docFile['_id'],docFile['type'])
+              logging.error(docFile['path'][0],docFile['_id'],docFile['type'])
               #logging.error(fileName, database[fileName])
             if compareDoc:
               docDB = self.db.getDoc(docFile['_id'])
@@ -293,13 +314,14 @@ class AgileScience:
         else:
           #not in database, create database entry
           logging.info(file+'| data not in database')
-          filePath  = path+os.sep+file
-          newDoc    = {'name':filePath}
+          #TODO check if MD5 exists
+          newDoc    = {'name':path+os.sep+file}
           docID     = database[path][0]
           parentDoc = self.db.getDoc(docID)
           hierStack = parentDoc['inheritance']+[docID]
           self.addData('measurement', newDoc, hierStack)
-      del database[path]
+      if path in database:
+        del database[path]
     ## After all files are done
     if produceData:
       for key in database:
@@ -331,7 +353,7 @@ class AgileScience:
           os.remove(filePath)
 
 
-  def getImage(self, filePath, maxSize=600):
+  def getImage(self, filePath, md5sum, maxSize=600):
     """
     get image from datafile: central distribution point
     - max image size defined here
@@ -394,11 +416,7 @@ class AgileScience:
     #produce meta information
     measurementType = metaMeasurement.pop('measurementType')
     meta = {'image': image, 'name': filePath, 'type': 'measurement', 'comment': '',
-            'measurementType':measurementType, 'meta':metaMeasurement}
-    if '://' in absFilePath:
-      meta['md5sum'] = hashlib.md5(request.urlopen(absFilePath).read()).hexdigest()
-    else:
-      meta['md5sum'] = hashlib.md5(open(absFilePath,'rb').read()).hexdigest()
+            'measurementType':measurementType, 'meta':metaMeasurement, 'md5sum':md5sum}
     logging.info("Image successfully created")
     return meta
 

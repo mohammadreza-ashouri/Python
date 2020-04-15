@@ -67,14 +67,16 @@ class Database:
       jsString += "else {emit(doc.inheritance[0], [doc.inheritance.join(' '),9999,doc.type,doc.name]);}\n"
       jsString += "}"
       jsString2 = "if ('path' in doc){\n"
-      jsString2+= "if ('md5sum' in doc) {emit(doc.inheritance[0], [doc.path,doc.type,doc.md5sum]);}\n"
-      jsString2+= "else                 {emit(doc.inheritance[0], [doc.path,doc.type,'']);}\n"
+      jsString2+= "if ('md5sum' in doc) {doc.path.forEach(function(thisPath) {emit(doc.inheritance[0], [thisPath,doc.type,doc.md5sum]);});}\n"
+      jsString2+= "else                 {doc.path.forEach(function(thisPath) {emit(doc.inheritance[0], [thisPath,doc.type,'']);});}\n"
       jsString2+= "}"
       self.saveView('viewHierarchy','.',{"viewHierarchy":jsString,"viewPaths":jsString2})
     if "_design/viewMD5" not in self.db:
       self.saveView('viewMD5','viewMD5',"if ('type' in doc && doc.type==='measurement'){emit(doc.md5sum, doc.name);}")
     if "_design/viewQR" not in self.db:
-      self.saveView('viewQR','viewQR',  "if ('type' in doc && doc.type === 'sample' && doc.qr_code[0] !== '') {doc.qr_code.forEach(function (thisCode) {emit(thisCode, doc.name);});}")
+      jsString = "if ('type' in doc && doc.type === 'sample' && doc.qr_code[0] !== '')"
+      jsString+=   "{doc.qr_code.forEach(function(thisCode) {emit(thisCode, doc.name);});}"
+      self.saveView('viewQR','viewQR', jsString )
     return
 
 
@@ -124,29 +126,33 @@ class Database:
         change: updated items
         docID:  id of document to change
     """
-    doc = self.db[docID]
-    revDoc = {}
+    newDoc = self.db[docID]  #this is the document that stays live
+    oldDoc = {}              #this is an older revision of the document
     for item in change:
-      if item in ['type','revisions','inheritance','_id','_rev']:    #remove items cannot come from change
+      if item in ['type','revisions','inheritance','_id','_rev']:    #skip items cannot come from change
         continue
-      if change[item]!=doc[item]:
-        revDoc[item] = doc[item]
-        doc[item]    = change[item]
+      if change[item]!=newDoc[item]:
+        if item in ['path']:          #append to existing
+          oldDoc[item] = newDoc[item].copy()
+          newDoc[item]+= change[item]
+        else:                         #replace existing
+          oldDoc[item] = newDoc[item]
+          newDoc[item] = change[item]
     #produce _id of revDoc
     idParts = docID.split('-')
     if len(idParts)==2:   #if initial document: no copy
-      revDoc['_id'] = docID+'-0'
+      oldDoc['_id'] = docID+'-0'
     else:                 #if revisions of document exist
-      revDoc['_id'] = '-'.join(idParts[:-1])+'-'+str(int(idParts[-1])+1)
+      oldDoc['_id'] = '-'.join(idParts[:-1])+'-'+str(int(idParts[-1])+1)
     #add id to revisions and save
-    if doc['revisions']==['']:
-      doc['revisions'] = [revDoc['_id']]
+    if newDoc['revisions']==['']:
+      newDoc['revisions'] = [oldDoc['_id']]
     else:
-      doc['revisions'] = doc['revisions']+[revDoc['_id']]
-    doc.save()
-    revDoc['revisionCurrent'] = doc['_rev']
-    res = self.db.create_document(revDoc)
-    return doc
+      newDoc['revisions'] = newDoc['revisions']+[oldDoc['_id']]
+    newDoc.save()
+    oldDoc['revisionCurrent'] = newDoc['_rev']
+    res = self.db.create_document(oldDoc)
+    return newDoc
 
 
   def getView(self, thePath, key=None):
