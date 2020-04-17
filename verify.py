@@ -7,7 +7,8 @@ import asTools
 sys.path.append('/home/sbrinckm/FZJ/Code/Nanotribology')  #allow debugging in vscode which strips the python-path
 databaseName = 'temporary_test'
 dirName      = os.path.expanduser('~')+"/"+databaseName
-os.makedirs(dirName, exist_ok=True)
+shutil.rmtree(dirName)
+os.makedirs(dirName)
 be = AgileScience(databaseName)
 be.exit(deleteDB=True)
 be = AgileScience(databaseName)
@@ -36,7 +37,7 @@ try:
   be.changeHierarchy(be.currentID)
   stepDirName = be.basePath+be.cwd
   be.addData('measurement', {'name': 'fallInPot.txt', 'comment': 'great fall'})
-  # be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
+  be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
   be.changeHierarchy(None)
   be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
   be.changeHierarchy(None)
