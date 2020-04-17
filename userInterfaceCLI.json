@@ -6,13 +6,18 @@
    {"Close this":          "function_changeHierarchy_", "append":"thisLevel"},
    {"Add to":              "form_",                     "expand":"docLabel"},
    {"Output database":     "menu_output"},
-   {"Scan directories":    "function_scanDirectory"},
+   {"Scan directories":    "menu_scanTree"},
    {"Replicate database":  "function_replicateDB"},
    {"Exit program":        "function_exit"}
 ],
 "output": [ "What to display?",
    {"Output":              "function_output_",          "expand":"docLabel"},
    {"Output hierarchy":    "function_outputHierarchy"}
+],
+"scanTree": [ "How to scan directories?",
+   {"Find new data":                     "function_scanTree"},
+   {"Create data in directories":        "function_scanTree_produceData"},
+   {"Compare directory data to database":"function_scanTree_compareToDB"}
 ],
 "edit":["Edit text in Markdown"]
 }

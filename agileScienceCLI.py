@@ -2,25 +2,26 @@
 ##################################
 ####  COMMAND LINE INTERFACE  ####
 ##################################
-import copy, json
+import copy, json, os
 from PyInquirer import prompt, Separator
 from pprint import pprint
 from agileScience import AgileScience
 
 ### INITIALIZATION
 be = AgileScience()
+print("Start in directory",os.path.abspath(os.path.curdir))
 # keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
-menuOutline = json.load(open(be.softwareDirectory+"/userInterfaceCLI.json", 'r'))
+menuOutline = json.load(open(be.softwarePath+"/userInterfaceCLI.json", 'r'))
 nextMenu = 'main'
 ### MAIN LOOP
 while be.alive:
     #output the current hierarchical level
     if len(be.hierStack) == 0:
-        print("\n==> You are at the root", be.cwd)
+        print("\n==> You are at the root |"+be.cwd+"| <==")
     else:
         levelName = be.hierList[len(be.hierStack)-1]
         objName   = be.getDoc(be.hierStack[-1])['name']
-        print("\n==> You are in "+levelName+":", objName, be.cwd)
+        print("\n==> You are in "+levelName+": "+objName+" |"+be.cwd+"| <==")
     #####################
     ### prepare menu  ###
     #####################
@@ -128,14 +129,13 @@ while be.alive:
             nextMenu = answer[1]
         elif answer[0] == 'form':
             nextMenu = '_'.join(answer)
-        else:
+        else:   #e.g. function
             if len(answer) == 2:
                 res = getattr(be, answer[1])()
             elif len(answer) > 2:
                 res = getattr(be, answer[1])('_'.join(answer[2:]))
             else:
                 res = ''
-            print(res)
             nextMenu = 'main'
     else:
         # all data collected, save it

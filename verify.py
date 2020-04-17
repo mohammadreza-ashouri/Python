@@ -47,6 +47,7 @@ try:
   print("*** TEST EDIT PROJECT ***")
   be.addData('-edit-', {'comment': '#tag1 A random text plus edition\n'})
 
+  """
   ### test procedures
   print("*** TEST PROCEDURES ***")
   be.addData('procedure', {'name': 'Test procedure 1', 'content': '1. grind, 2. polish, 3. microscope', 'comment': ''})
@@ -76,9 +77,9 @@ try:
   shutil.copy(be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
   shutil.copy(be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
   shutil.copy(be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
-  be.scanTree(produceData=False, compareToDB=False)
+  be.scanTree()
   shutil.move(stepDirName, os.sep.join(stepDirName.split(os.sep)[:-2])+os.sep+"RandomDir" )
-  be.scanTree(produceData=False, compareToDB=False)
+  be.scanTree()
 
   ### second scanning, move data, copy data
   #try to confuse software
@@ -89,12 +90,12 @@ try:
   projDirName1 = be.basePath+be.cwd
   shutil.copy(projDirName+'/Zeiss.tif',projDirName1+'/Zeiss.tif')
   shutil.move(projDirName+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteel0000LC.txt')
-  be.scanTree(produceData=False, compareToDB=False)
+  be.scanTree()
 
   ### third scanning: rename file
   shutil.move(projDirName1+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteelLC.txt')
-  be.scanTree(produceData=True, compareToDB=False)
-  be.scanTree(produceData=False, compareToDB=True)
+  be.scanTree('produceData')
+  be.scanTree('compareToDB')
   be.cleanTree()
   #use shutil to 1move data, 2copy data, 3rename file, 4rename folder
   print(be.output('Measurements'))
@@ -109,6 +110,7 @@ try:
   ### test other functions
   print("Replication test")
   be.replicateDB(databaseName,True)
+  """
 
   be.exit()
 

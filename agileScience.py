@@ -218,7 +218,7 @@ class AgileScience:
     return
 
 
-  def scanTree(self, produceData=False, compareToDB=True):
+  def scanTree(self, method=None):
     """ Scan directory tree recursively from project/...
     - find changes on file system and move those changes to DB
     - use .id_jams.json to track changes of directories, aka projects/steps/tasks
@@ -228,16 +228,16 @@ class AgileScience:
       doc['path'] is adopted once changes are observed
 
     Args:
-      produceData: copy database entry to file system; for backup: "_jams.json"
-      compareToDB: compare database entry to file system backup to observe accidental changes anyplace
+      method: 'produceData' copy database entry to file system; for backup: "_jams.json"
+              'compareToDB' compare database entry to file system backup to observe accidental changes anyplace
     """
-    logging.info("scanTree started with options "+str(produceData)+"  "+str(compareToDB))
+    logging.info("scanTree started with method "+str(method))
     if len(self.hierStack) == 0:
       logging.warning('scanTree: No project selected')
       return
-    if produceData and compareToDB:
-      logging.warning('scanTree: cannot produce and compare at the same time')
-      produceData = False
+    if   method == "produceData": produceData, compareToDB = True, False
+    elif method == "compareToDB": produceData, compareToDB = False, True
+    else                        : produceData, compareToDB = False, False
 
     # get information from database
     view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0])
@@ -256,28 +256,31 @@ class AgileScience:
         parentID = database[path][0]
         #database and directory agree regarding project/step/task
         #check id-file
-        idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
-        if idFile['path'][0]==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
-          logging.debug(path+'id-test successful on project/step/task')
-        else:
-          logging.error(path+'id-test NOT successful on project/step/task')
-          logging.error(idFile['path'][0],idFile['_id'],idFile['type'])
-          logging.error(path, database[path])
-        if produceData:
-          #if you have to produce
-          data = self.db.getDoc(database[path][0])
-          with open(self.basePath+path+'/data_jams.json','w') as f:
-            f.write(json.dumps(data))
-        elif compareToDB:
-          #if you have to compare
-          docFile = json.load(open(self.basePath+path+'/data_jams.json'))
-          docDB = self.db.getDoc(docFile['_id'])
-          if docDB==docFile:
-            logging.debug(path+'test _jams.json successful on project/step/task')
+        try:
+          idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
+          if idFile['path'][0]==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
+            logging.debug(path+'id-test successful on project/step/task')
           else:
-            logging.warning(path+'test _jams.json NOT successful on project/step/task')
-            logging.warning(docDB)
-            logging.warning(docFile)
+            logging.error(path+'id-test NOT successful on project/step/task')
+            logging.error(idFile['path'][0],idFile['_id'],idFile['type'])
+            logging.error(path, database[path])
+          if produceData:
+            #if you have to produce
+            data = self.db.getDoc(database[path][0])
+            with open(self.basePath+path+'/data_jams.json','w') as f:
+              f.write(json.dumps(data))
+          elif compareToDB:
+            #if you have to compare
+            docFile = json.load(open(self.basePath+path+'/data_jams.json'))
+            docDB = self.db.getDoc(docFile['_id'])
+            if docDB==docFile:
+              logging.debug(path+'test _jams.json successful on project/step/task')
+            else:
+              logging.warning(path+'test _jams.json NOT successful on project/step/task')
+              logging.warning(docDB)
+              logging.warning(docFile)
+        except:
+          logging.error("scanTree: .id_jams.json file deleted from "+path)
       else:
         if os.path.exists(self.basePath+path+'/.id_jams.json'):
           #update .id_jams.json file and database with new path information
