@@ -123,21 +123,30 @@ class Database:
     - Bonus: save "_rev" to revDoc in order to track that updates cannot happen by accident
 
     Args:
-        change: updated items
+        change: updated items: TODO exaplain path
         docID:  id of document to change
     """
     newDoc = self.db[docID]  #this is the document that stays live
     oldDoc = {}              #this is an older revision of the document
+    nothingChanged = True
     for item in change:
       if item in ['type','revisions','inheritance','_id','_rev']:    #skip items cannot come from change
         continue
       if change[item]!=newDoc[item]:
-        if item in ['path']:          #append to existing
-          oldDoc[item] = newDoc[item].copy()
-          newDoc[item]+= change[item]
+        nothingChanged = False
+        if item in ['path']:
+          if isinstance(change[item], list): #append to existing
+            oldDoc[item] = newDoc[item].copy()
+            newDoc[item]+= change[item]
+          else:                              #remove from existing
+            oldDoc[item] = newDoc[item].copy()
+            newDoc[item] = [directory for directory in newDoc[item] if directory!=change[item]]
         else:                         #replace existing
           oldDoc[item] = newDoc[item]
           newDoc[item] = change[item]
+    if nothingChanged:
+      logging.warning("asCloudant:update content the same on DB")
+      return newDoc
     #produce _id of revDoc
     idParts = docID.split('-')
     if len(idParts)==2:   #if initial document: no copy

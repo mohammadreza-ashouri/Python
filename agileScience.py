@@ -82,7 +82,7 @@ class AgileScience:
   ######################################################
   ### Change in database
   ######################################################
-  def addData(self, docType, data, hierStack=[]):
+  def addData(self, docType, data, hierStack=[], localCopy=False):
     """
     Save data to data base, also after edit
 
@@ -90,6 +90,7 @@ class AgileScience:
         docType: docType to be stored
         data: to be stored
         hierStack: hierStack from external functions
+        localCopy: copy a remote file to local version
     """
     logging.debug('jams.addData Got data: '+docType+' | hierStack'+str(hierStack))
     data['user']   = self.userID
@@ -98,7 +99,8 @@ class AgileScience:
       hierStack = list(self.hierStack)
     # collect data and prepare
     if docType != '-edit-':
-      #new document
+
+      #new document: basic items
       data['type'] = docType
       if docType in self.hierList and docType!='project':
         #should not have childnumber in other cases for debugging
@@ -114,6 +116,7 @@ class AgileScience:
         prefix = 't'
       else:
         prefix = docType[0]
+
       # find path name on local file system; name can be anything
       if self.cwd is not None:
         if docType in self.hierList:
@@ -122,40 +125,42 @@ class AgileScience:
           data['path'] = [self.cwd + self.createDirName(data['name'],data['type'],thisChildNumber)]
         else:
           #measurement, sample, procedure
+          md5sum = ""
           if '://' in data['name']:                                 #make up name
-            md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()
-            #TODO what to do when request fails: try: except:
-            data['path'] = [self.cwd + cT.camelCase( os.path.basename(data['name']))]
-            filePath = data['name']
+            if localCopy:
+              data['path'] = [self.cwd + cT.camelCase( os.path.basename(data['name']))]
+              request.urlretrieve(data['name'], self.basePath+data['path'])
+            else:
+              md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()            #TODO what to do when request fails: try: except:
           elif os.path.exists(self.basePath+data['name']):          #file exists
-            md5sum = hashlib.md5(open(self.basePath+data['name'],'rb').read()).hexdigest()
             data['path'] = [data['name']]
-            filePath = data['path'][0]
             data['name'] = os.path.basename(data['name'])
           elif os.path.exists(self.basePath+self.cwd+data['name']): #file exists
-            md5sum = hashlib.md5(open(self.basePath+self.cwd+data['name'],'rb').read()).hexdigest()
             data['path'] = [self.cwd+data['name']]
-            filePath = data['path'][0]
           else:                                                     #make up name
             md5sum  = None
-            fileName = os.path.basename(data['name'])
-            fileName, extension = os.path.splitext(fileName)
-            data['path'] = [self.cwd + cT.camelCase(fileName)+extension]
           if md5sum is not None:
+            if md5sum == "":
+              md5sum = hashlib.md5(open(self.basePath+data['path'][0],'rb').read()).hexdigest()
             view = self.db.getView('viewMD5/viewMD5',md5sum)
             if len(view)>0:
               #update only path, no addition
               self.db.updateDoc(data,view[0]['id'])
               return
-            data.update( self.getImage(filePath,md5sum) )
-      ## add data to database
+            if 'path' in data and len(data['path'])>0:
+              data.update( self.getImage(data['path'][0],md5sum) )
+            else:
+              data.update( self.getImage(data['name'],md5sum) )
+
+      # add data to database
       data = cT.fillDocBeforeCreate(data, docType, hierStack, prefix).to_dict()
       data = self.db.saveDoc(data)
     else:
       #update document
       data = cT.fillDocBeforeCreate(data, '--', hierStack[:-1], '--').to_dict()
       data = self.db.updateDoc(data,self.hierStack[-1])
-    ## adaptation of directory tree, information on disk
+
+    ## adaptation of directory tree, information on disk: documentID is required
     if self.cwd is not None:
       if data['type'] in self.hierList:
         #project, step, task
@@ -207,14 +212,13 @@ class AgileScience:
           os.chdir(dirName)
           self.cwd += dirName+'/'
         else:
-          logging.error(self.cwd+": Cannot change into non-existant directory "+dirName)
-          print(self.cwd+": Cannot change into non-existant directory "+dirName)
+          logging.warning(self.cwd+": Cannot change into non-existant directory "+dirName+" Nothing done")
           return
       self.hierStack.append(id)
     return
 
 
-  def scanTree(self, produceData=False, compareData=True, compareDoc=True):
+  def scanTree(self, produceData=False, compareToDB=True):
     """ Set up everything
     - branch refers to things in database
     - directories refers to things on harddisk
@@ -223,10 +227,9 @@ class AgileScience:
     if len(self.hierStack) == 0:
       logging.warning('jams.scanTree: No project selected')
       return
-    if produceData and (compareData or compareDoc):
+    if produceData and compareToDB:
       logging.warning('jams.scanTree: cannot produce and compare at the same time')
       produceData = False
-    if compareDoc: compareData=True
 
     # get information from database
     view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0])
@@ -237,10 +240,12 @@ class AgileScience:
         database[thisPath] = [item['id'], item['value'][1], item['value'][2]]
 
     # iterate directory-tree and compare
+    parentID = None
     for path, _, files in os.walk('.'):
       #compare path: project/step/task
       path = os.path.normpath(self.cwd+path)
       if path in database:
+        parentID = database[path][0]
         #database and directory agree regarding project/step/task
         #check id-file
         idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
@@ -248,33 +253,33 @@ class AgileScience:
           logging.debug(path+'id-test successful on project/step/task')
         else:
           logging.error(path+'id-test NOT successful on project/step/task')
-          logging.error(docFile['path'][0],docFile['_id'],docFile['type'])
+          logging.error(idFile['path'][0],idFile['_id'],idFile['type'])
           logging.error(path, database[path])
         if produceData:
           #if you have to produce
           data = self.db.getDoc(database[path][0])
           with open(self.basePath+path+'/data_jams.json','w') as f:
             f.write(json.dumps(data))
-        elif compareData:
+        elif compareToDB:
           #if you have to compare
-          #TODO MOVE into separate function
           docFile = json.load(open(self.basePath+path+'/data_jams.json'))
-          if docFile['path'][0]==path and docFile['_id']==database[path][0] and docFile['type']==database[path][1]:
-            logging.debug(path+'fast test successful on project/step/task')
+          docDB = self.db.getDoc(docFile['_id'])
+          if docDB==docFile:
+            logging.debug(path+'slow test successful on project/step/task')
           else:
-            logging.error(path+'fast test NOT successful on project/step/task')
-            logging.error(docFile['path'][0],docFile['_id'],docFile['type'])
-            logging.error(path, database[path])
-          if compareDoc:
-            docDB = self.db.getDoc(docFile['_id'])
-            if docDB==docFile:
-              logging.debug(path+'slow test successful on project/step/task')
-            else:
-              logging.error(path+'slow test NOT successful on project/step/task')
-              logging.error(docDB)
-              logging.error(docFile)
+            logging.warning(path+'slow test NOT successful on project/step/task')
+            logging.warning(docDB)
+            logging.warning(docFile)
       else:
-        logging.error(path+' directory (project/step/task) not in database')
+        if os.path.exists(self.basePath+path+'/.id_jams.json'):
+          #update .id_jams.json file and database with new path information
+          idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
+          logging.debug('Updated path in directory and database '+idFile['path'][0]+' to '+path)
+          data = self.db.updateDoc( {'path':[path]}, idFile['_id'])
+          with open(self.basePath+path+'/.id_jams.json','w') as f:
+            f.write(json.dumps(data))
+        else:
+          logging.error(path+' directory (project/step/task) not in database')
 
       # FILES
       # compare data=files in each path (in each project, step, ..)
@@ -285,61 +290,45 @@ class AgileScience:
         if fileName in database:
           md5File = hashlib.md5(open(self.basePath+fileName,'rb').read()).hexdigest()
           if md5File==database[fileName][2]:
-            logging.debug(fileName+'md5-test successful on project/step/task')
+            logging.debug(fileName+'md5-test successful on measurement/etc.')
           else:
-            logging.error(fileName+'md5-test successful on project/step/task')
+            logging.error(fileName+'md5-test successful on measurement/etc.')
           if produceData and not fileName.endswith('_jams.json'):
             #if you have to produce
             data = self.db.getDoc(database[fileName][0])
             with open(self.basePath+jsonFileName,'w') as f:
               f.write(json.dumps(data))
-          elif compareData:
-            #database and directory agree regarding project/step/task
+          elif compareToDB:
+            #database and directory agree regarding measurement/etc.
             docFile = json.load(open(self.basePath+jsonFileName))
-            if docFile['path'][0]==fileName and docFile['_id']==database[fileName][0] and docFile['type']==database[fileName][1]:
-              logging.debug(fileName+' fast test successful on project/step/task')
+            docDB = self.db.getDoc(docFile['_id'])
+            if docDB==docFile:
+              logging.debug(fileName+' slow test successful on measurement/etc.')
             else:
-              logging.error(fileName+' fast test NOT successful on project/step/task')
-              logging.error(docFile['path'][0],docFile['_id'],docFile['type'])
-              #logging.error(fileName, database[fileName])
-            if compareDoc:
-              docDB = self.db.getDoc(docFile['_id'])
-              if docDB==docFile:
-                logging.debug(fileName+' slow test successful on project/step/task')
-              else:
-                logging.error(fileName+' slow test NOT successful on project/step/task')
-                logging.error(docDB)
-                logging.error(docFile)
+              logging.error(fileName+' slow test NOT successful on measurement/etc.')
+              logging.error(docDB)
+              logging.error(docFile)
           del database[fileName]
         else:
-          #not in database, create database entry
+          #not in database, create database entry: if it already exists, self.addData takes care of it
           logging.info(file+'| data not in database')
-          #TODO check if MD5 exists
           newDoc    = {'name':path+os.sep+file}
-          docID     = database[path][0]
-          parentDoc = self.db.getDoc(docID)
-          hierStack = parentDoc['inheritance']+[docID]
+          parentDoc = self.db.getDoc(parentID)
+          hierStack = parentDoc['inheritance']+[parentID]
           self.addData('measurement', newDoc, hierStack)
       if path in database:
         del database[path]
-    ## After all files are done
-    if produceData:
-      for key in database:
-        data = self.db.getDoc(database[key][0])
-        jsonFileName = key.replace('.','_')+'_jams.json'
-        with open(self.basePath+jsonFileName,'w') as f:
-          f.write(json.dumps(data))
-    else:
-      nonProcessed = [key for key in database if database[key]!=False]
-      if any(database.values()):
-        logging.warning("Database has documents that are not on disk")
-        logging.warning(nonProcessed)
+
+    ## if path remains, delete it
+    for key in database:
+      logging.debug("Remove path "+key+" from database id "+database[key][0])
+      data = self.db.updateDoc( {'path':key}, database[key][0])
     return
 
 
   def cleanTree(self, all=True):
     """
-    clean all _jams.json files
+    clean all _jams.json files from directories
     - id files are kept
     """
     if all:

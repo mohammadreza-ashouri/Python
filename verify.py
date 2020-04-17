@@ -36,7 +36,7 @@ try:
   be.changeHierarchy(be.currentID)
   stepDirName = be.basePath+be.cwd
   be.addData('measurement', {'name': 'fallInPot.txt', 'comment': 'great fall'})
-  be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
+  # be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
   be.changeHierarchy(None)
   be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
   be.changeHierarchy(None)
@@ -75,8 +75,11 @@ try:
   shutil.copy(be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
   shutil.copy(be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
   shutil.copy(be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
-  be.scanTree(produceData=False, compareData=False, compareDoc=False)
+  be.scanTree(produceData=False, compareToDB=False)
+  shutil.move(stepDirName, os.sep.join(stepDirName.split(os.sep)[:-2])+os.sep+"RandomDir" )
+  be.scanTree(produceData=False, compareToDB=False)
 
+  ### second scanning, move data, copy data
   #try to confuse software
   projID1  = [i['id'] for i in doc][1]
   be.changeHierarchy(projID1) #change into non-existant path
@@ -84,12 +87,13 @@ try:
   be.changeHierarchy(projID1) #change into existant path
   projDirName1 = be.basePath+be.cwd
   shutil.copy(projDirName+'/Zeiss.tif',projDirName1+'/Zeiss.tif')
-  #use shutil to 1move data, 2copy data, 3rename file, 4rename folder
+  shutil.move(projDirName+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteel0000LC.txt')
+  be.scanTree(produceData=False, compareToDB=False)
 
-  ### second scanning
-  be.scanTree(produceData=True, compareData=False, compareDoc=False)
-  be.scanTree(produceData=False, compareData=True, compareDoc=False)
-  be.scanTree(produceData=False, compareData=True, compareDoc=True)
+  ### third scanning: rename file
+  shutil.move(projDirName1+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteelLC.txt')
+  be.scanTree(produceData=True, compareToDB=False)
+  be.scanTree(produceData=False, compareToDB=True)
   be.cleanTree()
   #use shutil to 1move data, 2copy data, 3rename file, 4rename folder
   print(be.output('Measurements'))
