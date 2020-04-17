@@ -74,7 +74,7 @@ class AgileScience:
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
     self.alive     = False
-    logging.debug("\nEND JAMS")
+    logging.info("\nEND JAMS")
     logging.shutdown()
     return
 
@@ -92,7 +92,7 @@ class AgileScience:
         hierStack: hierStack from external functions
         localCopy: copy a remote file to local version
     """
-    logging.debug('jams.addData Got data: '+docType+' | hierStack'+str(hierStack))
+    logging.debug('addData beginning data: '+docType+' | hierStack'+str(hierStack))
     data['user']   = self.userID
     data['client'] = 'python version 0.1'
     if len(hierStack) == 0:
@@ -168,7 +168,7 @@ class AgileScience:
         with open(self.basePath+data['path'][0]+'/.id_jams.json','w') as f:  #local path
           f.write(json.dumps(data))
     self.currentID = data['_id']
-    logging.debug("Data saved "+data['_id']+' '+data['_rev']+' '+data['type'])
+    logging.debug("addData ending data"+data['_id']+' '+data['_rev']+' '+data['type'])
     return
 
 
@@ -212,23 +212,31 @@ class AgileScience:
           os.chdir(dirName)
           self.cwd += dirName+'/'
         else:
-          logging.warning(self.cwd+": Cannot change into non-existant directory "+dirName+" Nothing done")
+          logging.warning('changeHierarchy '+self.cwd+": Cannot change into non-existant directory "+dirName+" Nothing done")
           return
       self.hierStack.append(id)
     return
 
 
   def scanTree(self, produceData=False, compareToDB=True):
-    """ Set up everything
-    - branch refers to things in database
-    - directories refers to things on harddisk
-    compareDoc: download doc from DB, slow
+    """ Scan directory tree recursively from project/...
+    - find changes on file system and move those changes to DB
+    - use .id_jams.json to track changes of directories, aka projects/steps/tasks
+    - use MD5sum to track changes of measurements etc. (one file=one md5sum=one entry in DB)
+    - create database entries for measurements in directory
+    - move/copy/delete allowed as the doc['path'] = list of all copies
+      doc['path'] is adopted once changes are observed
+
+    Args:
+      produceData: copy database entry to file system; for backup: "_jams.json"
+      compareToDB: compare database entry to file system backup to observe accidental changes anyplace
     """
+    logging.info("scanTree started with options "+str(produceData)+"  "+str(compareToDB))
     if len(self.hierStack) == 0:
-      logging.warning('jams.scanTree: No project selected')
+      logging.warning('scanTree: No project selected')
       return
     if produceData and compareToDB:
-      logging.warning('jams.scanTree: cannot produce and compare at the same time')
+      logging.warning('scanTree: cannot produce and compare at the same time')
       produceData = False
 
     # get information from database
@@ -265,21 +273,21 @@ class AgileScience:
           docFile = json.load(open(self.basePath+path+'/data_jams.json'))
           docDB = self.db.getDoc(docFile['_id'])
           if docDB==docFile:
-            logging.debug(path+'slow test successful on project/step/task')
+            logging.debug(path+'test _jams.json successful on project/step/task')
           else:
-            logging.warning(path+'slow test NOT successful on project/step/task')
+            logging.warning(path+'test _jams.json NOT successful on project/step/task')
             logging.warning(docDB)
             logging.warning(docFile)
       else:
         if os.path.exists(self.basePath+path+'/.id_jams.json'):
           #update .id_jams.json file and database with new path information
           idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
-          logging.debug('Updated path in directory and database '+idFile['path'][0]+' to '+path)
+          logging.info('Updated path in directory and database '+idFile['path'][0]+' to '+path)
           data = self.db.updateDoc( {'path':[path]}, idFile['_id'])
           with open(self.basePath+path+'/.id_jams.json','w') as f:
             f.write(json.dumps(data))
         else:
-          logging.error(path+' directory (project/step/task) not in database')
+          logging.warning(path+' directory (project/step/task) not in database: did user create misc. directory')
 
       # FILES
       # compare data=files in each path (in each project, step, ..)
@@ -292,7 +300,7 @@ class AgileScience:
           if md5File==database[fileName][2]:
             logging.debug(fileName+'md5-test successful on measurement/etc.')
           else:
-            logging.error(fileName+'md5-test successful on measurement/etc.')
+            logging.error(fileName+'md5-test NOT successful on measurement/etc.')
           if produceData and not fileName.endswith('_jams.json'):
             #if you have to produce
             data = self.db.getDoc(database[fileName][0])
@@ -311,7 +319,7 @@ class AgileScience:
           del database[fileName]
         else:
           #not in database, create database entry: if it already exists, self.addData takes care of it
-          logging.info(file+'| data not in database')
+          logging.info(file+' file not in database. Create in database')
           newDoc    = {'name':path+os.sep+file}
           parentDoc = self.db.getDoc(parentID)
           hierStack = parentDoc['inheritance']+[parentID]
@@ -323,13 +331,18 @@ class AgileScience:
     for key in database:
       logging.debug("Remove path "+key+" from database id "+database[key][0])
       data = self.db.updateDoc( {'path':key}, database[key][0])
+    logging.info("scanTree finished")
     return
 
 
   def cleanTree(self, all=True):
     """
     clean all _jams.json files from directories
-    - id files are kept
+    - id files in directories are kept
+
+    Args:
+       all: remove files in all projects/steps/tasks
+            else: only remove in this directory recursively
     """
     if all:
       directory = self.basePath
@@ -349,8 +362,10 @@ class AgileScience:
 
     Args:
         filePath: path to file
+        md5sum: md5sum to store in database (not used here)
         maxSize: maximum size of jpeg images
     """
+    logging.info("getImage started for path "+filePath)
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = filePath
@@ -406,7 +421,7 @@ class AgileScience:
     measurementType = metaMeasurement.pop('measurementType')
     meta = {'image': image, 'name': filePath, 'type': 'measurement', 'comment': '',
             'measurementType':measurementType, 'meta':metaMeasurement, 'md5sum':md5sum}
-    logging.info("Image successfully created")
+    logging.info("getImage: Image successfully created")
     return meta
 
 

@@ -24,7 +24,7 @@ class Database:
     try:
       self.client = CouchDB(user, password, url='http://127.0.0.1:5984', connect=True)
     except Exception:
-      logging.error("Something unexpected has happend"+traceback.format_exc())
+      logging.error("cloudant:init Something unexpected has happend"+traceback.format_exc())
     self.databaseName = databaseName
     if self.databaseName in self.client.all_dbs():
       self.db = self.client[self.databaseName]
@@ -32,7 +32,7 @@ class Database:
       self.db = self.client.create_database(self.databaseName)
     # check if default document exist and create
     if "-dataDictionary-" not in self.db:
-      logging.warning("**WARNING** Data structure not defined. Use default one")
+      logging.warning("cloudant:init Data structure not defined. Use default one")
       dataDictionary = json.load(open("dataDictionary.json", 'r'))
       reply = self.db.create_document(dataDictionary)
     # check if default views exist and create them
@@ -59,7 +59,7 @@ class Database:
             outputList.append('doc.'+key)
         outputList = ','.join(outputList)
         jsString = jsString.replace('$outputList$', outputList)
-        logging.warning("**WARNING** "+view+" not defined. Use default one:"+jsString)
+        logging.warning("cloudant:init "+view+" not defined. Use default one:"+jsString)
         self.saveView(view, view, jsString)
     if "_design/viewHierarchy" not in self.db:
       jsString  = "if ('type' in doc) {\n"
@@ -94,7 +94,7 @@ class Database:
 
   def getDoc(self, id):
     """
-    Wrapper for get function
+    Wrapper for get from database function
 
     Args:
         id: document id
@@ -104,7 +104,7 @@ class Database:
 
   def saveDoc(self, doc):
     """
-    Wrapper for save function
+    Wrapper for save to database function
 
     Args:
         doc: document to save
@@ -116,14 +116,16 @@ class Database:
   def updateDoc(self, change, docID):
     """
     Update document by
-    - saving changes to revDoc (revision document)
-    - updating document concurrently
-    - create a docID for revision document
-    - save this docID also in list of revisions
-    - Bonus: save "_rev" to revDoc in order to track that updates cannot happen by accident
+    - saving changes to oldDoc (revision document)
+    - updating new-document concurrently
+    - create a docID for oldDoc
+    - save this docID in list of revisions stored in new-document
+    - Bonus: save "_rev" from newDoc to oldDoc in order to track that updates cannot happen by accident
 
     Args:
-        change: updated items: TODO exaplain path
+        change: dictionary of item to update
+                'path' = list: new path list is appended to existing list
+                'path' = str : remove this path from path list
         docID:  id of document to change
     """
     newDoc = self.db[docID]  #this is the document that stays live
@@ -145,20 +147,24 @@ class Database:
           oldDoc[item] = newDoc[item]
           newDoc[item] = change[item]
     if nothingChanged:
-      logging.warning("asCloudant:update content the same on DB")
+      logging.warning("cloudant:updateDoc content the same on DB")
       return newDoc
+
     #produce _id of revDoc
     idParts = docID.split('-')
     if len(idParts)==2:   #if initial document: no copy
       oldDoc['_id'] = docID+'-0'
     else:                 #if revisions of document exist
       oldDoc['_id'] = '-'.join(idParts[:-1])+'-'+str(int(idParts[-1])+1)
+
     #add id to revisions and save
     if newDoc['revisions']==['']:
       newDoc['revisions'] = [oldDoc['_id']]
     else:
       newDoc['revisions'] = newDoc['revisions']+[oldDoc['_id']]
     newDoc.save()
+
+    #save _rev to backup for verification
     oldDoc['revisionCurrent'] = newDoc['_rev']
     res = self.db.create_document(oldDoc)
     return newDoc
@@ -201,7 +207,7 @@ class Database:
     try:
       designDoc.save()
     except Exception:
-      logging.error("Something unexpected has happend"+traceback.format_exc())
+      logging.error("cloudant:saveView Something unexpected has happend"+traceback.format_exc())
     return
 
 
@@ -222,5 +228,5 @@ class Database:
     else:
       db2 = client2.create_database(dbInfo['database'])
     doc = rep.create_replication(self.db, db2, create_target=True)
-    logging.info("Should have been replicated!")
+    logging.info("cloudant:replicateDB Replication started")
     return
