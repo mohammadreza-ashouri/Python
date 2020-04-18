@@ -49,7 +49,7 @@ class Database:
         else:
           jsString = jsDefault.replace('$docType$', docType).replace('$key$','doc.inheritance[0]')
         outputList = []
-        for item in self.dataDictionary[docType][0][docLabel]:
+        for item in self.dataDictionary[docType][docLabel]:
           key = list(item.keys())[0]
           if key == 'image':
             outputList.append('(doc.image.length>3).toString()')

@@ -46,6 +46,7 @@ try:
   ### edit project
   print("*** TEST EDIT PROJECT ***")
   be.addData('-edit-', {'comment': '#tag1 A random text plus edition\n'})
+  print(be.getEditString())
 
   """
   ### test procedures

@@ -471,7 +471,7 @@ class AgileScience:
     docList = self.db.dataLabels+self.db.hierarchyLabels
     idx     = list(dict(docList).values()).index(docLabel)
     docType = list(dict(docList).keys())[idx]
-    for item in self.db.dataDictionary[docType][0][docLabel]:
+    for item in self.db.dataDictionary[docType][docLabel]:
       key = list(item.keys())[0]
       if item['length']!=0:
         outputString = '{0: <'+str(abs(item['length']))+'}'
@@ -480,7 +480,7 @@ class AgileScience:
     outString += '-'*110+'\n'
     for lineItem in self.db.getView(view+'/'+view):
       rowString = []
-      for idx, item in enumerate(self.db.dataDictionary[docType][0][docLabel]):
+      for idx, item in enumerate(self.db.dataDictionary[docType][docLabel]):
         key = list(item.keys())[0]
         if item['length']!=0:
           outputString = '{0: <'+str(abs(item['length']))+'}'
@@ -522,7 +522,29 @@ class AgileScience:
         continue
       nativeView[item['id']] = item['value']
     outString = cT.hierarchy2String(nativeView, addID)
-    outString = outString.replace(': undefined\n',': -1\n')
+    outString = outString.replace(': undefined',': -1')
+    return outString
+
+
+  def getEditString(self):
+    """ Return Markdown string of hierarchy tree
+    """
+    if self.eargs['style']=='simple':
+      doc = self.db.getDoc(self.hierStack[-1])
+      return ", ".join([tag for tag in doc['tags']])+' '+doc['comment']
+    #complicated style
+    outString = ""
+    for line in self.outputHierarchy(True,True).split('\n'):
+      arrayLine = line.split(': ')
+      prefix  = arrayLine[0].split()[0]
+      body    = ': '.join(arrayLine[1:-1])
+      doc     = self.getDoc(arrayLine[2])
+      tagString=' '.join(doc['tags'])
+      comments= doc['comment']
+      outString += prefix+' '+body+'\n'
+      if 'objective' in doc:
+        outString += "Objective: "+doc['objective']+'\n'
+      outString += 'Tags: '+tagString+'\n'+comments+'\n'
     return outString
 
 
