@@ -62,11 +62,11 @@ class Database:
         logging.warning("cloudant:init "+view+" not defined. Use default one:"+jsString)
         self.saveView(view, view, jsString)
     if "_design/viewHierarchy" not in self.db:
-      jsString  = "if ('type' in doc) {\n"
+      jsString  = "if ('type' in doc && !('revisionCurrent' in doc)) {\n"
       jsString += "if ('childNum' in doc)    {emit(doc.inheritance[0], [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}\n"
       jsString += "else {emit(doc.inheritance[0], [doc.inheritance.join(' '),9999,doc.type,doc.name]);}\n"
       jsString += "}"
-      jsString2 = "if ('path' in doc){\n"
+      jsString2 = "if ('path' in doc && !('revisionCurrent' in doc)){\n"
       jsString2+= "if ('md5sum' in doc) {doc.path.forEach(function(thisPath) {emit(doc.inheritance[0], [thisPath,doc.type,doc.md5sum]);});}\n"
       jsString2+= "else                 {doc.path.forEach(function(thisPath) {emit(doc.inheritance[0], [thisPath,doc.type,'']);});}\n"
       jsString2+= "}"
@@ -132,10 +132,15 @@ class Database:
     oldDoc = {}              #this is an older revision of the document
     nothingChanged = True
     for item in change:
-      if item in ['type','revisions','inheritance','_id','_rev']:    #skip items cannot come from change
+      if item in ['revisions','_id','_rev']:                         #skip items cannot come from change
+        continue
+      if item=='inheritance' and len(change[item])==0:               #skip non-set inheritance
+        continue
+      if item=='type' and change[item]=='--':                        #skip non-set type
         continue
       if change[item]!=newDoc[item]:
-        nothingChanged = False
+        if item!='date':      #if only date change, no real change
+          nothingChanged = False
         if item in ['path']:
           if isinstance(change[item], list): #append to existing
             oldDoc[item] = newDoc[item].copy()
@@ -147,7 +152,7 @@ class Database:
           oldDoc[item] = newDoc[item]
           newDoc[item] = change[item]
     if nothingChanged:
-      logging.warning("cloudant:updateDoc content the same on DB")
+      logging.warning("cloudant:updateDoc no change of content compared to DB")
       return newDoc
 
     #produce _id of revDoc

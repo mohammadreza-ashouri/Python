@@ -67,17 +67,16 @@ while be.alive:
   elif nextMenu.startswith('change'):
     #change menu
     question = [{'type': 'list', 'name': 'choice', 'message': nextMenu[0], 'choices':[]}]
-    if len(be.hierStack) == 0:
-      # no project in list: get a VIEW
+    if len(be.hierStack) == 0: # no project in list: use VIEW
       doc    = be.db.getView('viewProjects/viewProjects')
       values = [i['id'] for i in doc]
       names  = [i['value'][0] for i in doc]
-    else:
-      # at least a project: get its childs
-      print("use new system of outputHierarchy to find appriate items")
-      doc    = be.db.getDoc(be.hierStack[-1])
-      values = [id for id in doc['childs'] if id.startswith('t')]
-      names  = [be.db.getDoc(id)['name'] for id in doc['childs'] if id.startswith('t')]
+    else:                      # step/task: get its children
+      names, values = be.getChildren(be.hierStack[-1])
+    if len(names)==0:
+      print('Nothing to choose from!')
+      nextMenu = 'main'
+      continue
     for name, value in zip(names, values):
       question[0]['choices'].append({'name': name, 'value': 'function_changeHierarchy_'+value})
   else:
@@ -114,9 +113,9 @@ while be.alive:
   ### ask question  ###
   #####################
   # print("\n\n")
-  pprint(question)
+  # pprint(question)
   answer = prompt(question)
-  pprint(answer)
+  # pprint(answer)
   #####################
   ### handle answer ###
   #####################
@@ -134,14 +133,13 @@ while be.alive:
         res = getattr(be, answer[1])('_'.join(answer[2:]))
       else:
         res = ''
-      print(res)  #output string returned from e.g. output-projects
+      if res is not None:
+        print(res)  #output string returned from e.g. output-projects
       nextMenu = 'main'
   else:
     # all data collected, save it
     if nextMenu=='edit': #edit-> update data
-      print(answer)
-      print('need to decipher it')
-      # be.addData('-edit-', answer)
+      be.setEditString(answer)
     else:
       be.addData(docType, answer)
     nextMenu = 'main'

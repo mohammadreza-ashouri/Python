@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import os, shutil, traceback, sys
+import os, shutil, traceback, sys, logging
 from agileScience import AgileScience
 import asTools
 
@@ -37,7 +37,7 @@ try:
   be.changeHierarchy(be.currentID)
   stepDirName = be.basePath+be.cwd
   be.addData('measurement', {'name': 'fallInPot.txt', 'comment': 'great fall'})
-  be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
+  # be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
   be.changeHierarchy(None)
   be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
   be.changeHierarchy(None)
@@ -46,7 +46,13 @@ try:
   ### edit project
   print("*** TEST EDIT PROJECT ***")
   be.addData('-edit-', {'comment': '#tag1 A random text plus edition\n'})
-  print(be.getEditString())
+  myString = be.getEditString()
+  myString = myString.replace('** Test step two: t-','*** Test step two: t-')
+  be.setEditString(myString)
+  print("Start scan")
+  logging.info("Start scan")
+  be.scanTree()
+  print("End scan")
 
   """
   ### test procedures

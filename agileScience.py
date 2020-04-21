@@ -26,7 +26,7 @@ class AgileScience:
         databaseName: name of database, otherwise taken from config file
     """
     # open configuration file and define database
-    logging.basicConfig(filename='jams.log', filemode='w', format='%(asctime)s %(levelname)s:%(message)s', level=logging.DEBUG)
+    logging.basicConfig(filename='jams.log', filemode='w', format='%(levelname)s:%(message)s', level=logging.DEBUG)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("requests").setLevel(logging.WARNING)
     logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
@@ -93,17 +93,26 @@ class AgileScience:
         localCopy: copy a remote file to local version
     """
     logging.debug('addData beginning data: '+docType+' | hierStack'+str(hierStack))
+    if docType == '-edit-':
+      edit = True
+      if 'type' not in data:
+        data['type'] = self.hierList[len(self.hierStack)-1]
+      if len(hierStack) == 0:  hierStack = self.hierStack
+      data['_id'] = hierStack[-1]
+      hierStack   = hierStack[:-1]
+    else:  #new data
+      edit = False
+      data['type'] = docType
+      if len(hierStack) == 0:  hierStack = self.hierStack
+
+    # collect data and prepare
     data['user']   = self.userID
     data['client'] = 'python version 0.1'
-    if len(hierStack) == 0:
-      hierStack = list(self.hierStack)
-    # collect data and prepare
-    if docType != '-edit-':
-
-      #new document: basic items
-      data['type'] = docType
-      if docType in self.hierList and docType!='project':
-        #should not have childnumber in other cases for debugging
+    if data['type'] in self.hierList and data['type']!='project':
+      if 'childNum' in data:
+        thisChildNumber = data['childNum']
+      else:
+        #should not have childnumber in other cases
         thisStack = ' '.join(self.hierStack)
         view = self.db.getView('viewHierarchy/viewHierarchy', key=self.hierStack[0]) #not faster with cT.getChildren
         thisChildNumber = 0
@@ -112,58 +121,60 @@ class AgileScience:
           if item['value'][0] == thisStack:
             thisChildNumber += 1
         data['childNum'] = thisChildNumber
-      if docType in self.hierList:
-        prefix = 't'
-      else:
-        prefix = docType[0]
-
-      # find path name on local file system; name can be anything
-      if self.cwd is not None:
-        if docType in self.hierList:
-          #project, step, task
-          if docType=='project': thisChildNumber = -1
-          data['path'] = [self.cwd + self.createDirName(data['name'],data['type'],thisChildNumber)]
-        else:
-          #measurement, sample, procedure
-          md5sum = ""
-          if '://' in data['name']:                                 #make up name
-            if localCopy:
-              data['path'] = [self.cwd + cT.camelCase( os.path.basename(data['name']))]
-              request.urlretrieve(data['name'], self.basePath+data['path'])
-            else:
-              md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()            #TODO what to do when request fails: try: except:
-          elif os.path.exists(self.basePath+data['name']):          #file exists
-            data['path'] = [data['name']]
-            data['name'] = os.path.basename(data['name'])
-          elif os.path.exists(self.basePath+self.cwd+data['name']): #file exists
-            data['path'] = [self.cwd+data['name']]
-          else:                                                     #make up name
-            md5sum  = None
-          if md5sum is not None:
-            if md5sum == "":
-              md5sum = hashlib.md5(open(self.basePath+data['path'][0],'rb').read()).hexdigest()
-            view = self.db.getView('viewMD5/viewMD5',md5sum)
-            if len(view)>0:
-              #update only path, no addition
-              self.db.updateDoc(data,view[0]['id'])
-              return
-            if 'path' in data and len(data['path'])>0:
-              data.update( self.getImage(data['path'][0],md5sum) )
-            else:
-              data.update( self.getImage(data['name'],md5sum) )
-
-      # add data to database
-      data = cT.fillDocBeforeCreate(data, docType, hierStack, prefix).to_dict()
-      data = self.db.saveDoc(data)
+    if data['type'] in self.hierList:
+      prefix = 't'
     else:
+      prefix = data['type'][0]
+
+    # find path name on local file system; name can be anything
+    if self.cwd is not None and 'name' in data:
+      if data['type'] in self.hierList:
+        #project, step, task
+        if data['type']=='project': thisChildNumber = -1
+        data['path'] = [self.cwd + self.createDirName(data['name'],data['type'],thisChildNumber)]
+      else:
+        #measurement, sample, procedure
+        md5sum = ""
+        if '://' in data['name']:                                 #make up name
+          if localCopy:
+            data['path'] = [self.cwd + cT.camelCase( os.path.basename(data['name']))]
+            request.urlretrieve(data['name'], self.basePath+data['path'])
+          else:
+            md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()            #TODO what to do when request fails: try: except:
+        elif os.path.exists(self.basePath+data['name']):          #file exists
+          data['path'] = [data['name']]
+          data['name'] = os.path.basename(data['name'])
+        elif os.path.exists(self.basePath+self.cwd+data['name']): #file exists
+          data['path'] = [self.cwd+data['name']]
+        else:                                                     #make up name
+          md5sum  = None
+        if md5sum is not None:
+          if md5sum == "":
+            md5sum = hashlib.md5(open(self.basePath+data['path'][0],'rb').read()).hexdigest()
+          view = self.db.getView('viewMD5/viewMD5',md5sum)
+          if len(view)>0:
+            #update only path, no addition
+            self.db.updateDoc(data,view[0]['id'])
+            return
+          if 'path' in data and len(data['path'])>0:
+            data.update( self.getImage(data['path'][0],md5sum) )
+          else:
+            data.update( self.getImage(data['name'],md5sum) )
+
+    if edit:
       #update document
-      data = cT.fillDocBeforeCreate(data, '--', hierStack[:-1], '--').to_dict()
-      data = self.db.updateDoc(data,self.hierStack[-1])
+      data = cT.fillDocBeforeCreate(data, '--', hierStack, '--').to_dict()
+      data = self.db.updateDoc(data,data['_id'])
+    else:
+      # add data to database
+      data = cT.fillDocBeforeCreate(data, data['type'], hierStack, prefix).to_dict()
+      data = self.db.saveDoc(data)
 
     ## adaptation of directory tree, information on disk: documentID is required
     if self.cwd is not None:
       if data['type'] in self.hierList:
         #project, step, task
+        logging.info(str(data['path']))
         os.makedirs(self.basePath+data['path'][0], exist_ok=True)
         with open(self.basePath+data['path'][0]+'/.id_jams.json','w') as f:  #local path
           f.write(json.dumps(data))
@@ -191,30 +202,31 @@ class AgileScience:
   ######################################################
   ### Disk directory/folder methods
   ######################################################
-  def changeHierarchy(self, id):
+  def changeHierarchy(self, docID):
     """
     Change through text hierarchy structure
 
     Args:
         id: information on how to change
     """
-    if id is None or id in self.hierList:  # "project", "step", "task" are given: close
+    if docID is None or docID in self.hierList:  # none, "project", "step", "task" are given: close
       self.hierStack.pop()
       if self.cwd is not None:
         os.chdir('..')
         self.cwd = '/'.join(self.cwd.split('/')[:-2])+'/'
         if self.cwd=='/': self.cwd=''
-    else:  # existing project ID is given: open that
+    else:  # existing ID is given: open that
       if self.cwd is not None:
-        path = self.db.getDoc(id)['path'][0]
+        path = self.db.getDoc(docID)['path'][0]
         dirName = path.split('/')[-1]
         if os.path.exists(dirName):
           os.chdir(dirName)
           self.cwd += dirName+'/'
         else:
+          print('changeHierarchy '+self.cwd+": Cannot change into non-existant directory "+dirName+" Nothing done")
           logging.warning('changeHierarchy '+self.cwd+": Cannot change into non-existant directory "+dirName+" Nothing done")
           return
-      self.hierStack.append(id)
+      self.hierStack.append(docID)
     return
 
 
@@ -241,11 +253,25 @@ class AgileScience:
 
     # get information from database
     view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0])
-    database = {}
+    database = {} #path as key for lookup, required later
+    ids = {}      #id as key for lookup, required immediately
+    moves = []
     for item in view:
       thisPath = item['value'][0]
       if thisPath.startswith(self.cwd[:-1]):
+        if item['id'] in ids: #repair by moving directories
+          data = self.db.getDoc(item['id'])
+          logging.debug("Remove path. Afterwards "+data['path'][0]+" from database id "+item['id'])
+          moves.append([self.basePath+data['path'][0],self.basePath+data['path'][1]])
+          data = self.db.updateDoc( {'path':data['path'][0]}, item['id'])
+        ids[item['id']] = thisPath
         database[thisPath] = [item['id'], item['value'][1], item['value'][2]]
+    #move directories
+    moves = sorted(moves,reverse=True)
+    for move in moves:
+      shutil.move(move[0],move[1])
+      if move[0] in database:
+        del database[move[0]]
 
     # iterate directory-tree and compare
     parentID = None
@@ -259,11 +285,17 @@ class AgileScience:
         try:
           idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
           if idFile['path'][0]==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
-            logging.debug(path+'id-test successful on project/step/task')
+            logging.debug(path+' id-test successful on project/step/task')
           else:
-            logging.error(path+'id-test NOT successful on project/step/task')
-            logging.error(idFile['path'][0],idFile['_id'],idFile['type'])
-            logging.error(path, database[path])
+            if idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
+              logging.warning('produce new .id_jams.json after move of directory')
+              data = self.db.getDoc(database[path][0])
+              with open(self.basePath+path+'/.id_jams.json','w') as f:
+                f.write(json.dumps(data))
+            else:
+              logging.error(path+' id-test NOT successful on project/step/task')
+              logging.error(idFile['path'][0]+' | '+idFile['_id']+' | '+idFile['type'])
+              logging.error(path+' | '+str(database[path]))
           if produceData:
             #if you have to produce
             data = self.db.getDoc(database[path][0])
@@ -274,9 +306,9 @@ class AgileScience:
             docFile = json.load(open(self.basePath+path+'/data_jams.json'))
             docDB = self.db.getDoc(docFile['_id'])
             if docDB==docFile:
-              logging.debug(path+'test _jams.json successful on project/step/task')
+              logging.debug(path+' test _jams.json successful on project/step/task')
             else:
-              logging.warning(path+'test _jams.json NOT successful on project/step/task')
+              logging.warning(path+' test _jams.json NOT successful on project/step/task')
               logging.warning(docDB)
               logging.warning(docFile)
         except:
@@ -332,8 +364,7 @@ class AgileScience:
 
     ## if path remains, delete it
     for key in database:
-      logging.debug("Remove path "+key+" from database id "+database[key][0])
-      data = self.db.updateDoc( {'path':key}, database[key][0])
+      logging.debug("Still in database "+key)
     logging.info("scanTree finished")
     return
 
@@ -501,7 +532,7 @@ class AgileScience:
     return outString
 
 
-  def outputHierarchy(self, onlyHierarchy=True, addID=False):
+  def outputHierarchy(self, onlyHierarchy=True, addID=False, addTags=False):
     """
     output hierarchical structure in database
     - convert view into native dictionary
@@ -510,6 +541,7 @@ class AgileScience:
     Args:
        onlyHierarchy: only print project,steps,tasks or print all (incl. measurements...)[default print all]
        addID: add docID to output
+       addTags: add tags, comments, objective to output
     """
     if len(self.hierStack) == 0:
       logging.warning('jams.outputHierarchy No project selected')
@@ -521,31 +553,71 @@ class AgileScience:
       if onlyHierarchy and not item['id'].startswith('t-'):
         continue
       nativeView[item['id']] = item['value']
-    outString = cT.hierarchy2String(nativeView, addID)
-    outString = outString.replace(': undefined',': -1')
+    if addTags:
+      outString = cT.hierarchy2String(nativeView, addID, self.getDoc)
+    else:
+      outString = cT.hierarchy2String(nativeView, addID, None)
     return outString
 
 
   def getEditString(self):
-    """ Return Markdown string of hierarchy tree
     """
+    Return Markdown string of hierarchy tree
+    """
+    #simple style
     if self.eargs['style']=='simple':
       doc = self.db.getDoc(self.hierStack[-1])
       return ", ".join([tag for tag in doc['tags']])+' '+doc['comment']
     #complicated style
-    outString = ""
-    for line in self.outputHierarchy(True,True).split('\n'):
-      arrayLine = line.split(': ')
-      prefix  = arrayLine[0].split()[0]
-      body    = ': '.join(arrayLine[1:-1])
-      doc     = self.getDoc(arrayLine[2])
-      tagString=' '.join(doc['tags'])
-      comments= doc['comment']
-      outString += prefix+' '+body+'\n'
-      if 'objective' in doc:
-        outString += "Objective: "+doc['objective']+'\n'
-      outString += 'Tags: '+tagString+'\n'+comments+'\n'
-    return outString
+    return self.outputHierarchy(True,True,True)
+
+
+  def setEditString(self, text):
+    """
+    Using Org-Mode string, replay the steps to update the database
+
+    Args:
+       text: org-mode structured text
+    """
+    docList = cT.editString2Docs(text)
+    # reset everything to base directory
+    self.cwd = ''
+    os.chdir(self.basePath)
+    self.hierStack = []
+    # initialize iteration
+    hierLevel, docID = 0, None
+    children   = [-1]
+    for doc in docList:
+      #use variables to change directories
+      if doc['type']<hierLevel:
+        self.changeHierarchy(None)
+        children.pop()
+      elif doc['type']>hierLevel:
+        self.changeHierarchy(docID)
+        children.append(-1)
+      children[-1] += 1
+      #update variables for next iteration
+      edit = doc['edit'];  del doc['edit']
+      hierLevel = doc['type']
+      docID     = doc['_id']
+      doc['type'] = self.hierList[hierLevel]
+      if doc['type'] != 'project':
+        doc['childNum'] = children[-1]
+      if doc['objective']=='': del doc['objective']
+      if edit=='-edit-':
+        self.addData(edit, doc, self.hierStack+[doc['_id']])
+      else:
+        self.addData(doc['type'], doc)
+    return
+
+
+  def getChildren(self, docID):
+    hierTree = self.outputHierarchy(True,True,False)
+    if hierTree is None:
+      print("No hierarchy tree")
+      return None, None
+    result = cT.getChildren(hierTree,docID)
+    return result['names'], result['ids']
 
 
   def outputQR(self):
