@@ -139,7 +139,7 @@ while be.alive:
   else:
     # all data collected, save it
     if nextMenu=='edit': #edit-> update data
-      be.setEditString(answer)
+      be.setEditString(answer['comment'])
     else:
       be.addData(docType, answer)
     nextMenu = 'main'

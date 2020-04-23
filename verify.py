@@ -35,7 +35,7 @@ try:
   be.addData('task',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
   be.addData('task',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
   be.changeHierarchy(be.currentID)
-  stepDirName = be.basePath+be.cwd
+  stepID = be.currentID
   be.addData('measurement', {'name': 'fallInPot.txt', 'comment': 'great fall'})
   # be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
   be.changeHierarchy(None)
@@ -54,7 +54,6 @@ try:
   be.scanTree()
   print("End scan")
 
-  """
   ### test procedures
   print("*** TEST PROCEDURES ***")
   be.addData('procedure', {'name': 'Test procedure 1', 'content': '1. grind, 2. polish, 3. microscope', 'comment': ''})
@@ -83,6 +82,7 @@ try:
   be.addData('measurement', {'name': 'filename.jpg', 'comment': '#3 #other medium stuff'})
   shutil.copy(be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
   shutil.copy(be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
+  stepDirName = be.basePath+be.db.getDoc(stepID)['path'][0]
   shutil.copy(be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
   be.scanTree()
   shutil.move(stepDirName, os.sep.join(stepDirName.split(os.sep)[:-2])+os.sep+"RandomDir" )
@@ -117,7 +117,6 @@ try:
   ### test other functions
   print("Replication test")
   be.replicateDB(databaseName,True)
-  """
 
   be.exit()
 

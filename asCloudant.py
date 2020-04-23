@@ -40,7 +40,7 @@ class Database:
     res = cT.dataDictionary2DataLabels(self.dataDictionary)
     self.dataLabels = list(res['dataList'])
     self.hierarchyLabels = list(res['hierarchyList'])
-    jsDefault = "if ('type' in doc && doc.type=='$docType$') {emit($key$, [$outputList$]);}"
+    jsDefault = "if (doc.type=='$docType$' && !('current_rev' in doc)) {emit($key$, [$outputList$]);}"
     for docType, docLabel in self.dataLabels+self.hierarchyLabels:
       view = "view"+docLabel
       if "_design/"+view not in self.db:
@@ -62,19 +62,19 @@ class Database:
         logging.warning("cloudant:init "+view+" not defined. Use default one:"+jsString)
         self.saveView(view, view, jsString)
     if "_design/viewHierarchy" not in self.db:
-      jsString  = "if ('type' in doc && !('revisionCurrent' in doc)) {\n"
-      jsString += "if ('childNum' in doc)    {emit(doc.inheritance[0], [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}\n"
-      jsString += "else {emit(doc.inheritance[0], [doc.inheritance.join(' '),9999,doc.type,doc.name]);}\n"
+      jsString  = "if ('type' in doc && !('current_rev' in doc)) {\n"
+      jsString += "if ('childNum' in doc) {emit(doc.inheritance[0], [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}\n"
+      jsString += "else                   {emit(doc.inheritance[0], [doc.inheritance.join(' '),9999,doc.type,doc.name]);}\n"
       jsString += "}"
-      jsString2 = "if ('path' in doc && !('revisionCurrent' in doc)){\n"
+      jsString2 = "if ('path' in doc && !('current_rev' in doc)){\n"
       jsString2+= "if ('md5sum' in doc) {doc.path.forEach(function(thisPath) {emit(doc.inheritance[0], [thisPath,doc.type,doc.md5sum]);});}\n"
       jsString2+= "else                 {doc.path.forEach(function(thisPath) {emit(doc.inheritance[0], [thisPath,doc.type,'']);});}\n"
       jsString2+= "}"
       self.saveView('viewHierarchy','.',{"viewHierarchy":jsString,"viewPaths":jsString2})
     if "_design/viewMD5" not in self.db:
-      self.saveView('viewMD5','viewMD5',"if ('type' in doc && doc.type==='measurement'){emit(doc.md5sum, doc.name);}")
+      self.saveView('viewMD5','viewMD5',"if (doc.type==='measurement' && !('current_rev' in doc)){emit(doc.md5sum, doc.name);}")
     if "_design/viewQR" not in self.db:
-      jsString = "if ('type' in doc && doc.type === 'sample' && doc.qr_code[0] !== '')"
+      jsString = "if (doc.qr_code.length > 0 && !('current_rev' in doc))"
       jsString+=   "{doc.qr_code.forEach(function(thisCode) {emit(thisCode, doc.name);});}"
       self.saveView('viewQR','viewQR', jsString )
     return
@@ -134,9 +134,11 @@ class Database:
     for item in change:
       if item in ['revisions','_id','_rev']:                         #skip items cannot come from change
         continue
-      if item=='inheritance' and len(change[item])==0:               #skip non-set inheritance
+      if item=='inheritance' and len(change['inheritance'])==0:      #skip non-set inheritance
         continue
-      if item=='type' and change[item]=='--':                        #skip non-set type
+      if item=='type' and change['type']=='--':                      #skip non-set type
+        continue
+      if item=='path' and change['path'][0] in newDoc['path']:       #skip if new path already in path
         continue
       if change[item]!=newDoc[item]:
         if item!='date':      #if only date change, no real change
@@ -156,21 +158,18 @@ class Database:
       return newDoc
 
     #produce _id of revDoc
-    idParts = docID.split('-')
-    if len(idParts)==2:   #if initial document: no copy
+    if len(newDoc['revisions']) > 0:  #if revisions of document exist
+      lastID = newDoc['revisions'][-1].split('-')
+      oldDoc['_id'] = '-'.join(lastID[:-1])+'-'+str(int(lastID[-1])+1)
+    else:                             #if initial document: no copy
       oldDoc['_id'] = docID+'-0'
-    else:                 #if revisions of document exist
-      oldDoc['_id'] = '-'.join(idParts[:-1])+'-'+str(int(idParts[-1])+1)
 
     #add id to revisions and save
-    if newDoc['revisions']==['']:
-      newDoc['revisions'] = [oldDoc['_id']]
-    else:
-      newDoc['revisions'] = newDoc['revisions']+[oldDoc['_id']]
+    newDoc['revisions'] = newDoc['revisions']+[oldDoc['_id']]
     newDoc.save()
 
     #save _rev to backup for verification
-    oldDoc['revisionCurrent'] = newDoc['_rev']
+    oldDoc['current_rev'] = newDoc['_rev']
     res = self.db.create_document(oldDoc)
     return newDoc
 

@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """ Python Backend
 """
 import os, json, base64, hashlib, shutil
@@ -489,13 +490,14 @@ class AgileScience:
   ######################################################
   ### OUTPUT COMMANDS ###
   ######################################################
-  def output(self, docLabel):
+  def output(self, docLabel, printID=False):
     """
     output view to screen
     - length of output 110 character
 
     Args:
         docLabel: document label to output
+        printID:  include docID in output string
     """
     view = 'view'+docLabel
     outString = []
@@ -522,12 +524,14 @@ class AgileScience:
           if item['length']<0:  #test if value as non-trivial length
             if lineItem['value'][idx]=='true' or lineItem['value'][idx]=='false':
               formatString = lineItem['value'][idx]
-            elif len(lineItem['value'][idx])>1 or len(lineItem['value'][idx][0])>3:
+            elif len(lineItem['value'][idx])>1 and len(lineItem['value'][idx][0])>3:
               formatString = 'true'
             else:
               formatString = 'false'
             # formatString = True if formatString=='true' else False
           rowString.append(outputString.format(formatString)[:abs(item['length'])] )
+      if printID:
+        rowString.append(' '+lineItem['id'])
       outString += "|".join(rowString)+'\n'
     return outString
 
@@ -640,3 +644,36 @@ class AgileScience:
     for item in self.db.getView('viewMD5/viewMD5'):
       outString += '{0: <32}|{1: <40}|{2: <25}'.format(item['key'], item['value'][-40:], item['id'])+'\n'
     return outString
+
+
+#### Main function when command-line commands used
+if __name__ == '__main__':
+  import sys
+  if len(sys.argv)<2:                 #errors
+    print("No command given")
+    print("Help:")
+    print("'clean docID': clean project with docID, if docID=all clean all projects")
+  else:                                #normal case
+    be = AgileScience()
+    if sys.argv[1]=='Projects' or sys.argv[1]=='Samples' or sys.argv[1]=='Measurements' or sys.argv[1]=='Procedures':
+      print("Output ",sys.argv[1])
+      print(be.output(sys.argv[1],True))
+    elif sys.argv[2]=='all':
+      if sys.argv[1]=='clean':
+        print("Clean all projects")
+        be.cleanTree(all=True)
+    else:
+      be.changeHierarchy(sys.argv[2])
+      if sys.argv[1]=='clean':
+        print("Clean project:",sys.argv[2])
+        be.cleanTree(all=False)
+      if sys.argv[1]=='scan':
+        print("Scan project with ID:",sys.argv[2])
+        be.scanTree()
+      if sys.argv[1]=='produce':
+        print("Produce json files in project with ID:",sys.argv[2])
+        be.scanTree('produceData')
+      if sys.argv[1]=='compare':
+        print("Compare json files in project with ID:",sys.argv[2])
+        be.scanTree('compareToDB')
+    be.exit()
