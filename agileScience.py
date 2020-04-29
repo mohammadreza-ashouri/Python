@@ -715,9 +715,17 @@ class AgileScience:
 if __name__ == '__main__':
   import sys
   if len(sys.argv)<2:                 #errors
-    print("No command given")
-    print("Help:")
-    print("'clean docID': clean project with docID, if docID=all clean all projects")
+    print("Incomplete command given")
+    print("Help: agileScience <command> <documentID>\n\nCommands:")
+    print("  clean\t\t\t clean project with documentID; if documentID=all clean all projects")
+    print("  scan\t\t\t scan project with documentID")
+    print("  produce\t\t produce jams.json files in project with documentID")
+    print("  compare\t\t compare jams.json files in project with documentID to database\n")
+    print("  Hierarchy\t\t output project hierarchy of this documentID")
+    print("  Projects\t\t output projects, documentID ignored/can be omitted")
+    print("  Samples\t\t output samples, documentID ignored/can be omitted")
+    print("  Measurements\t\t output measurements, documentID ignored/can be omitted")
+    print("  Procedures\t\t output procedures, documentID ignored/can be omitted")
   else:                                #normal case
     be = AgileScience()
     if sys.argv[1]=='Projects' or sys.argv[1]=='Samples' or sys.argv[1]=='Measurements' or sys.argv[1]=='Procedures':
@@ -741,4 +749,7 @@ if __name__ == '__main__':
       if sys.argv[1]=='compare':
         print("Compare json files in project with ID:",sys.argv[2])
         be.scanTree('compareToDB')
+      if sys.argv[1]=='Hierarchy':
+        print("Print hierarchy of this project:",sys.argv[2])
+        print(be.outputHierarchy(True,True))
     be.exit()
