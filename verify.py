@@ -5,6 +5,9 @@ import asTools
 
 
 def fileVerify(number, text, onlyHierarchy=True):
+  """
+  use diff-file to compare hierarchies, directory tree
+  """
   with open(be.softwarePath+'/verify'+str(number)+'.txt','w') as f:
     f.write(text)
     f.write("++STATE: "+be.cwd+" "+str(be.hierStack)+"\n")
@@ -56,12 +59,15 @@ try:
   be.changeHierarchy(None)
   print(be.outputHierarchy())
 
+
   ### edit project
   print("\n*** TEST EDIT PROJECT ***")
   be.addData('-edit-', {'comment': '#tag1 A random text plus edition\n'})
   myString = be.getEditString()
   myString = myString.replace('* Test step two: t-','** Test step two: t-')
+  fileVerify(1,'*********** Before *********')
   be.setEditString(myString)
+  fileVerify(2,'*********** After *********')  #use diff-file to compare hierarchies, directory tree
   be.scanTree()  #nothing done: ok, no harm
 
   ### test procedures
@@ -113,11 +119,6 @@ try:
   shutil.copy(projDirName+'/Zeiss.tif',projDirName1+'/Zeiss.tif')
   shutil.move(projDirName+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteel0000LC.txt')
   be.scanTree()
-
-  """
-  fileVerify(1,'*********** Before *********')
-  fileVerify(2,'*********** After *********')
-  """
 
   ### Forth TEST: rename file
   print("*** TEST MEASUREMENTS AND SCANNING 4 ***")

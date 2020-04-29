@@ -588,6 +588,8 @@ class AgileScience:
        addID: add docID to output
        addTags: add tags, comments, objective to output
     """
+    if addTags==True or addTags==False:
+      print("I AM NOT HERE")
     if len(self.hierStack) == 0:
       logging.warning('jams.outputHierarchy No project selected')
       return "Warning: jams.outputHierarchy No project selected"
@@ -619,7 +621,7 @@ class AgileScience:
       doc = self.db.getDoc(self.hierStack[-1])
       return ", ".join([tag for tag in doc['tags']])+' '+doc['comment']
     #complicated style
-    return self.outputHierarchy(True,True,True)
+    return self.outputHierarchy(True,True,'tags')
 
 
   def setEditString(self, text):
