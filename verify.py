@@ -1,7 +1,18 @@
 #!/usr/bin/python3
-import os, shutil, traceback, sys, logging
+import os, shutil, traceback, sys, logging, subprocess
 from agileScience import AgileScience
 import asTools
+
+
+def fileVerify(number, text, onlyHierarchy=True):
+  with open(be.softwarePath+'/verify'+str(number)+'.txt','w') as f:
+    f.write(text)
+    f.write("++STATE: "+be.cwd+" "+str(be.hierStack)+"\n")
+    f.write(be.outputHierarchy(onlyHierarchy,True,'all'))
+    f.write("\n====================")
+    f.write(subprocess.run(['tree'], stdout=subprocess.PIPE).stdout.decode('utf-8'))
+  logging.info(text)
+
 
 ### initialization
 sys.path.append('/home/sbrinckm/FZJ/Code/Nanotribology')  #allow debugging in vscode which strips the python-path
@@ -22,40 +33,39 @@ try:
   print(be.output('Projects'))
 
   ### create some test steps and tasks
-  print("*** TEST PROJECT HIERARCHY ***")
+  print("*** TEST PROJECT HIERARCHY: no output ***")
   doc = be.db.getView('viewProjects/viewProjects')
   projID  = [i['id'] for i in doc][0]
   be.changeHierarchy(projID)
   projDirName = be.basePath+be.cwd
   be.addData('step',    {'comment': 'More random text', 'name': 'Test step one'})
   be.addData('step',    {'comment': 'Much more random text', 'name': 'Test step two'})
-  tempID = be.currentID
+  stepID = be.currentID
   be.addData('step',    {'comment': 'Even more random text', 'name': 'Test step three'})
-  be.changeHierarchy(tempID)
+  be.changeHierarchy(stepID)
   be.addData('task',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
   be.addData('task',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
-  be.changeHierarchy(be.currentID)
-  stepID = be.currentID
+  be.changeHierarchy(be.currentID)  #in task
   be.addData('measurement', {'name': 'fallInPot.txt', 'comment': 'great fall'})
   # be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
   be.changeHierarchy(None)
   be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
+
+  ### test output of step
+  print("\n*** TEST OUTPUT OF INITIAL STRUCTURE ***")
   be.changeHierarchy(None)
   print(be.outputHierarchy())
 
   ### edit project
-  print("*** TEST EDIT PROJECT ***")
+  print("\n*** TEST EDIT PROJECT ***")
   be.addData('-edit-', {'comment': '#tag1 A random text plus edition\n'})
   myString = be.getEditString()
-  myString = myString.replace('** Test step two: t-','*** Test step two: t-')
+  myString = myString.replace('* Test step two: t-','** Test step two: t-')
   be.setEditString(myString)
-  print("Start scan")
-  logging.info("Start scan")
-  be.scanTree()
-  print("End scan")
+  be.scanTree()  #nothing done: ok, no harm
 
   ### test procedures
-  print("*** TEST PROCEDURES ***")
+  print("\n*** TEST PROCEDURES ***")
   be.addData('procedure', {'name': 'Test procedure 1', 'content': '1. grind, 2. polish, 3. microscope', 'comment': ''})
   be.addData('procedure', {'name': 'Test procedure 2', 'content': '1. grind, 2. microscope', 'comment': ''})
   be.addData('procedure', {'name': 'Test procedure 3', 'content': '1. polish, 2. microscope', 'comment': ''})
@@ -76,8 +86,8 @@ try:
   print(be.output('Samples'))
   print(be.outputQR())
 
-  ### test measurements
-  print("*** TEST MEASUREMENTS AND SCANNING ***")
+  ### Add measurements by copying from somewhere into tree
+  print("*** TEST MEASUREMENTS AND SCANNING 1 ***")
   be.addData('measurement', {'name': 'filename.txt', 'comment': '#random #5 great stuff'})
   be.addData('measurement', {'name': 'filename.jpg', 'comment': '#3 #other medium stuff'})
   shutil.copy(be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
@@ -85,13 +95,18 @@ try:
   stepDirName = be.basePath+be.db.getDoc(stepID)['path'][0]
   shutil.copy(be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
   be.scanTree()
-  shutil.move(stepDirName, os.sep.join(stepDirName.split(os.sep)[:-2])+os.sep+"RandomDir" )
+
+  ### Second test: move directory that includes data to another random name
+  print("*** TEST MEASUREMENTS AND SCANNING 2 ***")
+  origin = be.basePath+be.db.getDoc(stepID)['path'][0]
+  target = os.sep.join(origin.split(os.sep)[:-1])+os.sep+"RandomDir"
+  shutil.move(origin, target)
   be.scanTree()
 
-  ### second scanning, move data, copy data
-  #try to confuse software
+  ### Third test: move data, copy data into different project
+  print("*** TEST MEASUREMENTS AND SCANNING 3 ***")
   projID1  = [i['id'] for i in doc][1]
-  be.changeHierarchy(projID1) #change into non-existant path
+  be.changeHierarchy(projID1) #change into non-existant path; try to confuse software
   be.changeHierarchy(None)
   be.changeHierarchy(projID1) #change into existant path
   projDirName1 = be.basePath+be.cwd
@@ -99,12 +114,19 @@ try:
   shutil.move(projDirName+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteel0000LC.txt')
   be.scanTree()
 
-  ### third scanning: rename file
+  """
+  fileVerify(1,'*********** Before *********')
+  fileVerify(2,'*********** After *********')
+  """
+
+  ### Forth TEST: rename file
+  print("*** TEST MEASUREMENTS AND SCANNING 4 ***")
   shutil.move(projDirName1+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteelLC.txt')
   be.scanTree('produceData')
   be.scanTree('compareToDB')
   be.cleanTree()
-  #use shutil to 1move data, 2copy data, 3rename file, 4rename folder
+
+  print("*** TEST MEASUREMENTS AND SCANNING 3 ***")
   print(be.output('Measurements'))
   print(be.outputMD5())
 
@@ -118,6 +140,7 @@ try:
   print("Replication test")
   be.replicateDB(databaseName,True)
 
+  print("\n*** DONE WITH VERIFY ***")
   be.exit()
 
 except:

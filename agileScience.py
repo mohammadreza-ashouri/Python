@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """ Python Backend
 """
-import os, json, base64, hashlib, shutil
+import os, json, base64, hashlib, shutil, re
 import importlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,6 +27,7 @@ class AgileScience:
         databaseName: name of database, otherwise taken from config file
     """
     # open configuration file and define database
+    self.debug = True
     logging.basicConfig(filename='jams.log', filemode='w', format='%(levelname)s:%(message)s', level=logging.DEBUG)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("requests").setLevel(logging.WARNING)
@@ -115,11 +116,11 @@ class AgileScience:
       else:
         #should not have childnumber in other cases
         thisStack = ' '.join(self.hierStack)
-        view = self.db.getView('viewHierarchy/viewHierarchy', key=self.hierStack[0]) #not faster with cT.getChildren
+        view = self.db.getView('viewHierarchy/viewHierarchy', key=thisStack) #not faster with cT.getChildren
         thisChildNumber = 0
         for item in view:
-          if item['value'][2]=='project': continue
-          if item['value'][0] == thisStack:
+          if item['value'][1]=='project': continue
+          if thisStack == ' '.join(item['key'].split(' ')[:-1]): #remove last item from string
             thisChildNumber += 1
         data['childNum'] = thisChildNumber
     if data['type'] in self.hierList:
@@ -132,21 +133,26 @@ class AgileScience:
       if data['type'] in self.hierList:
         #project, step, task
         if data['type']=='project': thisChildNumber = -1
-        data['path'] = [self.cwd + self.createDirName(data['name'],data['type'],thisChildNumber)]
+        if edit:      #edit: cwd of the project/step/task: remove last directory from cwd (since cwd contains a / at end: remove two)
+          parentDirectory = os.sep.join(self.cwd.split(os.sep)[:-2])
+          if len(parentDirectory)>2: parentDirectory += os.sep
+        else:         #new: below the current project/step/task
+          parentDirectory = self.cwd
+        data['path'] = [parentDirectory + self.createDirName(data['name'],data['type'],thisChildNumber)]+['u'] #update,or create (if new data, update ignored anyhow)
       else:
         #measurement, sample, procedure
         md5sum = ""
         if '://' in data['name']:                                 #make up name
           if localCopy:
-            data['path'] = [self.cwd + cT.camelCase( os.path.basename(data['name']))]
+            data['path'] = [self.cwd + cT.camelCase( os.path.basename(data['name'])),'c']
             request.urlretrieve(data['name'], self.basePath+data['path'])
           else:
             md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()            #TODO what to do when request fails: try: except:
         elif os.path.exists(self.basePath+data['name']):          #file exists
-          data['path'] = [data['name']]
+          data['path'] = [data['name'],'c']
           data['name'] = os.path.basename(data['name'])
         elif os.path.exists(self.basePath+self.cwd+data['name']): #file exists
-          data['path'] = [self.cwd+data['name']]
+          data['path'] = [self.cwd+data['name'],'c']
         else:                                                     #make up name
           md5sum  = None
         if md5sum is not None:
@@ -154,8 +160,8 @@ class AgileScience:
             md5sum = hashlib.md5(open(self.basePath+data['path'][0],'rb').read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
           if len(view)>0:
-            #update only path, no addition
-            self.db.updateDoc(data,view[0]['id'])
+            #measurement already in database: update only path, no addition
+            self.db.updateDoc(data,view[0]['id'],None)
             return
           if 'path' in data and len(data['path'])>0:
             data.update( self.getImage(data['path'][0],md5sum) )
@@ -165,7 +171,7 @@ class AgileScience:
     if edit:
       #update document
       data = cT.fillDocBeforeCreate(data, '--', hierStack, '--').to_dict()
-      data = self.db.updateDoc(data,data['_id'])
+      data = self.db.updateDoc(data, data['_id'], self.moveDirectory)
     else:
       # add data to database
       data = cT.fillDocBeforeCreate(data, data['type'], hierStack, prefix).to_dict()
@@ -175,10 +181,12 @@ class AgileScience:
     if self.cwd is not None:
       if data['type'] in self.hierList:
         #project, step, task
-        logging.info(str(data['path']))
-        os.makedirs(self.basePath+data['path'][0], exist_ok=True)
-        with open(self.basePath+data['path'][0]+'/.id_jams.json','w') as f:  #local path
-          f.write(json.dumps(data))
+        if len(data['path'])==1:
+          os.makedirs(self.basePath+data['path'][0], exist_ok=True)
+          with open(self.basePath+data['path'][0]+'/.id_jams.json','w') as f:  #local path
+            f.write(json.dumps(data))
+        else:
+          logging.error("addData: two paths in document "+data['_id'])
     self.currentID = data['_id']
     logging.debug("addData ending data"+data['_id']+' '+data['_rev']+' '+data['type'])
     return
@@ -200,10 +208,27 @@ class AgileScience:
       return ("{:03d}".format(thisChildNumber))+'_'+cT.camelCase(name)
 
 
+  def moveDirectory(self, origin, target, inheritance):
+    """ used as callback function for moving projects/steps/tasks
+    """
+    print("DEPRICATED")
+    return
+
+    if os.path.exists(self.basePath+target):
+      print("I should not be here")
+    if not os.path.exists(self.basePath+origin):
+      #have to find current path from parent's path
+      path = self.db.getDoc(inheritance[-1])['path']
+      if len(path)>1:
+        print("moveDirectory2: I sohuld not be here")
+      origin = path[0]+os.sep+origin.split(os.sep)[-1]
+    shutil.move(self.basePath+origin, self.basePath+target)
+    return
+
   ######################################################
   ### Disk directory/folder methods
   ######################################################
-  def changeHierarchy(self, docID):
+  def changeHierarchy(self, docID, childNum=None):
     """
     Change through text hierarchy structure
 
@@ -217,17 +242,32 @@ class AgileScience:
         self.cwd = '/'.join(self.cwd.split('/')[:-2])+'/'
         if self.cwd=='/': self.cwd=''
     else:  # existing ID is given: open that
-      if self.cwd is not None:
-        path = self.db.getDoc(docID)['path'][0]
-        dirName = path.split('/')[-1]
-        if os.path.exists(dirName):
+      try:
+        if self.cwd is not None:
+          doc = self.db.getDoc(docID)
+          if self.debug and len(doc['path'])>1:
+            print("Error should not occur to have more than one path in projct/etc")
+            logging.error("Only one path in project/step/task")
+          path = doc['path'][0]
+          dirName = path.split('/')[-1]
+          if childNum is not None:
+            dirName = self.createDirName(doc['name'],doc['type'],childNum)
+          if not os.path.exists(dirName):
+            #should only happen during complex edit: should not get None as childNum
+            #move directory
+            pathParent = self.db.getDoc(doc['inheritance'][-1])['path']
+            if self.debug and len(pathParent)>1:
+              print("moveDirectory2: I sohuld not be here")
+            path = pathParent[0]+os.sep+path.split(os.sep)[-1]
+            shutil.move(self.basePath+path, dirName)
+            logging.warning('changeHierarchy '+self.cwd+": Could not change into non-existant directory "+dirName+" Moved old one to here")
           os.chdir(dirName)
           self.cwd += dirName+'/'
-        else:
-          print('changeHierarchy '+self.cwd+": Cannot change into non-existant directory "+dirName+" Nothing done")
-          logging.warning('changeHierarchy '+self.cwd+": Cannot change into non-existant directory "+dirName+" Nothing done")
-          return
-      self.hierStack.append(docID)
+        self.hierStack.append(docID)
+      except:
+        print("Could not change into hierarchy. id:"+docID+"  directory:"+dirName+"  cwd:"+self.cwd)
+    if self.debug and len(self.hierStack)==len(self.cwd.split(os.sep)):
+      print("changeHierarchy error")
     return
 
 
@@ -264,12 +304,13 @@ class AgileScience:
           data = self.db.getDoc(item['id'])
           logging.debug("Remove path. Afterwards "+data['path'][0]+" from database id "+item['id'])
           moves.append([self.basePath+data['path'][0],self.basePath+data['path'][1]])
-          data = self.db.updateDoc( {'path':data['path'][0]}, item['id'])
+          data = self.db.updateDoc( {'path':[data['path'][0],'d']}, item['id'], None)
         ids[item['id']] = thisPath
         database[thisPath] = [item['id'], item['value'][1], item['value'][2]]
     #move directories
     moves = sorted(moves,reverse=True)
     for move in moves:
+      print("ScanTree: move still requried??")
       shutil.move(move[0],move[1])
       if move[0] in database:
         del database[move[0]]
@@ -319,7 +360,7 @@ class AgileScience:
           #update .id_jams.json file and database with new path information
           idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
           logging.info('Updated path in directory and database '+idFile['path'][0]+' to '+path)
-          data = self.db.updateDoc( {'path':[path]}, idFile['_id'])
+          data = self.db.updateDoc( {'path':[path,'d']}, idFile['_id'], None)
           with open(self.basePath+path+'/.id_jams.json','w') as f:
             f.write(json.dumps(data))
         else:
@@ -536,7 +577,7 @@ class AgileScience:
     return outString
 
 
-  def outputHierarchy(self, onlyHierarchy=True, addID=False, addTags=False):
+  def outputHierarchy(self, onlyHierarchy=True, addID=False, addTags=None):
     """
     output hierarchical structure in database
     - convert view into native dictionary
@@ -549,18 +590,23 @@ class AgileScience:
     """
     if len(self.hierStack) == 0:
       logging.warning('jams.outputHierarchy No project selected')
-      return
-    projectID = self.hierStack[0]
-    view = self.db.getView('viewHierarchy/viewHierarchy', key=projectID)
+      return "Warning: jams.outputHierarchy No project selected"
+    hierString = ' '.join(self.hierStack)
+    view = self.db.getView('viewHierarchy/viewHierarchy', key=hierString)
     nativeView = {}
     for item in view:
       if onlyHierarchy and not item['id'].startswith('t-'):
         continue
-      nativeView[item['id']] = item['value']
-    if addTags:
-      outString = cT.hierarchy2String(nativeView, addID, self.getDoc)
+      nativeView[item['id']] = [item['key']]+item['value']
+    if addTags=="all":
+      outString = cT.hierarchy2String(nativeView, addID, self.getDoc, 'all')
+    elif addTags=="tags":
+      outString = cT.hierarchy2String(nativeView, addID, self.getDoc, 'tags')
     else:
-      outString = cT.hierarchy2String(nativeView, addID, None)
+      outString = cT.hierarchy2String(nativeView, addID, None, 'none')
+    minPrefix = len(re.findall('^\*+',outString)[0])
+    startLine = '\n\*{'+str(minPrefix)+'}'
+    outString = re.sub(startLine,'\n',outString)[minPrefix+1:] #also remove from head of string
     return outString
 
 
@@ -583,35 +629,52 @@ class AgileScience:
     Args:
        text: org-mode structured text
     """
-    docList = cT.editString2Docs(text)
-    # reset everything to base directory
-    self.cwd = ''
-    os.chdir(self.basePath)
-    self.hierStack = []
+    # add the prefix to org-mode structure lines
+    prefix = '*'*len(self.hierStack)
+    startLine = '^\*+\ '
+    newText = ''
+    for line in text.split('\n'):
+      if len(re.findall(startLine,line))>0:  #structure line
+        newText += prefix+line+'\n'
+      else:                                  #other lines, incl. first
+        newText += line+'\n'
+    newText = prefix+' '+newText
+    docList = cT.editString2Docs(newText)
     # initialize iteration
-    hierLevel, docID = 0, None
+    hierLevel = None
     children   = [-1]
     for doc in docList:
       #use variables to change directories
-      if doc['type']<hierLevel:
-        self.changeHierarchy(None)
+      if hierLevel is not None and doc['type']<hierLevel:
         children.pop()
-      elif doc['type']>hierLevel:
-        self.changeHierarchy(docID)
+      elif hierLevel is not None and doc['type']>hierLevel:
         children.append(-1)
       children[-1] += 1
-      #update variables for next iteration
+      # add elements to doc
       edit = doc['edit'];  del doc['edit']
-      hierLevel = doc['type']
-      docID     = doc['_id']
-      doc['type'] = self.hierList[hierLevel]
-      if doc['type'] != 'project':
+      doc['type'] = self.hierList[doc['type']]
+      if hierLevel is not None and doc['type'] != 'project':
         doc['childNum'] = children[-1]
       if doc['objective']=='': del doc['objective']
+      #use variables to change directories
+      if hierLevel is not None and self.hierList.index(doc['type'])<hierLevel:
+        self.changeHierarchy(None)          #"cd .."
+        self.changeHierarchy(None)          #"cd .."
+        self.changeHierarchy(doc['_id'],children[-1])    #"cd directory"
+      elif hierLevel is not None and self.hierList.index(doc['type'])>hierLevel:
+        self.changeHierarchy(doc['_id'],children[-1])    #"cd directory"
+      elif hierLevel is not None:
+        self.changeHierarchy(None)          #"cd ../directory"
+        self.changeHierarchy(doc['_id'],children[-1])
       if edit=='-edit-':
-        self.addData(edit, doc, self.hierStack+[doc['_id']])
+        self.addData(edit, doc, self.hierStack)
       else:
         self.addData(doc['type'], doc)
+      #update variables for next iteration
+      hierLevel = self.hierList.index(doc['type'])
+    #at end, go down ('cd  ..') number of children-length
+    for i in range(len(children)-1):
+      self.changeHierarchy(None)
     return
 
 

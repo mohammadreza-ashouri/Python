@@ -63,11 +63,12 @@ class Database:
         self.saveView(view, view, jsString)
     if "_design/viewHierarchy" not in self.db:
       jsString  = "if ('type' in doc && !('current_rev' in doc)) {\n"
-      jsString += "if ('childNum' in doc) {emit(doc.inheritance[0], [doc.inheritance.join(' '),doc.childNum,doc.type,doc.name]);}\n"
-      jsString += "else                   {emit(doc.inheritance[0], [doc.inheritance.join(' '),9999,doc.type,doc.name]);}\n"
+      jsString += "if ('childNum' in doc) {emit(doc.inheritance.concat([doc._id]).join(' '),[doc.childNum,doc.type,doc.name]);}\n"
+      jsString += "else                   {emit(doc.inheritance.concat([doc._id]).join(' '),[9999,doc.type,doc.name]);}\n"
       jsString += "}"
       jsString2 = "if ('path' in doc && !('current_rev' in doc)){\n"
-      jsString2+= "if ('md5sum' in doc) {doc.path.forEach(function(thisPath) {emit(doc.inheritance[0], [thisPath,doc.type,doc.md5sum]);});}\n"
+      jsString2+= "if (doc.type === 'project') {emit(doc._id,[doc.path[0],doc.type,'']);}\n"
+      jsString2+= "else if ('md5sum' in doc) {doc.path.forEach(function(thisPath) {emit(doc.inheritance[0], [thisPath,doc.type,doc.md5sum]);});}\n"
       jsString2+= "else                 {doc.path.forEach(function(thisPath) {emit(doc.inheritance[0], [thisPath,doc.type,'']);});}\n"
       jsString2+= "}"
       self.saveView('viewHierarchy','.',{"viewHierarchy":jsString,"viewPaths":jsString2})
@@ -109,11 +110,13 @@ class Database:
     Args:
         doc: document to save
     """
+    if 'path' in doc and len(doc['path'])>1 and len(doc['path'][1])==1: #second item in path is one letter
+      del doc['path'][1]
     res = self.db.create_document(doc)
     return res
 
 
-  def updateDoc(self, change, docID):
+  def updateDoc(self, change, docID, callback):
     """
     Update document by
     - saving changes to oldDoc (revision document)
@@ -127,8 +130,12 @@ class Database:
                 'path' = list: new path list is appended to existing list
                 'path' = str : remove this path from path list
         docID:  id of document to change
+        callback: function to move directory if paths suggest that
     """
     newDoc = self.db[docID]  #this is the document that stays live
+    if 'path' in change and not change['path'][0] in newDoc['path'] and change['path'][1]=='u':
+      #correct path, give inheritance if origin path does not exist anymore since it was moved
+      callback(newDoc['path'][0],change['path'][0], newDoc['inheritance'] )
     oldDoc = {}              #this is an older revision of the document
     nothingChanged = True
     for item in change:
@@ -144,12 +151,16 @@ class Database:
         if item!='date':      #if only date change, no real change
           nothingChanged = False
         if item in ['path']:
-          if isinstance(change[item], list): #append to existing
-            oldDoc[item] = newDoc[item].copy()
-            newDoc[item]+= change[item]
-          else:                              #remove from existing
-            oldDoc[item] = newDoc[item].copy()
-            newDoc[item] = [directory for directory in newDoc[item] if directory!=change[item]]
+          oldDoc[item] = newDoc[item].copy()
+          if change[item][1]=='c':    #create, append
+            newDoc[item] += [change[item][0]]
+          elif change[item][1]=='u':  #update=remove current at zero
+            newDoc[item][0] = change[item][0]
+          elif change[item][1]=='d':  #delete
+            newDoc[item] = [directory for directory in newDoc[item] if directory!=change[item][0]]
+          else:
+            print("I should not be here")
+            a = 4/0
         else:                         #replace existing
           oldDoc[item] = newDoc[item]
           newDoc[item] = change[item]
@@ -186,9 +197,11 @@ class Database:
     designDoc = self.db.get_design_document(thePath[0])
     v = View(designDoc, thePath[1])
     if key is None:
-      return list(v.result)
+      res = list(v.result)
+      return res
     else:
-      return v(key=key)['rows']
+      res = v(startkey=key, endkey=key+' zz')['rows']
+      return res
 
 
   def saveView(self, designName, viewName, jsCode):
