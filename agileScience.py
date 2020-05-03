@@ -19,12 +19,12 @@ class AgileScience:
   PYTHON BACKEND
   """
 
-  def __init__(self, databaseName=None):
+  def __init__(self, localName=None):
     """
     open server and define database
 
     Args:
-        databaseName: name of database, otherwise taken from config file
+        localName: name of local database, otherwise taken from config file
     """
     # open configuration file and define database
     self.debug = True
@@ -33,22 +33,22 @@ class AgileScience:
     logging.getLogger("requests").setLevel(logging.WARNING)
     logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
     logging.info("\nSTART JAMS")
-    jsonFile = open(os.path.expanduser('~')+'/.agileScience.json')
-    configuration = json.load(jsonFile)
-    user         = configuration["user"]
-    password     = configuration["password"]
-    if databaseName is None:
-        databaseName = configuration["database"]
-    else:  # if test
-        configuration['baseFolder'] = databaseName
+    with open(os.path.expanduser('~')+'/.agileScience.json','r') as f:
+      configuration = json.load(f)
+    if localName is None:
+      localName = configuration["-defaultLocal"]
+    remoteName= configuration["-defaultRemote"]
+    user         = configuration[localName]["user"]
+    password     = configuration[localName]["password"]
+    databaseName = configuration[localName]["database"]
     self.db = Database(user, password, databaseName)
-    self.userID   = configuration["userID"]
-    self.remoteDB = configuration["remote"]
-    self.eargs   = configuration["eargs"]
+    self.userID   = configuration["-userID"]
+    self.remoteDB = configuration[remoteName]
+    self.eargs   = configuration["-eargs"]
     # open basePath (root of directory tree) as current working directory
     # self.cwd is the addition to basePath
     self.softwarePath = os.path.abspath(os.getcwd())
-    self.basePath     = os.path.expanduser('~')+"/"+configuration["baseFolder"]
+    self.basePath     = os.path.expanduser('~')+"/"+configuration[localName]["path"]
     self.cwd          = ""
     if not self.basePath.endswith("/"):
         self.basePath += "/"
@@ -713,43 +713,47 @@ class AgileScience:
 
 #### Main function when command-line commands used
 if __name__ == '__main__':
-  import sys
-  if len(sys.argv)<2:                 #errors
-    print("Incomplete command given")
-    print("Help: agileScience <command> <documentID>\n\nCommands:")
-    print("  clean\t\t\t clean project with documentID; if documentID=all clean all projects")
-    print("  scan\t\t\t scan project with documentID")
-    print("  produce\t\t produce jams.json files in project with documentID")
-    print("  compare\t\t compare jams.json files in project with documentID to database\n")
-    print("  Hierarchy\t\t output project hierarchy of this documentID")
-    print("  Projects\t\t output projects, documentID ignored/can be omitted")
-    print("  Samples\t\t output samples, documentID ignored/can be omitted")
-    print("  Measurements\t\t output measurements, documentID ignored/can be omitted")
-    print("  Procedures\t\t output procedures, documentID ignored/can be omitted")
-  else:                                #normal case
-    be = AgileScience()
-    if sys.argv[1]=='Projects' or sys.argv[1]=='Samples' or sys.argv[1]=='Measurements' or sys.argv[1]=='Procedures':
-      print("Output ",sys.argv[1])
-      print(be.output(sys.argv[1],True))
-    elif sys.argv[2]=='all':
-      if sys.argv[1]=='clean':
-        print("Clean all projects")
-        be.cleanTree(all=True)
+  import argparse,textwrap
+  argparser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+      epilog=textwrap.dedent('''\
+        print: 'Projects', 'Samples', 'Measurements', 'Procedures'
+        clean, scan, produce, compare, hierarchy: documentID. To be identified by printing first
+        \t cleaning: docID=all cleans all
+        newDB: /agileScience.py newDB '{"temporaryTest":{"user":"Steffen"}}' '''))
+  argparser.add_argument("command", help="print, clean, scan, produce, compare, hierarchy")
+  argparser.add_argument("item",    help="'Projects', 'Samples', 'Measurements', 'Procedures', 'documentID'")
+  argparser.add_argument("-db","--database", help="name of database configuration")
+  args = argparser.parse_args()
+  print("Verify your choices: ",args.command, args.item, args.database)
+  if args.command=="newDB":
+    #use new database configuration and store in local-config file
+    # no need to touch default databases since database can be chosen by -db
+    newDB = json.loads(args.item)
+    label = list(newDB.keys()).pop()
+    with open(os.path.expanduser('~')+'/.agileScience.json','r') as f:
+      configuration = json.load(f)
+    configuration[label] = newDB[label]
+    with open(os.path.expanduser('~')+'/.agileScience.json','w') as f:
+      f.write(json.dumps(configuration, indent=2))
+  else:
+    #other commands
+    be = AgileScience(args.database)
+    if args.command=="print":
+      print(be.output(args.item,True))
+    elif args.command=='clean' and args.item=='all':
+      be.cleanTree(all=True)
     else:
-      be.changeHierarchy(sys.argv[2])
-      if sys.argv[1]=='clean':
-        print("Clean project:",sys.argv[2])
+      be.changeHierarchy(args.item)
+      if args.command=='clean':
         be.cleanTree(all=False)
-      if sys.argv[1]=='scan':
-        print("Scan project with ID:",sys.argv[2])
+      elif args.command=='scan':
         be.scanTree()
-      if sys.argv[1]=='produce':
-        print("Produce json files in project with ID:",sys.argv[2])
+      elif args.command=='produce':
         be.scanTree('produceData')
-      if sys.argv[1]=='compare':
-        print("Compare json files in project with ID:",sys.argv[2])
+      elif args.command=='compare':
         be.scanTree('compareToDB')
-      if sys.argv[1]=='Hierarchy':
-        print("Print hierarchy of this project:",sys.argv[2])
+      elif args.command=='hierarchy':
         print(be.outputHierarchy(True,True))
+      else:
+        print("Wrong command:",args.command)
     be.exit()
