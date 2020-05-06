@@ -95,6 +95,10 @@ class AgileScience:
         localCopy: copy a remote file to local version
     """
     logging.debug('addData beginning data: '+docType+' | hierStack'+str(hierStack))
+    data['user']   = self.userID
+    childNum       = 9999
+    path           = None
+    operation      = 'c'
     if docType == '-edit-':
       edit = True
       if 'type' not in data:
@@ -108,21 +112,19 @@ class AgileScience:
       if len(hierStack) == 0:  hierStack = self.hierStack
 
     # collect data and prepare
-    data['user']   = self.userID
-    data['client'] = 'python version 0.1'
     if data['type'] in self.hierList and data['type']!='project':
       if 'childNum' in data:
-        thisChildNumber = data['childNum']
+        childNum = data['childNum']
+        del data['childNum']
       else:
         #should not have childnumber in other cases
         thisStack = ' '.join(self.hierStack)
         view = self.db.getView('viewHierarchy/viewHierarchy', key=thisStack) #not faster with cT.getChildren
-        thisChildNumber = 0
+        childNum = 0
         for item in view:
           if item['value'][1]=='project': continue
           if thisStack == ' '.join(item['key'].split(' ')[:-1]): #remove last item from string
-            thisChildNumber += 1
-        data['childNum'] = thisChildNumber
+            childNum += 1
     if data['type'] in self.hierList:
       prefix = 't'
     else:
@@ -132,61 +134,57 @@ class AgileScience:
     if self.cwd is not None and 'name' in data:
       if data['type'] in self.hierList:
         #project, step, task
-        if data['type']=='project': thisChildNumber = -1
+        if data['type']=='project': childNum = 0
         if edit:      #edit: cwd of the project/step/task: remove last directory from cwd (since cwd contains a / at end: remove two)
           parentDirectory = os.sep.join(self.cwd.split(os.sep)[:-2])
           if len(parentDirectory)>2: parentDirectory += os.sep
         else:         #new: below the current project/step/task
           parentDirectory = self.cwd
-        data['path'] = [parentDirectory + self.createDirName(data['name'],data['type'],thisChildNumber)]+['u'] #update,or create (if new data, update ignored anyhow)
+        path = parentDirectory + self.createDirName(data['name'],data['type'],childNum) #update,or create (if new data, update ignored anyhow)
+        operation = 'u'
       else:
         #measurement, sample, procedure
         md5sum = ""
         if '://' in data['name']:                                 #make up name
           if localCopy:
-            data['path'] = [self.cwd + cT.camelCase( os.path.basename(data['name'])),'c']
+            path = self.cwd + cT.camelCase( os.path.basename(data['name']))
             request.urlretrieve(data['name'], self.basePath+data['path'])
           else:
             md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()            #TODO what to do when request fails: try: except:
         elif os.path.exists(self.basePath+data['name']):          #file exists
-          data['path'] = [data['name'],'c']
+          path = data['name']
           data['name'] = os.path.basename(data['name'])
         elif os.path.exists(self.basePath+self.cwd+data['name']): #file exists
-          data['path'] = [self.cwd+data['name'],'c']
+          path = self.cwd+data['name']
         else:                                                     #make up name
           md5sum  = None
         if md5sum is not None:
           if md5sum == "":
-            md5sum = hashlib.md5(open(self.basePath+data['path'][0],'rb').read()).hexdigest()
+            md5sum = hashlib.md5(open(self.basePath+path,'rb').read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
           if len(view)>0:
             #measurement already in database: update only path, no addition
             self.db.updateDoc(data,view[0]['id'],None)
             return
-          if 'path' in data and len(data['path'])>0:
-            data.update( self.getImage(data['path'][0],md5sum) )
-          else:
-            data.update( self.getImage(data['name'],md5sum) )
-
+          data.update( self.getImage(path,md5sum) )
+    # assemble branch information
+    data['branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
     if edit:
       #update document
-      data = cT.fillDocBeforeCreate(data, '--', hierStack, '--').to_dict()
+      data = cT.fillDocBeforeCreate(data, '--', '--').to_dict()
       data = self.db.updateDoc(data, data['_id'], self.moveDirectory)
     else:
       # add data to database
-      data = cT.fillDocBeforeCreate(data, data['type'], hierStack, prefix).to_dict()
+      data = cT.fillDocBeforeCreate(data, data['type'], prefix).to_dict()
       data = self.db.saveDoc(data)
 
     ## adaptation of directory tree, information on disk: documentID is required
-    if self.cwd is not None:
-      if data['type'] in self.hierList:
-        #project, step, task
-        if len(data['path'])==1:
-          os.makedirs(self.basePath+data['path'][0], exist_ok=True)
-          with open(self.basePath+data['path'][0]+'/.id_jams.json','w') as f:  #local path
-            f.write(json.dumps(data))
-        else:
-          logging.error("addData: two paths in document "+data['_id'])
+    if self.cwd is not None and data['type'] in self.hierList:
+      #project, step, task
+      path = data['branch'][0]['path']
+      os.makedirs(self.basePath+path, exist_ok=True)
+      with open(self.basePath+path+'/.id_jams.json','w') as f:  #local path, update in any case
+        f.write(json.dumps(data))
     self.currentID = data['_id']
     logging.debug("addData ending data"+data['_id']+' '+data['_rev']+' '+data['type'])
     return
@@ -245,20 +243,16 @@ class AgileScience:
       try:
         if self.cwd is not None:
           doc = self.db.getDoc(docID)
-          if self.debug and len(doc['path'])>1:
-            print("Error should not occur to have more than one path in projct/etc")
-            logging.error("Only one path in project/step/task")
-          path = doc['path'][0]
+          path = doc['branch'][0]['path']
           dirName = path.split('/')[-1]
           if childNum is not None:
             dirName = self.createDirName(doc['name'],doc['type'],childNum)
           if not os.path.exists(dirName):
             #should only happen during complex edit: should not get None as childNum
             #move directory
-            pathParent = self.db.getDoc(doc['inheritance'][-1])['path']
-            if self.debug and len(pathParent)>1:
-              print("moveDirectory2: I sohuld not be here")
-            path = pathParent[0]+os.sep+path.split(os.sep)[-1]
+            parentID = doc['branch'][0]['stack'][-1]  #exception here is caught correctly
+            pathParent = self.db.getDoc(parentID)['branch'][0]['path']
+            path = pathParent+os.sep+path.split(os.sep)[-1]
             shutil.move(self.basePath+path, dirName)
             logging.warning('changeHierarchy '+self.cwd+": Could not change into non-existant directory "+dirName+" Moved old one to here")
           os.chdir(dirName)
@@ -267,7 +261,7 @@ class AgileScience:
       except:
         print("Could not change into hierarchy. id:"+docID+"  directory:"+dirName+"  cwd:"+self.cwd)
     if self.debug and len(self.hierStack)==len(self.cwd.split(os.sep)):
-      print("changeHierarchy error")
+      logging.error("changeHierarchy error")
     return
 
 
@@ -300,10 +294,10 @@ class AgileScience:
     for item in view:
       thisPath = item['value'][0]
       if thisPath.startswith(self.cwd[:-1]):
-        if item['id'] in ids: #repair by moving directories
+        if item['id'] in ids: #repair by moving directories #TODO still required
           data = self.db.getDoc(item['id'])
-          logging.debug("Remove path. Afterwards "+data['path'][0]+" from database id "+item['id'])
-          moves.append([self.basePath+data['path'][0],self.basePath+data['path'][1]])
+          logging.debug("Remove path. Afterwards "+data['branch'][0]['path']+" from database id "+item['id'])
+          moves.append([self.basePath+data['branch'][0]['path'],self.basePath+data['branch'][1]['path']])
           data = self.db.updateDoc( {'path':[data['path'][0],'d']}, item['id'], None)
         ids[item['id']] = thisPath
         database[thisPath] = [item['id'], item['value'][1], item['value'][2]]
@@ -326,7 +320,7 @@ class AgileScience:
         #check id-file
         try:
           idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
-          if idFile['path'][0]==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
+          if idFile['branch'][0]['path']==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
             logging.debug(path+' id-test successful on project/step/task')
           else:
             if idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
@@ -336,7 +330,7 @@ class AgileScience:
                 f.write(json.dumps(data))
             else:
               logging.error(path+' id-test NOT successful on project/step/task')
-              logging.error(idFile['path'][0]+' | '+idFile['_id']+' | '+idFile['type'])
+              logging.error(idFile['branch'][0]['path']+' | '+idFile['_id']+' | '+idFile['type'])
               logging.error(path+' | '+str(database[path]))
           if produceData:
             #if you have to produce
@@ -359,8 +353,11 @@ class AgileScience:
         if os.path.exists(self.basePath+path+'/.id_jams.json'):
           #update .id_jams.json file and database with new path information
           idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
-          logging.info('Updated path in directory and database '+idFile['path'][0]+' to '+path)
-          data = self.db.updateDoc( {'path':[path,'d']}, idFile['_id'], None)
+          logging.info('Updated path in directory and database '+idFile['branch'][0]['path']+' to '+path)
+          data = self.db.updateDoc( {'branch':{'path':path,\
+                                               'stack':idFile['branch'][0]['stack'],\
+                                               'child':idFile['branch'][0]['child'],\
+                                               'op':'u'}}, idFile['_id'], None)
           with open(self.basePath+path+'/.id_jams.json','w') as f:
             f.write(json.dumps(data))
         else:
@@ -399,7 +396,10 @@ class AgileScience:
           logging.info(file+' file not in database. Create in database')
           newDoc    = {'name':path+os.sep+file}
           parentDoc = self.db.getDoc(parentID)
-          hierStack = parentDoc['inheritance']+[parentID]
+          hierStack = []
+          for branch in parentDoc['branch']:
+            if path in branch['path']:
+              hierStack = branch['stack']+[parentID]
           self.addData('measurement', newDoc, hierStack)
       if path in database:
         del database[path]

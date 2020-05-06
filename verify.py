@@ -8,7 +8,7 @@ def fileVerify(number, text, onlyHierarchy=True):
   """
   use diff-file to compare hierarchies, directory tree
   """
-  with open(be.softwarePath+'/verify'+str(number)+'.txt','w') as f:
+  with open(be.softwarePath+'/verify'+str(number)+'.org','w') as f:
     f.write(text)
     f.write("++STATE: "+be.cwd+" "+str(be.hierStack)+"\n")
     f.write(be.outputHierarchy(onlyHierarchy,True,'all'))
@@ -65,9 +65,9 @@ try:
   be.addData('-edit-', {'comment': '#tag1 A random text plus edition\n'})
   myString = be.getEditString()
   myString = myString.replace('* Test step two: t-','** Test step two: t-')
-  fileVerify(1,'*********** Before *********')
+  fileVerify(1,'=========== Before ===========')
   be.setEditString(myString)
-  fileVerify(2,'*********** After *********')  #use diff-file to compare hierarchies, directory tree
+  fileVerify(2,'=========== After ===========')  #use diff-file to compare hierarchies, directory tree
   be.scanTree()  #nothing done: ok, no harm
 
   ### test procedures
@@ -98,13 +98,13 @@ try:
   be.addData('measurement', {'name': 'filename.jpg', 'comment': '#3 #other medium stuff'})
   shutil.copy(be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
   shutil.copy(be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
-  stepDirName = be.basePath+be.db.getDoc(stepID)['path'][0]
+  stepDirName = be.basePath+be.db.getDoc(stepID)['branch'][0]['path']
   shutil.copy(be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
   be.scanTree()
 
   ### Second test: move directory that includes data to another random name
   print("*** TEST MEASUREMENTS AND SCANNING 2 ***")
-  origin = be.basePath+be.db.getDoc(stepID)['path'][0]
+  origin = be.basePath+be.db.getDoc(stepID)['branch'][0]['path']
   target = os.sep.join(origin.split(os.sep)[:-1])+os.sep+"RandomDir"
   shutil.move(origin, target)
   be.scanTree()
@@ -145,5 +145,5 @@ try:
   be.exit()
 
 except:
-  print("ERROR OCCURED IN VERIFY TESTING\n"+ traceback.format_exc() )
+  print("ERROR OCCURRED IN VERIFY TESTING\n"+ traceback.format_exc() )
 

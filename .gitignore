@@ -1,7 +1,7 @@
 commonTools.py
 *.pyc
 *.log
-verify?.txt
+verify?.org
 
 NielsCode/
 __pycache__/

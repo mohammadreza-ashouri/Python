@@ -62,16 +62,19 @@ class Database:
         logging.warning("cloudant:init "+view+" not defined. Use default one:"+jsString)
         self.saveView(view, view, jsString)
     if "_design/viewHierarchy" not in self.db:
-      jsString  = "if ('type' in doc && !('current_rev' in doc)) {\n"
-      jsString += "if ('childNum' in doc) {emit(doc.inheritance.concat([doc._id]).join(' '),[doc.childNum,doc.type,doc.name]);}\n"
-      jsString += "else                   {emit(doc.inheritance.concat([doc._id]).join(' '),[9999,doc.type,doc.name]);}\n"
-      jsString += "}"
-      jsString2 = "if ('path' in doc && !('current_rev' in doc)){\n"
-      jsString2+= "if (doc.type === 'project') {emit(doc._id,[doc.path[0],doc.type,'']);}\n"
-      jsString2+= "else if ('md5sum' in doc) {doc.path.forEach(function(thisPath) {emit(doc.inheritance[0], [thisPath,doc.type,doc.md5sum]);});}\n"
-      jsString2+= "else                 {doc.path.forEach(function(thisPath) {emit(doc.inheritance[0], [thisPath,doc.type,'']);});}\n"
-      jsString2+= "}"
-      self.saveView('viewHierarchy','.',{"viewHierarchy":jsString,"viewPaths":jsString2})
+      jsHierarchy  = '''
+        if ('type' in doc && !('current_rev' in doc)) {
+          doc.branch.forEach(function(branch) {emit(branch.stack.concat([doc._id]).join(' '),[branch.child,doc.type,doc.name]);});
+        }
+      '''
+      jsPath = '''
+        if ('branch' in doc && !('current_rev' in doc)){
+          if (doc.type === 'project') {emit(doc._id,[doc.branch[0].path,doc.type,'']);}
+          else if ('md5sum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.stack[0],[branch.path,doc.type,doc.md5sum]);}});}
+          else                     {doc.branch.forEach(function(branch){if(branch.path){emit(branch.stack[0],[branch.path,doc.type,''        ]);}});}
+        }
+      '''
+      self.saveView('viewHierarchy','.',{"viewHierarchy":jsHierarchy,"viewPaths":jsPath})
     if "_design/viewMD5" not in self.db:
       self.saveView('viewMD5','viewMD5',"if (doc.type==='measurement' && !('current_rev' in doc)){emit(doc.md5sum, doc.name);}")
     if "_design/viewQR" not in self.db:
@@ -110,8 +113,15 @@ class Database:
     Args:
         doc: document to save
     """
-    if 'path' in doc and len(doc['path'])>1 and len(doc['path'][1])==1: #second item in path is one letter
-      del doc['path'][1]
+    #TODO temporary:
+    if 'path' in doc or 'inheritance' in doc or 'childNum' in doc:
+      print("OLD VERSION saveDoc")
+      aa = 4/0
+    tracebackString = traceback.format_stack()
+    tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
+    doc['client'] = tracebackString
+    del doc['branch']['op']  #remove operation, saveDoc creates and therefore always the same
+    doc['branch'] = [doc['branch']]
     res = self.db.create_document(doc)
     return res
 
@@ -132,38 +142,43 @@ class Database:
         docID:  id of document to change
         callback: function to move directory if paths suggest that
     """
+    #TODO temporary:
+    if 'path' in change or 'inheritance' in change or 'childNum' in change:
+      print("OLD VERSION updateDoc")
+    tracebackString = traceback.format_stack()
+    tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
+    change['client'] = tracebackString
     newDoc = self.db[docID]  #this is the document that stays live
-    if 'path' in change and not change['path'][0] in newDoc['path'] and change['path'][1]=='u':
-      #correct path, give inheritance if origin path does not exist anymore since it was moved
-      callback(newDoc['path'][0],change['path'][0], newDoc['inheritance'] )
     oldDoc = {}              #this is an older revision of the document
     nothingChanged = True
+    # handle branch
+    if 'branch' in change and len(change['branch']['stack'])>0:
+      op = change['branch']['op']
+      del change['branch']['op']
+      if not change['branch'] in newDoc['branch']:       #skip if new path already in path
+        nothingChanged = False
+        oldDoc['branch'] = newDoc['branch'].copy()
+        if op=='c':    #create, append
+          newDoc['branch'] += [change['branch']]
+        elif op=='u':  #update=remove current at zero
+          newDoc['branch'][0] = change['branch']
+        elif op=='d':  #delete
+          aa = 4/0
+          newDoc['branch'] = [directory for directory in newDoc['branch'] if directory!=change['branch'][0]]
+        else:
+          print("I should not be here")
+          a = 4/0
+    #handle other items
     for item in change:
-      if item in ['revisions','_id','_rev']:                         #skip items cannot come from change
-        continue
-      if item=='inheritance' and len(change['inheritance'])==0:      #skip non-set inheritance
+      if item in ['revisions','_id','_rev','branch']:                #skip items cannot come from change
         continue
       if item=='type' and change['type']=='--':                      #skip non-set type
-        continue
-      if item=='path' and change['path'][0] in newDoc['path']:       #skip if new path already in path
         continue
       if change[item]!=newDoc[item]:
         if item!='date':      #if only date change, no real change
           nothingChanged = False
-        if item in ['path']:
-          oldDoc[item] = newDoc[item].copy()
-          if change[item][1]=='c':    #create, append
-            newDoc[item] += [change[item][0]]
-          elif change[item][1]=='u':  #update=remove current at zero
-            newDoc[item][0] = change[item][0]
-          elif change[item][1]=='d':  #delete
-            newDoc[item] = [directory for directory in newDoc[item] if directory!=change[item][0]]
-          else:
-            print("I should not be here")
-            a = 4/0
-        else:                         #replace existing
-          oldDoc[item] = newDoc[item]
-          newDoc[item] = change[item]
+        oldDoc[item] = newDoc[item]
+        newDoc[item] = change[item]
     if nothingChanged:
       logging.warning("cloudant:updateDoc no change of content compared to DB")
       return newDoc
