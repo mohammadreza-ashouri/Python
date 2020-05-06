@@ -150,7 +150,11 @@ class AgileScience:
             path = self.cwd + cT.camelCase( os.path.basename(data['name']))
             request.urlretrieve(data['name'], self.basePath+data['path'])
           else:
-            md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()            #TODO what to do when request fails: try: except:
+            try:
+              md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()
+            except:
+              print("addData: fetch remote content failed. Data not added")
+              return
         elif os.path.exists(self.basePath+data['name']):          #file exists
           path = data['name']
           data['name'] = os.path.basename(data['name'])
@@ -164,7 +168,7 @@ class AgileScience:
           view = self.db.getView('viewMD5/viewMD5',md5sum)
           if len(view)>0:
             #measurement already in database: update only path, no addition
-            self.db.updateDoc(data,view[0]['id'],None)
+            self.db.updateDoc(data,view[0]['id'])
             return
           data.update( self.getImage(path,md5sum) )
     # assemble branch information
@@ -172,7 +176,7 @@ class AgileScience:
     if edit:
       #update document
       data = cT.fillDocBeforeCreate(data, '--', '--').to_dict()
-      data = self.db.updateDoc(data, data['_id'], self.moveDirectory)
+      data = self.db.updateDoc(data, data['_id'])
     else:
       # add data to database
       data = cT.fillDocBeforeCreate(data, data['type'], prefix).to_dict()
@@ -206,23 +210,6 @@ class AgileScience:
       return ("{:03d}".format(thisChildNumber))+'_'+cT.camelCase(name)
 
 
-  def moveDirectory(self, origin, target, inheritance):
-    """ used as callback function for moving projects/steps/tasks
-    """
-    print("DEPRICATED")
-    return
-
-    if os.path.exists(self.basePath+target):
-      print("I should not be here")
-    if not os.path.exists(self.basePath+origin):
-      #have to find current path from parent's path
-      path = self.db.getDoc(inheritance[-1])['path']
-      if len(path)>1:
-        print("moveDirectory2: I sohuld not be here")
-      origin = path[0]+os.sep+origin.split(os.sep)[-1]
-    shutil.move(self.basePath+origin, self.basePath+target)
-    return
-
   ######################################################
   ### Disk directory/folder methods
   ######################################################
@@ -250,7 +237,7 @@ class AgileScience:
           if not os.path.exists(dirName):
             #should only happen during complex edit: should not get None as childNum
             #move directory
-            parentID = doc['branch'][0]['stack'][-1]  #exception here is caught correctly
+            parentID = doc['branch'][0]['stack'][-1]  #exception is caught correctly
             pathParent = self.db.getDoc(parentID)['branch'][0]['path']
             path = pathParent+os.sep+path.split(os.sep)[-1]
             shutil.move(self.basePath+path, dirName)
@@ -289,25 +276,10 @@ class AgileScience:
     # get information from database
     view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0])
     database = {} #path as key for lookup, required later
-    ids = {}      #id as key for lookup, required immediately
-    moves = []
     for item in view:
       thisPath = item['value'][0]
       if thisPath.startswith(self.cwd[:-1]):
-        if item['id'] in ids: #repair by moving directories #TODO still required
-          data = self.db.getDoc(item['id'])
-          logging.debug("Remove path. Afterwards "+data['branch'][0]['path']+" from database id "+item['id'])
-          moves.append([self.basePath+data['branch'][0]['path'],self.basePath+data['branch'][1]['path']])
-          data = self.db.updateDoc( {'path':[data['path'][0],'d']}, item['id'], None)
-        ids[item['id']] = thisPath
         database[thisPath] = [item['id'], item['value'][1], item['value'][2]]
-    #move directories
-    moves = sorted(moves,reverse=True)
-    for move in moves:
-      print("ScanTree: move still requried??")
-      shutil.move(move[0],move[1])
-      if move[0] in database:
-        del database[move[0]]
 
     # iterate directory-tree and compare
     parentID = None
@@ -357,7 +329,7 @@ class AgileScience:
           data = self.db.updateDoc( {'branch':{'path':path,\
                                                'stack':idFile['branch'][0]['stack'],\
                                                'child':idFile['branch'][0]['child'],\
-                                               'op':'u'}}, idFile['_id'], None)
+                                               'op':'u'}}, idFile['_id'])
           with open(self.basePath+path+'/.id_jams.json','w') as f:
             f.write(json.dumps(data))
         else:

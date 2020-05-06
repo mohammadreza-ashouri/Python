@@ -113,10 +113,6 @@ class Database:
     Args:
         doc: document to save
     """
-    #TODO temporary:
-    if 'path' in doc or 'inheritance' in doc or 'childNum' in doc:
-      print("OLD VERSION saveDoc")
-      aa = 4/0
     tracebackString = traceback.format_stack()
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
     doc['client'] = tracebackString
@@ -126,7 +122,7 @@ class Database:
     return res
 
 
-  def updateDoc(self, change, docID, callback):
+  def updateDoc(self, change, docID):
     """
     Update document by
     - saving changes to oldDoc (revision document)
@@ -140,11 +136,7 @@ class Database:
                 'path' = list: new path list is appended to existing list
                 'path' = str : remove this path from path list
         docID:  id of document to change
-        callback: function to move directory if paths suggest that
     """
-    #TODO temporary:
-    if 'path' in change or 'inheritance' in change or 'childNum' in change:
-      print("OLD VERSION updateDoc")
     tracebackString = traceback.format_stack()
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
     change['client'] = tracebackString
