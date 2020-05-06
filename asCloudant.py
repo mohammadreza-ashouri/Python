@@ -1,6 +1,6 @@
 """Class for interaction with couchDB
 """
-import traceback, json, logging
+import traceback, json, logging, os
 from cloudant.client import CouchDB, Cloudant
 from cloudant.document import Document
 from cloudant.view import View
@@ -167,7 +167,7 @@ class Database:
       if item=='type' and change['type']=='--':                      #skip non-set type
         continue
       if change[item]!=newDoc[item]:
-        if item!='date':      #if only date change, no real change
+        if item not in ['date','client']:      #if only date/client change, no real change
           nothingChanged = False
         oldDoc[item] = newDoc[item]
         newDoc[item] = change[item]
@@ -254,3 +254,71 @@ class Database:
     doc = rep.create_replication(self.db, db2, create_target=True)
     logging.info("cloudant:replicateDB Replication started")
     return
+
+
+  def checkDB(self,basepath=None):
+    """
+    Check database for consistencies by iterating through all documents
+    - slow since no views used
+    - only reporting, no repair
+
+    Args:
+        basepath: basepath of database on local directory; None: ignore those checks
+    """
+    for doc in self.db:
+      if '_design' in doc['_id']:
+        print('Design document',doc['_id'])
+        continue
+      if '-dataDictionary-' == doc['_id']:
+        print('Data dictionary exists')
+        continue
+
+      # old revisions of document. Test
+      # - id has correct shape and original does exist
+      # - current_rev is correct
+      if 'current_rev' in doc:
+        if len(doc['_id'].split('-'))!=3:
+          print('**ERROR current_rev length not 3',doc['_id'])
+          continue
+        currentID = '-'.join(doc['_id'].split('-')[:-1])
+        if not self.db[currentID]:
+          print('**ERROR current_rev current does not exist in db',doc['_id'],currentID)
+          continue
+        currentDoc= self.getDoc(currentID)
+        if currentDoc['_rev']!=doc['current_rev']:
+          print('**WARNING current_rev has different value than current rev',doc['_id'],currentID)
+          continue
+
+      # current revision. Test branch and doc-type specific tests
+      else:
+        #branch test
+        if 'branch' not in doc:
+          print('**ERROR branch does not exist',doc['_id'])
+          continue
+        else:
+          for branch in doc['branch']:
+            if len(branch['stack'])==0 and doc['type']!='project':
+              print('**ERROR branch stack length = 0',doc['_id'])
+            if branch['path'] is None:
+              print('**ERROR branch path is None',doc['_id'])
+            else:
+              if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):
+                print('**ERROR branch stack and path lengths do not match',doc['_id'])
+
+        #doc-type specific tests
+        if doc['type'] == 'sample':
+          if 'qr_code' not in doc:
+            print('**ERROR qr_code not in sample',doc['_id'])
+        elif doc['type'] == 'measurement':
+          if 'md5sum' not in doc:
+            print('**ERROR md5sum not in measurement',doc['_id'])
+        elif doc['type'] == 'procedure':
+          pass
+        elif doc['type'] == 'project':
+          pass
+        elif doc['type'] == 'step':
+          pass
+        elif doc['type'] == 'task':
+          pass
+        else:
+          print('**ERROR unknown doctype',doc['_id'],doc['type'])

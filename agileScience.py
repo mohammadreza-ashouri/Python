@@ -166,11 +166,8 @@ class AgileScience:
           if md5sum == "":
             md5sum = hashlib.md5(open(self.basePath+path,'rb').read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
-          if len(view)>0:
-            #measurement already in database: update only path, no addition
-            self.db.updateDoc(data,view[0]['id'])
-            return
-          data.update( self.getImage(path,md5sum) )
+          if len(view)==0:  #measurement not in database: create data
+            data.update( self.getImage(path,md5sum) )
     # assemble branch information
     data['branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
     if edit:
@@ -474,7 +471,7 @@ class AgileScience:
 
 
   ######################################################
-  ### Get data from database
+  ### Wrapper for database functions
   ######################################################
   def getDoc(self, id):
     """
@@ -500,8 +497,16 @@ class AgileScience:
     return
 
 
+  def checkDB(self):
+    """
+    Wrapper of check database for consistencies by iterating through all documents
+    """
+    self.db.checkDB(self.basePath)
+    return
+
+
   ######################################################
-  ### OUTPUT COMMANDS ###
+  ### OUTPUT COMMANDS and those connected to it      ###
   ######################################################
   def output(self, docLabel, printID=False):
     """

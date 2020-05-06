@@ -65,9 +65,7 @@ try:
   be.addData('-edit-', {'comment': '#tag1 A random text plus edition\n'})
   myString = be.getEditString()
   myString = myString.replace('* Test step two: t-','** Test step two: t-')
-  fileVerify(1,'=========== Before ===========')
   be.setEditString(myString)
-  fileVerify(2,'=========== After ===========')  #use diff-file to compare hierarchies, directory tree
   be.scanTree()  #nothing done: ok, no harm
 
   ### test procedures
@@ -123,7 +121,9 @@ try:
   ### Forth TEST: rename file
   print("*** TEST MEASUREMENTS AND SCANNING 4 ***")
   shutil.move(projDirName1+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteelLC.txt')
+  fileVerify(1,'=========== Before ===========')
   be.scanTree('produceData')
+  fileVerify(2,'=========== After ===========')  #use diff-file to compare hierarchies, directory tree
   be.scanTree('compareToDB')
   be.cleanTree()
 
@@ -138,8 +138,12 @@ try:
   print(be.outputHierarchy(False))
 
   ### test other functions
+  print("\n*** Check this database ***")
+  be.checkDB()
   print("Replication test")
   be.replicateDB(databaseName,True)
+
+
 
   print("\n*** DONE WITH VERIFY ***")
   be.exit()
