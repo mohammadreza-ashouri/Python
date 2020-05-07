@@ -3,7 +3,12 @@
 import logging, traceback
 from Tif import Tif
 
-def getImage(fileName):
+def getImage(fileName, metaData):
+  """
+  Args:
+     fileName: full path file name
+     metaData: can be supplied to guide image creation metaData['measurementType'],metaData['plotType']
+  """
   try:
     # try Steffen's Tif library
     i = Tif(fileName)

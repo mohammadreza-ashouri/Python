@@ -4,7 +4,12 @@ import logging, traceback
 from nanoIndent import Indentation
 
 
-def getImage(fileName):
+def getImage(fileName, metaData):
+  """
+  Args:
+     fileName: full path file name
+     metaData: can be supplied to guide image creation metaData['measurementType'],metaData['plotType']
+  """
   try:
     #if Hysitron file
     i = Indentation(fileName)

@@ -166,8 +166,12 @@ class AgileScience:
           if md5sum == "":
             md5sum = hashlib.md5(open(self.basePath+path,'rb').read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
-          if len(view)==0:  #measurement not in database: create data
-            data.update( self.getImage(path,md5sum) )
+          if len(view)==0 or 'forceNewImage' in data:  #measurement not in database: create data
+            data.update( self.getImage(path,md5sum,data) )
+          if len(view)==1:
+            data['_id'] = view[0]['id']
+            data['md5sum'] = md5sum
+            edit = True
     # assemble branch information
     data['branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
     if edit:
@@ -343,7 +347,7 @@ class AgileScience:
           if md5File==database[fileName][2]:
             logging.debug(fileName+' md5-test successful on measurement/etc.')
           else:
-            logging.error(fileName+' md5-test NOT successful on measurement/etc.',md5File,database[fileName][2])
+            logging.error(fileName+' md5-test NOT successful on measurement/etc. '+md5File+' '+database[fileName][2])
           if produceData:
             #if you have to produce
             data = self.db.getDoc(database[fileName][0])
@@ -403,7 +407,7 @@ class AgileScience:
           os.remove(filePath)
 
 
-  def getImage(self, filePath, md5sum, maxSize=600):
+  def getImage(self, filePath, md5sum, doc=None, maxSize=600):
     """
     get image from datafile: central distribution point
     - max image size defined here
@@ -411,6 +415,7 @@ class AgileScience:
     Args:
         filePath: path to file
         md5sum: md5sum to store in database (not used here)
+        doc: pass known data/measurement type, can be used to create image
         maxSize: maximum size of jpeg images
     """
     logging.info("getImage started for path "+filePath)
@@ -426,7 +431,7 @@ class AgileScience:
     if os.path.exists(pyPath):
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
-      image, imgType, metaMeasurement = module.getImage(absFilePath)
+      image, imgType, metaMeasurement = module.getImage(absFilePath, doc)
       # depending on imgType: produce image
       if imgType == "line":  #no scaling
         figfile = StringIO()
@@ -467,7 +472,7 @@ class AgileScience:
       logging.warning("getImage: could not find pyFile to convert "+pyFile)
     #produce meta information
     measurementType = metaMeasurement.pop('measurementType')
-    meta = {'image': image, 'name': filePath, 'type': 'measurement', 'comment': '',
+    meta = {'image': image, 'type': 'measurement', 'comment': '',
             'measurementType':measurementType, 'meta':metaMeasurement, 'md5sum':md5sum}
     logging.info("getImage: Image successfully created")
     return meta

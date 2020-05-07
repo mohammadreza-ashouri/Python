@@ -260,12 +260,15 @@ class Database:
     """
     Check database for consistencies by iterating through all documents
     - slow since no views used
+    - check views
     - only reporting, no repair
+
 
     Args:
         basepath: basepath of database on local directory; None: ignore those checks
     """
-    outstring = ''
+    outstring = '**** DOCUMENTS ****\n'
+    ## loop all documents
     for doc in self.db:
       if '_design' in doc['_id']:
         outstring+= '..info: Design document '+doc['_id']+'\n'
@@ -297,6 +300,8 @@ class Database:
           outstring+= '**ERROR branch does not exist '+doc['_id']+'\n'
           continue
         else:
+          if len(doc['branch'])>1 and doc['type'] in ['project','step','task']:
+            outstring+= '**ERROR branch length >1 '+doc['_id']+' '+doc['type']+'\n'
           for branch in doc['branch']:
             if len(branch['stack'])==0 and doc['type']!='project':
               outstring+= '**ERROR branch stack length = 0: no parent '+doc['_id']+'\n'
@@ -328,4 +333,16 @@ class Database:
           pass
         else:
           outstring+= '**ERROR unknown doctype '+doc['_id']+' '+doc['type']+'\n'
+
+    ##TEST views
+    outstring+= '**** VIEWS ****\n'
+    view = self.getView('viewMD5/viewMD5')
+    md5keys = []
+    for item in view:
+      if item['key']=='':
+        outstring+= '**warning: measurement without md5sum: '+item['id']+' '+item['value']+'\n'
+      else:
+        if item['key'] in md5keys:
+          outstring+= '**ERROR: md5sum twice in view: '+item['key']+' '+item['id']+' '+item['value']+'\n'
+        md5keys.append(item['key'])
     return outstring

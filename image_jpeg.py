@@ -6,7 +6,12 @@ from io import BytesIO
 import logging, traceback
 
 
-def getImage(fileName):
+def getImage(fileName, metaData):
+  """
+  Args:
+     fileName: full path file name
+     metaData: can be supplied to guide image creation metaData['measurementType'],metaData['plotType']
+  """
   try:
     if "://" in fileName:
       response = requests.get(fileName)
