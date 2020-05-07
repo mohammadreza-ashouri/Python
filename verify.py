@@ -121,6 +121,7 @@ try:
   ### Forth TEST: rename file
   print("*** TEST MEASUREMENTS AND SCANNING 4 ***")
   shutil.move(projDirName1+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteelLC.txt')
+  be.scanTree()  #always scan before produceData: ensure that database correct
   fileVerify(1,'=========== Before ===========')
   be.scanTree('produceData')
   fileVerify(2,'=========== After ===========')  #use diff-file to compare hierarchies, directory tree
@@ -139,7 +140,7 @@ try:
 
   ### test other functions
   print("\n*** Check this database ***")
-  be.checkDB()
+  print(be.checkDB())
   print("Replication test")
   be.replicateDB(databaseName,True)
 

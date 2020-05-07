@@ -265,12 +265,13 @@ class Database:
     Args:
         basepath: basepath of database on local directory; None: ignore those checks
     """
+    outstring = ''
     for doc in self.db:
       if '_design' in doc['_id']:
-        print('Design document',doc['_id'])
+        outstring+= '..info: Design document '+doc['_id']+'\n'
         continue
       if '-dataDictionary-' == doc['_id']:
-        print('Data dictionary exists')
+        outstring+= '..info: Data dictionary exists\n'
         continue
 
       # old revisions of document. Test
@@ -278,40 +279,45 @@ class Database:
       # - current_rev is correct
       if 'current_rev' in doc:
         if len(doc['_id'].split('-'))!=3:
-          print('**ERROR current_rev length not 3',doc['_id'])
+          outstring+= '**ERROR current_rev length not 3 '+doc['_id']+'\n'
           continue
         currentID = '-'.join(doc['_id'].split('-')[:-1])
         if not self.db[currentID]:
-          print('**ERROR current_rev current does not exist in db',doc['_id'],currentID)
+          outstring+= '**ERROR current_rev current does not exist in db '+doc['_id']+' '+currentID+'\n'
           continue
         currentDoc= self.getDoc(currentID)
         if currentDoc['_rev']!=doc['current_rev']:
-          print('**WARNING current_rev has different value than current rev',doc['_id'],currentID)
+          outstring+= '**warning current_rev has different value than current rev '+doc['_id']+' '+currentID+'\n'
           continue
 
       # current revision. Test branch and doc-type specific tests
       else:
         #branch test
         if 'branch' not in doc:
-          print('**ERROR branch does not exist',doc['_id'])
+          outstring+= '**ERROR branch does not exist '+doc['_id']+'\n'
           continue
         else:
           for branch in doc['branch']:
             if len(branch['stack'])==0 and doc['type']!='project':
-              print('**ERROR branch stack length = 0',doc['_id'])
+              outstring+= '**ERROR branch stack length = 0: no parent '+doc['_id']+'\n'
             if branch['path'] is None:
-              print('**ERROR branch path is None',doc['_id'])
+              if doc['type'] == 'procedure' or doc['type'] == 'sample':
+                outstring+= '..info: procedure/sample with empty path '+doc['_id']+'\n'
+              elif doc['type'] == 'measurement':
+                outstring+= '**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+'\n'
+              else:
+                outstring+= '**ERROR branch path is None '+doc['_id']+'\n'
             else:
               if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):
-                print('**ERROR branch stack and path lengths do not match',doc['_id'])
+                outstring+= '**ERROR branch stack and path lengths do not match '+doc['_id']+'\n'
 
         #doc-type specific tests
         if doc['type'] == 'sample':
           if 'qr_code' not in doc:
-            print('**ERROR qr_code not in sample',doc['_id'])
+            outstring+= '**ERROR qr_code not in sample '+doc['_id']+'\n'
         elif doc['type'] == 'measurement':
           if 'md5sum' not in doc:
-            print('**ERROR md5sum not in measurement',doc['_id'])
+            outstring+= '**ERROR md5sum not in measurement '+doc['_id']+'\n'
         elif doc['type'] == 'procedure':
           pass
         elif doc['type'] == 'project':
@@ -321,4 +327,5 @@ class Database:
         elif doc['type'] == 'task':
           pass
         else:
-          print('**ERROR unknown doctype',doc['_id'],doc['type'])
+          outstring+= '**ERROR unknown doctype '+doc['_id']+' '+doc['type']+'\n'
+    return outstring

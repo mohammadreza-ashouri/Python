@@ -234,7 +234,7 @@ class AgileScience:
           if not os.path.exists(dirName):
             #should only happen during complex edit: should not get None as childNum
             #move directory
-            parentID = doc['branch'][0]['stack'][-1]  #exception is caught correctly
+            parentID = doc['branch'][0]['stack'][-1]  #exception handled
             pathParent = self.db.getDoc(parentID)['branch'][0]['path']
             path = pathParent+os.sep+path.split(os.sep)[-1]
             shutil.move(self.basePath+path, dirName)
@@ -341,24 +341,27 @@ class AgileScience:
         if fileName in database:
           md5File = hashlib.md5(open(self.basePath+fileName,'rb').read()).hexdigest()
           if md5File==database[fileName][2]:
-            logging.debug(fileName+'md5-test successful on measurement/etc.')
+            logging.debug(fileName+' md5-test successful on measurement/etc.')
           else:
-            logging.error(fileName+'md5-test NOT successful on measurement/etc.')
-          if produceData and not fileName.endswith('_jams.json'):
+            logging.error(fileName+' md5-test NOT successful on measurement/etc.',md5File,database[fileName][2])
+          if produceData:
             #if you have to produce
             data = self.db.getDoc(database[fileName][0])
             with open(self.basePath+jsonFileName,'w') as f:
               f.write(json.dumps(data))
           elif compareToDB:
             #database and directory agree regarding measurement/etc.
-            docFile = json.load(open(self.basePath+jsonFileName))
-            docDB = self.db.getDoc(docFile['_id'])
-            if docDB==docFile:
-              logging.debug(fileName+' slow test successful on measurement/etc.')
-            else:
-              logging.error(fileName+' slow test NOT successful on measurement/etc.')
-              logging.error(docDB)
-              logging.error(docFile)
+            try:
+              docFile = json.load(open(self.basePath+jsonFileName))  #exception handled
+              docDB = self.db.getDoc(docFile['_id'])
+              if docDB==docFile:
+                logging.debug(fileName+' slow test successful on measurement/etc.')
+              else:
+                logging.error(fileName+' slow test NOT successful on measurement/etc.')
+                logging.error(docDB)
+                logging.error(docFile)
+            except:
+              logging.error(jsonFileName+' json file does not exist')
           del database[fileName]
         else:
           #not in database, create database entry: if it already exists, self.addData takes care of it
@@ -501,8 +504,7 @@ class AgileScience:
     """
     Wrapper of check database for consistencies by iterating through all documents
     """
-    self.db.checkDB(self.basePath)
-    return
+    return self.db.checkDB(self.basePath)
 
 
   ######################################################
