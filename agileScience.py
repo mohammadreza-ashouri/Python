@@ -102,17 +102,20 @@ class AgileScience:
     if docType == '-edit-':
       edit = True
       if 'type' not in data:
-        data['type'] = self.hierList[len(self.hierStack)-1]
+        data['type'] = ['text',self.hierList[len(self.hierStack)-1]]
       if len(hierStack) == 0:  hierStack = self.hierStack
       data['_id'] = hierStack[-1]
       hierStack   = hierStack[:-1]
     else:  #new data
       edit = False
-      data['type'] = docType
+      if docType in self.hierList:
+        data['type'] = ['text',docType]
+      else:
+        data['type'] = [docType]
       if len(hierStack) == 0:  hierStack = self.hierStack
 
     # collect data and prepare
-    if data['type'] in self.hierList and data['type']!='project':
+    if data['type'][0] == 'text' and data['type'][1]!='project':
       if 'childNum' in data:
         childNum = data['childNum']
         del data['childNum']
@@ -125,22 +128,19 @@ class AgileScience:
           if item['value'][1]=='project': continue
           if thisStack == ' '.join(item['key'].split(' ')[:-1]): #remove last item from string
             childNum += 1
-    if data['type'] in self.hierList:
-      prefix = 't'
-    else:
-      prefix = data['type'][0]
+    prefix = data['type'][0][0]
 
     # find path name on local file system; name can be anything
     if self.cwd is not None and 'name' in data:
-      if data['type'] in self.hierList:
+      if data['type'][0] == 'text':
         #project, step, task
-        if data['type']=='project': childNum = 0
+        if data['type'][0]=='project': childNum = 0
         if edit:      #edit: cwd of the project/step/task: remove last directory from cwd (since cwd contains a / at end: remove two)
           parentDirectory = os.sep.join(self.cwd.split(os.sep)[:-2])
           if len(parentDirectory)>2: parentDirectory += os.sep
         else:         #new: below the current project/step/task
           parentDirectory = self.cwd
-        path = parentDirectory + self.createDirName(data['name'],data['type'],childNum) #update,or create (if new data, update ignored anyhow)
+        path = parentDirectory + self.createDirName(data['name'],data['type'][1],childNum) #update,or create (if new data, update ignored anyhow)
         operation = 'u'
       else:
         #measurement, sample, procedure
@@ -184,14 +184,14 @@ class AgileScience:
       data = self.db.saveDoc(data)
 
     ## adaptation of directory tree, information on disk: documentID is required
-    if self.cwd is not None and data['type'] in self.hierList:
+    if self.cwd is not None and data['type'][0]=='text':
       #project, step, task
       path = data['branch'][0]['path']
       os.makedirs(self.basePath+path, exist_ok=True)
       with open(self.basePath+path+'/.id_jams.json','w') as f:  #local path, update in any case
         f.write(json.dumps(data))
     self.currentID = data['_id']
-    logging.debug("addData ending data"+data['_id']+' '+data['_rev']+' '+data['type'])
+    logging.debug("addData ending data"+data['_id']+' '+data['_rev']+' '+data['type'][0])
     return
 
 
@@ -203,7 +203,7 @@ class AgileScience:
        docType: document type used for prefix
        thisChildNumber: number of myself
     """
-    if 'project' in docType:
+    if docType == 'project':
       return cT.camelCase(name)
     else:  #steps, tasks
       if isinstance(thisChildNumber, str):
@@ -225,16 +225,16 @@ class AgileScience:
       self.hierStack.pop()
       if self.cwd is not None:
         os.chdir('..')
-        self.cwd = '/'.join(self.cwd.split('/')[:-2])+'/'
-        if self.cwd=='/': self.cwd=''
+        self.cwd = os.sep.join(self.cwd.split(os.sep)[:-2])+os.sep
+        if self.cwd==os.sep: self.cwd=''
     else:  # existing ID is given: open that
       try:
         if self.cwd is not None:
           doc = self.db.getDoc(docID)
           path = doc['branch'][0]['path']
-          dirName = path.split('/')[-1]
+          dirName = path.split(os.sep)[-1]
           if childNum is not None:
-            dirName = self.createDirName(doc['name'],doc['type'],childNum)
+            dirName = self.createDirName(doc['name'],doc['type'][0],childNum)
           if not os.path.exists(dirName):
             #should only happen during complex edit: should not get None as childNum
             #move directory
@@ -244,7 +244,7 @@ class AgileScience:
             shutil.move(self.basePath+path, dirName)
             logging.warning('changeHierarchy '+self.cwd+": Could not change into non-existant directory "+dirName+" Moved old one to here")
           os.chdir(dirName)
-          self.cwd += dirName+'/'
+          self.cwd += dirName+os.sep
         self.hierStack.append(docID)
       except:
         print("Could not change into hierarchy. id:"+docID+"  directory:"+dirName+"  cwd:"+self.cwd)
@@ -427,11 +427,11 @@ class AgileScience:
       absFilePath = self.basePath + filePath
       outFile = absFilePath.replace('.','_')+'_jams'
     pyFile = "image_"+extension+".py"
-    pyPath = self.softwarePath+'/'+pyFile
+    pyPath = self.softwarePath+os.sep+pyFile
     if os.path.exists(pyPath):
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
-      image, imgType, metaMeasurement = module.getImage(absFilePath, doc)
+      image, imgType, meta = module.getImage(absFilePath, doc)
       # depending on imgType: produce image
       if imgType == "line":  #no scaling
         figfile = StringIO()
@@ -465,17 +465,21 @@ class AgileScience:
             figfile.seek(0)
             shutil.copyfileobj(figfile, f)
       else:
-        image, metaMeasurement = '', {'measurementType':''}
+        image = ''
+        meta  = {'measurementType':[],'metaSystem':{},'metaUser':{}}
         logging.error('getImage Not implemented yet 1'+str(imgType))
     else:
-      image, metaMeasurement = '', {'measurementType':''}
+      image = ''
+      meta  = {'measurementType':[],'metaSystem':{},'metaUser':{}}
       logging.warning("getImage: could not find pyFile to convert "+pyFile)
-    #produce meta information
-    measurementType = metaMeasurement.pop('measurementType')
-    meta = {'image': image, 'type': 'measurement', 'comment': '',
-            'measurementType':measurementType, 'meta':metaMeasurement, 'md5sum':md5sum}
-    logging.info("getImage: Image successfully created")
-    return meta
+    #combine into document
+    measurementType = meta['measurementType']
+    metaSystem      = meta['metaSystem']
+    metaUser        = meta['metaUser']
+    document = {'image': image, 'type': ['measurement']+measurementType, 'comment': '',
+            'metaUser':metaUser, 'metaSystem':metaSystem, 'md5sum':md5sum}
+    logging.info("getImage: success")
+    return document
 
 
   ######################################################
@@ -536,7 +540,7 @@ class AgileScience:
         outString.append(outputString.format(key) )
     outString = "|".join(outString)+'\n'
     outString += '-'*110+'\n'
-    for lineItem in self.db.getView(view+'/'+view):
+    for lineItem in self.db.getView(view+os.sep+view):
       rowString = []
       for idx, item in enumerate(self.db.dataDictionary[docType][docLabel]):
         key = list(item.keys())[0]
@@ -638,16 +642,16 @@ class AgileScience:
       children[-1] += 1
       # add elements to doc
       edit = doc['edit'];  del doc['edit']
-      doc['type'] = self.hierList[doc['type']]
-      if hierLevel is not None and doc['type'] != 'project':
+      doc['type'] = ['text',self.hierList[doc['type']]]
+      if hierLevel is not None and doc['type'][1] != 'project':
         doc['childNum'] = children[-1]
       if doc['objective']=='': del doc['objective']
       #use variables to change directories
-      if hierLevel is not None and self.hierList.index(doc['type'])<hierLevel:
+      if hierLevel is not None and self.hierList.index(doc['type'][1])<hierLevel:
         self.changeHierarchy(None)          #"cd .."
         self.changeHierarchy(None)          #"cd .."
         self.changeHierarchy(doc['_id'],children[-1])    #"cd directory"
-      elif hierLevel is not None and self.hierList.index(doc['type'])>hierLevel:
+      elif hierLevel is not None and self.hierList.index(doc['type'][1])>hierLevel:
         self.changeHierarchy(doc['_id'],children[-1])    #"cd directory"
       elif hierLevel is not None:
         self.changeHierarchy(None)          #"cd ../directory"
@@ -655,9 +659,9 @@ class AgileScience:
       if edit=='-edit-':
         self.addData(edit, doc, self.hierStack)
       else:
-        self.addData(doc['type'], doc)
+        self.addData(doc['type'][0], doc)
       #update variables for next iteration
-      hierLevel = self.hierList.index(doc['type'])
+      hierLevel = self.hierList.index(doc['type'][1])
     #at end, go down ('cd  ..') number of children-length
     for i in range(len(children)-1):
       self.changeHierarchy(None)

@@ -3,11 +3,11 @@
 import logging, traceback
 from Tif import Tif
 
-def getImage(fileName, metaData):
+def getImage(fileName, dataType):
   """
   Args:
      fileName: full path file name
-     metaData: can be supplied to guide image creation metaData['measurementType'],metaData['plotType']
+     dataType: can be supplied to guide image creation dataType['type']
   """
   try:
     # try Steffen's Tif library
@@ -15,7 +15,11 @@ def getImage(fileName, metaData):
     if i is not None:
       i.enhance()
       i.addScaleBar()
-      return i.image, 'waves', i.meta
+      measurementType = i.meta.pop('measurementType')
+      meta = {'measurementType':[measurementType],
+              'metaSystem':i.meta,
+              'metaUser':{}}
+      return i.image, 'waves', meta
     # other data routines follow here
     # .
     # .

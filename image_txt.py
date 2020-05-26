@@ -14,9 +14,13 @@ def getImage(fileName, metaData):
     #if Hysitron file
     i = Indentation(fileName)
     if i is not None:
-      i.updateSlopes()
+      i.analyse()
       img = i.plot(False,False)
-      return img, 'line', i.meta
+      measurementType = i.meta.pop('measurementType')
+      meta = {'measurementType':[measurementType],
+              'metaSystem':i.meta,
+              'metaUser':{}}
+      return img, 'line', meta
     # other data routines follow here
     # .
     # .

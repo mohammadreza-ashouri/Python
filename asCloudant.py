@@ -40,14 +40,14 @@ class Database:
     res = cT.dataDictionary2DataLabels(self.dataDictionary)
     self.dataLabels = list(res['dataList'])
     self.hierarchyLabels = list(res['hierarchyList'])
-    jsDefault = "if (doc.type=='$docType$' && !('current_rev' in doc)) {emit($key$, [$outputList$]);}"
+    jsDefault = "if ($docType$ && !('current_rev' in doc)) {emit($key$, [$outputList$]);}"
     for docType, docLabel in self.dataLabels+self.hierarchyLabels:
       view = "view"+docLabel
       if "_design/"+view not in self.db:
         if docType=='project':
-          jsString = jsDefault.replace('$docType$', docType).replace('$key$','doc._id')
-        else:
-          jsString = jsDefault.replace('$docType$', docType).replace('$key$','doc.inheritance[0]')
+          jsString = jsDefault.replace('$docType$', "doc.type[1]=='"+docType+"'").replace('$key$','doc._id')
+        else:     #only show first instance in list "doc.branch[0]""
+          jsString = jsDefault.replace('$docType$', "doc.type[0]=='"+docType+"'").replace('$key$','doc.branch[0].stack[0]')
         outputList = []
         for item in self.dataDictionary[docType][docLabel]:
           key = list(item.keys())[0]
@@ -69,14 +69,14 @@ class Database:
       '''
       jsPath = '''
         if ('branch' in doc && !('current_rev' in doc)){
-          if (doc.type === 'project') {emit(doc._id,[doc.branch[0].path,doc.type,'']);}
+          if (doc.type[1] === 'project') {emit(doc._id,[doc.branch[0].path,doc.type,'']);}
           else if ('md5sum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.stack[0],[branch.path,doc.type,doc.md5sum]);}});}
           else                     {doc.branch.forEach(function(branch){if(branch.path){emit(branch.stack[0],[branch.path,doc.type,''        ]);}});}
         }
       '''
       self.saveView('viewHierarchy','.',{"viewHierarchy":jsHierarchy,"viewPaths":jsPath})
     if "_design/viewMD5" not in self.db:
-      self.saveView('viewMD5','viewMD5',"if (doc.type==='measurement' && !('current_rev' in doc)){emit(doc.md5sum, doc.name);}")
+      self.saveView('viewMD5','viewMD5',"if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.md5sum, doc.name);}")
     if "_design/viewQR" not in self.db:
       jsString = "if (doc.qr_code.length > 0 && !('current_rev' in doc))"
       jsString+=   "{doc.qr_code.forEach(function(thisCode) {emit(thisCode, doc.name);});}"
@@ -300,15 +300,15 @@ class Database:
           outstring+= '**ERROR branch does not exist '+doc['_id']+'\n'
           continue
         else:
-          if len(doc['branch'])>1 and doc['type'] in ['project','step','task']:
-            outstring+= '**ERROR branch length >1 '+doc['_id']+' '+doc['type']+'\n'
+          if len(doc['branch'])>1 and doc['type'] =='text':
+            outstring+= '**ERROR branch length >1 '+doc['_id']+' '+str(doc['type'])+'\n'
           for branch in doc['branch']:
-            if len(branch['stack'])==0 and doc['type']!='project':
+            if len(branch['stack'])==0 and doc['type'][0]!='project':
               outstring+= '**ERROR branch stack length = 0: no parent '+doc['_id']+'\n'
             if branch['path'] is None:
-              if doc['type'] == 'procedure' or doc['type'] == 'sample':
+              if doc['type'][0] == 'procedure' or doc['type'][0] == 'sample':
                 outstring+= '..info: procedure/sample with empty path '+doc['_id']+'\n'
-              elif doc['type'] == 'measurement':
+              elif doc['type'][0] == 'measurement':
                 outstring+= '**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+'\n'
               else:
                 outstring+= '**ERROR branch path is None '+doc['_id']+'\n'
@@ -317,22 +317,22 @@ class Database:
                 outstring+= '**ERROR branch stack and path lengths do not match '+doc['_id']+'\n'
 
         #doc-type specific tests
-        if doc['type'] == 'sample':
+        if doc['type'][0] == 'sample':
           if 'qr_code' not in doc:
             outstring+= '**ERROR qr_code not in sample '+doc['_id']+'\n'
-        elif doc['type'] == 'measurement':
+        elif doc['type'][0] == 'measurement':
           if 'md5sum' not in doc:
             outstring+= '**ERROR md5sum not in measurement '+doc['_id']+'\n'
-        elif doc['type'] == 'procedure':
+        elif doc['type'][0] == 'procedure':
           pass
-        elif doc['type'] == 'project':
+        elif doc['type'][0] == 'text':
           pass
-        elif doc['type'] == 'step':
+        elif doc['type'][0] == 'step':
           pass
-        elif doc['type'] == 'task':
+        elif doc['type'][0] == 'task':
           pass
         else:
-          outstring+= '**ERROR unknown doctype '+doc['_id']+' '+doc['type']+'\n'
+          outstring+= '**ERROR unknown doctype '+doc['_id']+' '+str(doc['type'])+'\n'
 
     ##TEST views
     outstring+= '**** VIEWS ****\n'

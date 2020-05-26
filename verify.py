@@ -18,7 +18,7 @@ def fileVerify(number, text, onlyHierarchy=True):
 
 
 ### initialization
-sys.path.append('/home/sbrinckm/FZJ/Code/Nanotribology')  #allow debugging in vscode which strips the python-path
+sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
 databaseName = 'temporary_test'
 dirName      = os.path.expanduser('~')+"/"+databaseName
 shutil.rmtree(dirName)
