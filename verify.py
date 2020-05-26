@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 import os, shutil, traceback, sys, logging, subprocess
-from agileScience import AgileScience
-import asTools
-
+from backend import JamDB
 
 def fileVerify(number, text, onlyHierarchy=True):
   """
@@ -17,25 +15,27 @@ def fileVerify(number, text, onlyHierarchy=True):
   logging.info(text)
 
 
-### initialization
+### MAIN ###
+# initialization: create database, destroy on filesystem and database and then create new one
 sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
 databaseName = 'temporary_test'
 dirName      = os.path.expanduser('~')+"/"+databaseName
 shutil.rmtree(dirName)
 os.makedirs(dirName)
-be = AgileScience(databaseName)
+be = JamDB(databaseName)
 be.exit(deleteDB=True)
-be = AgileScience(databaseName)
+be = JamDB(databaseName)
 
 try:
-  ### create some test projects
+  ### create some projects and show them
   print("*** TEST PROJECTS ***")
   be.addData('project', {'name': 'Test project1', 'objective': 'Test objective1', 'status': 'active', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
   be.addData('project', {'name': 'Test project2', 'objective': 'Test objective2', 'status': 'passive', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
   be.addData('project', {'name': 'Test project3', 'objective': 'Test objective3', 'status': 'paused', 'comment': '#tag1 :field2:max: A random text'})
   print(be.output('Projects'))
 
-  ### create some test steps and tasks
+  ### create some steps and tasks in the first (by id-number) project
+  # add also some empty measurements
   print("*** TEST PROJECT HIERARCHY: no output ***")
   doc = be.db.getView('viewProjects/viewProjects')
   projID  = [i['id'] for i in doc][0]
@@ -48,17 +48,17 @@ try:
   be.changeHierarchy(stepID)
   be.addData('task',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
   be.addData('task',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
-  be.changeHierarchy(be.currentID)  #in task
-  be.addData('measurement', {'name': 'fallInPot.txt', 'comment': 'great fall'})
-  # be.addData('measurement', {'name': "https://pbs.twimg.com/profile_images/3044802226/08c344aa3afc2f724d1232fe0f040e07.jpeg", 'comment': 'years later'})
-  be.changeHierarchy(None)
+  be.changeHierarchy(be.currentID)  #cd in task
+  be.addData('measurement', {'name': 'geolocation.txt', 'comment': 'Center of work'})
+  #TODO be.addData('measurement', {'name': "https://www.fz-juelich.de/SiteGlobals/StyleBundles/Bilder/NeuesLayout/logo.jpg", 'comment': 'logo'})
+  be.changeHierarchy(None)  #cd .. into step
   be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
 
-  ### test output of step
+  ### output of project
   print("\n*** TEST OUTPUT OF INITIAL STRUCTURE ***")
-  be.changeHierarchy(None)
+  be.changeHierarchy(None) #cd .. into a project
+  print(be.cwd) #TODO change to be.printHierarchy
   print(be.outputHierarchy())
-
 
   ### edit project
   print("\n*** TEST EDIT PROJECT ***")
@@ -66,18 +66,18 @@ try:
   myString = be.getEditString()
   myString = myString.replace('* Test step two: t-','** Test step two: t-')
   be.setEditString(myString)
-  be.scanTree()  #nothing done: ok, no harm
+  be.scanTree()  #nothing done: no harm
 
-  ### test procedures
+  ### Procedures
   print("\n*** TEST PROCEDURES ***")
   be.addData('procedure', {'name': 'Test procedure 1', 'content': '1. grind, 2. polish, 3. microscope', 'comment': ''})
   be.addData('procedure', {'name': 'Test procedure 2', 'content': '1. grind, 2. microscope', 'comment': ''})
   be.addData('procedure', {'name': 'Test procedure 3', 'content': '1. polish, 2. microscope', 'comment': ''})
-  be.changeHierarchy(None)
+  be.changeHierarchy(None) #cd .. into root, to create procedure without project. Should not be done, but no harm
   be.addData('procedure', {'name': 'Test procedure without project', 'content': 'Secret potion for Asterix', 'comment': ''})
   print(be.output('Procedures'))
 
-  ### test samples
+  ### Samples
   print("*** TEST SAMPLES ***")
   be.changeHierarchy(projID)
   be.addData('sample',    {'name': 'Big copper block', 'chemistry': 'Cu99.999', 'qr_code': '13214124 12341234', 'comment': '#save'})
@@ -91,6 +91,8 @@ try:
   print(be.outputQR())
 
   ### Add measurements by copying from somewhere into tree
+  # also enter empty data to test if tags are extracted
+  # scan tree to register into database
   print("*** TEST MEASUREMENTS AND SCANNING 1 ***")
   be.addData('measurement', {'name': 'filename.txt', 'comment': '#random #5 great stuff'})
   be.addData('measurement', {'name': 'filename.jpg', 'comment': '#3 #other medium stuff'})
@@ -100,14 +102,14 @@ try:
   shutil.copy(be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
   be.scanTree()
 
-  ### Second test: move directory that includes data to another random name
+  ### Try to fool system: move directory that includes data to another random name
   print("*** TEST MEASUREMENTS AND SCANNING 2 ***")
   origin = be.basePath+be.db.getDoc(stepID)['branch'][0]['path']
   target = os.sep.join(origin.split(os.sep)[:-1])+os.sep+"RandomDir"
   shutil.move(origin, target)
   be.scanTree()
 
-  ### Third test: move data, copy data into different project
+  ### Move data, copy data into different project
   print("*** TEST MEASUREMENTS AND SCANNING 3 ***")
   projID1  = [i['id'] for i in doc][1]
   be.changeHierarchy(projID1) #change into non-existant path; try to confuse software
@@ -118,7 +120,11 @@ try:
   shutil.move(projDirName+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteel0000LC.txt')
   be.scanTree()
 
-  ### Forth TEST: rename file
+  ### Try to fool system: rename file
+  # verify database and filesystem into fileVerify
+  # produce database entries into filesystem
+  # compare database entries to those in filesystem (allows to check for unforseen events)
+  # clean all that database entries in the filesystem
   print("*** TEST MEASUREMENTS AND SCANNING 4 ***")
   shutil.move(projDirName1+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteelLC.txt')
   be.scanTree()  #always scan before produceData: ensure that database correct
@@ -128,6 +134,8 @@ try:
   be.scanTree('compareToDB')
   be.cleanTree()
 
+  ### Output all the measurements and changes until now
+  # output MD5-sum
   print("*** TEST MEASUREMENTS AND SCANNING 3 ***")
   print(be.output('Measurements'))
   print(be.outputMD5())
@@ -138,13 +146,11 @@ try:
   be.changeHierarchy(projID)
   print(be.outputHierarchy(False))
 
-  ### test other functions
+  ### check consistency of database and replicate to global server
   print("\n*** Check this database ***")
   print(be.checkDB())
   print("Replication test")
   be.replicateDB(databaseName,True)
-
-
 
   print("\n*** DONE WITH VERIFY ***")
   be.exit()

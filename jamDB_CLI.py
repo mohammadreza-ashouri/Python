@@ -5,10 +5,10 @@
 import copy, json, os
 from PyInquirer import prompt, Separator
 from pprint import pprint
-from agileScience import AgileScience
+from backend import JamDB
 
 ### INITIALIZATION
-be = AgileScience()
+be = JamDB()
 print("Start in directory",os.path.abspath(os.path.curdir))
 # keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
 menuOutline = json.load(open(be.softwarePath+"/userInterfaceCLI.json", 'r'))

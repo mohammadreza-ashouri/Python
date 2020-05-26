@@ -9,12 +9,11 @@ import logging
 from io import StringIO, BytesIO
 from urllib import request
 from pprint import pprint
-from asTools import imageToString, stringToImage
-from asCloudant import Database
+from database import Database
 from commonTools import commonTools as cT
 
 
-class AgileScience:
+class JamDB:
   """
   PYTHON BACKEND
   """
@@ -33,7 +32,7 @@ class AgileScience:
     logging.getLogger("requests").setLevel(logging.WARNING)
     logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
     logging.info("\nSTART JAMS")
-    with open(os.path.expanduser('~')+'/.agileScience.json','r') as f:
+    with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
       configuration = json.load(f)
     if localName is None:
       localName = configuration["-defaultLocal"]
@@ -697,56 +696,3 @@ class AgileScience:
     for item in self.db.getView('viewMD5/viewMD5'):
       outString += '{0: <32}|{1: <40}|{2: <25}'.format(item['key'], item['value'][-40:], item['id'])+'\n'
     return outString
-
-
-#### Main function when command-line commands used
-if __name__ == '__main__':
-  import argparse,textwrap
-  argparser = argparse.ArgumentParser(usage='''agileScience.py <command> <item>
-
-Possible commands are:
-    print: 'Projects', 'Samples', 'Measurements', 'Procedures'
-    clean, scan, produce, compare, hierarchy: documentID. To be identified by printing first
-        cleaning: docID=all cleans all
-    newDB: add/update database configuration. E.g.
-        '{"test":{"user":"Peter","password":"Parker",...}}' ''')
-  argparser.add_argument("command", help="print, clean, scan, produce, compare, hierarchy, newDB")
-  argparser.add_argument("item",    help="'Projects', 'Samples', 'Measurements', 'Procedures', 'documentID'")
-  argparser.add_argument("-db","--database", help="name of database configuration")
-  args = argparser.parse_args()
-  if args.command=="newDB":
-    #use new database configuration and store in local-config file
-    # no need to touch default databases since database can be chosen by -db
-    newDB = json.loads(args.item)
-    label = list(newDB.keys()).pop()
-    with open(os.path.expanduser('~')+'/.agileScience.json','r') as f:
-      configuration = json.load(f)
-    configuration[label] = newDB[label]
-    with open(os.path.expanduser('~')+'/.agileScience.json','w') as f:
-      f.write(json.dumps(configuration, indent=2))
-  else:
-    #other commands
-    try:
-      be = AgileScience(args.database)
-      if args.command=="print":
-        print(be.output(args.item,True))
-      elif args.command=='clean' and args.item=='all':
-        be.cleanTree(all=True)
-      else:
-        be.changeHierarchy(args.item)
-        if args.command=='clean':
-          be.cleanTree(all=False)
-        elif args.command=='scan':
-          be.scanTree()
-        elif args.command=='produce':
-          be.scanTree('produceData')
-        elif args.command=='compare':
-          be.scanTree('compareToDB')
-        elif args.command=='hierarchy':
-          print(be.outputHierarchy(True,True))
-        else:
-          print("Wrong command:",args.command)
-      be.exit()
-    except:
-      argparser.print_help()
-      exit(1)
