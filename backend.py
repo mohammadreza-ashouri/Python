@@ -27,7 +27,7 @@ class JamDB:
     """
     # open configuration file and define database
     self.debug = True
-    logging.basicConfig(filename='jams.log', filemode='w', format='%(levelname)s:%(message)s', level=logging.DEBUG)
+    logging.basicConfig(filename='jamDB.log', filemode='w', format='%(levelname)s:%(message)s', level=logging.DEBUG)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("requests").setLevel(logging.WARNING)
     logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
@@ -163,7 +163,8 @@ class JamDB:
           md5sum  = None
         if md5sum is not None:
           if md5sum == "":
-            md5sum = hashlib.md5(open(self.basePath+path,'rb').read()).hexdigest()
+            with open(self.basePath+path,'rb') as fIn:
+              md5sum = hashlib.md5(fIn.read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
           if len(view)==0 or 'forceNewImage' in data:  #measurement not in database: create data
             data.update( self.getImage(path,md5sum,data) )
@@ -291,7 +292,8 @@ class JamDB:
         #database and directory agree regarding project/step/task
         #check id-file
         try:
-          idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
+          with open("self.basePath+path+'/.id_jams.json", 'r') as fIn:
+            idFile  = json.load(fIn)
           if idFile['branch'][0]['path']==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
             logging.debug(path+' id-test successful on project/step/task')
           else:
@@ -324,7 +326,8 @@ class JamDB:
       else:
         if os.path.exists(self.basePath+path+'/.id_jams.json'):
           #update .id_jams.json file and database with new path information
-          idFile  = json.load(open(self.basePath+path+'/.id_jams.json'))
+          with open(self.basePath+path+'/.id_jams.json') as fIn:
+            idFile  = json.load(fIn)
           logging.info('Updated path in directory and database '+idFile['branch'][0]['path']+' to '+path)
           data = self.db.updateDoc( {'branch':{'path':path,\
                                                'stack':idFile['branch'][0]['stack'],\
@@ -342,7 +345,8 @@ class JamDB:
         fileName = path+os.sep+file
         jsonFileName = fileName.replace('.','_')+'_jams.json'
         if fileName in database:
-          md5File = hashlib.md5(open(self.basePath+fileName,'rb').read()).hexdigest()
+          with open(self.basePath+fileName,'rb') as fIn:
+            md5File = hashlib.md5(fIn.read()).hexdigest()
           if md5File==database[fileName][2]:
             logging.debug(fileName+' md5-test successful on measurement/etc.')
           else:
@@ -355,7 +359,8 @@ class JamDB:
           elif compareToDB:
             #database and directory agree regarding measurement/etc.
             try:
-              docFile = json.load(open(self.basePath+jsonFileName))  #exception handled
+              with open(self.basePath+jsonFileName) as fIn:
+                docFile = json.load(fIn)  #exception handled
               docDB = self.db.getDoc(docFile['_id'])
               if docDB==docFile:
                 logging.debug(fileName+' slow test successful on measurement/etc.')

@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """ Main function when command-line commands used
 """
-from backend import JamDB
 import argparse,textwrap
+from backend import JamDB
 
 argparser = argparse.ArgumentParser(usage='''jamDB.py <command> <item>
 

@@ -33,7 +33,8 @@ class Database:
     # check if default document exist and create
     if "-dataDictionary-" not in self.db:
       logging.warning("cloudant:init Data structure not defined. Use default one")
-      dataDictionary = json.load(open("dataDictionary.json", 'r'))
+      with open("dataDictionary.json", 'r') as fIn:
+        dataDictionary = json.load(fIn)
       reply = self.db.create_document(dataDictionary)
     # check if default views exist and create them
     self.dataDictionary = self.db["-dataDictionary-"]
@@ -91,6 +92,7 @@ class Database:
     Args:
       deleteDB: remove database
     """
+    del self.client
     if deleteDB:
       self.db.client.delete_database(self.databaseName)
     return
