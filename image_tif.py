@@ -7,8 +7,9 @@ def getImage(fileName, dataType):
   """
   Args:
      fileName: full path file name
-     dataType: can be supplied to guide image creation dataType['type']
+     dataType: supplied to guide image creation dataType['type']
   """
+  print("getImage_tif:",dataType)
   try:
     # try Steffen's Tif library
     i = Tif(fileName)
@@ -25,8 +26,8 @@ def getImage(fileName, dataType):
     # .
     # .
     # if nothing successful
-    return None, None, None
+    return None, None, {'measurementType':[],'metaSystem':{},'metaUser':{}}
   except:
     logging.error("image_tif: Tif "+fileName)
     logging.error(traceback.format_exc())
-    return None, None, None
+    return None, None, {'measurementType':[],'metaSystem':{},'metaUser':{}}

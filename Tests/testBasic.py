@@ -11,6 +11,9 @@ class TestStringMethods(unittest.TestCase):
     sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
     warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
     warnings.filterwarnings("ignore", message="invalid escape sequence")
+    warnings.filterwarnings("ignore", category=ResourceWarning, module="PIL")
+    warnings.filterwarnings("ignore", category=ImportWarning)
+    warnings.filterwarnings("ignore", module="js2py")
 
     databaseName = 'temporary_test'
     dirName      = os.path.expanduser('~')+"/"+databaseName
@@ -160,7 +163,7 @@ class TestStringMethods(unittest.TestCase):
     """
     use diff-file to compare hierarchies, directory tree
     """
-    with open(self.be.softwarePath+'/verify'+str(number)+'.org','w') as f:
+    with open(self.be.softwarePath+'/Tests/verify'+str(number)+'.org','w') as f:
       f.write(text)
       f.write("++STATE: "+self.be.cwd+" "+str(self.be.hierStack)+"\n")
       f.write(self.be.outputHierarchy(onlyHierarchy,True,'all'))
