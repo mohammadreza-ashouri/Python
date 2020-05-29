@@ -244,7 +244,7 @@ class JamDB:
             pathParent = self.db.getDoc(parentID)['branch'][0]['path']
             path = pathParent+os.sep+path.split(os.sep)[-1]
             shutil.move(self.basePath+path, dirName)
-            logging.warning('changeHierarchy '+self.cwd+": Could not change into non-existant directory "+dirName+" Moved old one to here")
+            logging.info('changeHierarchy '+self.cwd+": Could not change into non-existant directory "+dirName+" Moved old one to here")
           os.chdir(dirName)
           self.cwd += dirName+os.sep
         self.hierStack.append(docID)
