@@ -48,14 +48,14 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('task',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
       self.be.changeHierarchy(self.be.currentID)  #cd in task
       self.be.addData('measurement', {'name': 'geolocation.txt', 'comment': 'Center of work'})
-      #TODO self.be.addData('measurement', {'name': "https://www.fz-juelich.de/SiteGlobals/StyleBundles/Bilder/NeuesLayout/logo.jpg", 'comment': 'logo'})
+      self.be.addData('measurement', {'name': "https://i.picsum.photos/id/237/200/300.jpg", 'comment': 'logo'})
       self.be.changeHierarchy(None)  #cd .. into step
       self.be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
 
       ### output of project
       print("\n*** TEST OUTPUT OF INITIAL STRUCTURE ***")
       self.be.changeHierarchy(None) #cd .. into a project
-      print(self.be.cwd) #TODO change to self.be.printHierarchy
+      print("Current directory:",self.be.cwd)
       print(self.be.outputHierarchy())
 
       ### edit project

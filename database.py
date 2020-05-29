@@ -157,16 +157,17 @@ class Database:
         elif op=='u':  #update=remove current at zero
           newDoc['branch'][0] = change['branch']
         elif op=='d':  #delete
-          aa = 4/0 #TODO handle instead of causing exception
-          newDoc['branch'] = [directory for directory in newDoc['branch'] if directory!=change['branch'][0]]
+          newDoc['branch'] = [branch for branch in newDoc['branch'] if branch['path']!=change['branch'][0]]
         else:
-          print("I should not be here")
-          a = 4/0 #TODO handle instead of causing exception
+          logging.error("database:updateDoc: op(eration) unknown, exit update")
+          return newDoc
     #handle other items
     for item in change:
       if item in ['revisions','_id','_rev','branch']:                #skip items cannot come from change
         continue
       if item=='type' and change['type']=='--':                      #skip non-set type
+        continue
+      if item=='image' and change['image']=='':
         continue
       if change[item]!=newDoc[item]:
         if item not in ['date','client']:      #if only date/client change, no real change

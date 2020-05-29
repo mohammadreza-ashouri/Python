@@ -150,6 +150,7 @@ class JamDB:
             path = self.cwd + cT.camelCase( os.path.basename(data['name']))
             request.urlretrieve(data['name'], self.basePath+data['path'])
           else:
+            path = data['name']
             try:
               md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()
             except:
@@ -189,7 +190,7 @@ class JamDB:
       #project, step, task
       path = data['branch'][0]['path']
       os.makedirs(self.basePath+path, exist_ok=True)
-      with open(self.basePath+path+'/.id_jams.json','w') as f:  #local path, update in any case
+      with open(self.basePath+path+'/.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(data))
     self.currentID = data['_id']
     logging.debug("addData ending data"+data['_id']+' '+data['_rev']+' '+data['type'][0])
@@ -257,14 +258,14 @@ class JamDB:
   def scanTree(self, method=None):
     """ Scan directory tree recursively from project/...
     - find changes on file system and move those changes to DB
-    - use .id_jams.json to track changes of directories, aka projects/steps/tasks
+    - use .id_jamDB.json to track changes of directories, aka projects/steps/tasks
     - use MD5sum to track changes of measurements etc. (one file=one md5sum=one entry in DB)
     - create database entries for measurements in directory
     - move/copy/delete allowed as the doc['path'] = list of all copies
       doc['path'] is adopted once changes are observed
 
     Args:
-      method: 'produceData' copy database entry to file system; for backup: "_jams.json"
+      method: 'produceData' copy database entry to file system; for backup: "_jamDB.json"
               'compareToDB' compare database entry to file system backup to observe accidental changes anyplace
     """
     logging.info("scanTree started with method "+str(method))
@@ -293,15 +294,15 @@ class JamDB:
         #database and directory agree regarding project/step/task
         #check id-file
         try:
-          with open(self.basePath+path+'/.id_jams.json', 'r') as fIn:
+          with open(self.basePath+path+'/.id_jamDB.json', 'r') as fIn:
             idFile  = json.load(fIn)
           if idFile['branch'][0]['path']==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
             logging.debug(path+' id-test successful on project/step/task')
           else:
             if idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
-              logging.warning('produce new .id_jams.json after move of directory')
+              logging.warning('produce new .id_jamDB.json after move of directory')
               data = self.db.getDoc(database[path][0])
-              with open(self.basePath+path+'/.id_jams.json','w') as f:
+              with open(self.basePath+path+'/.id_jamDB.json','w') as f:
                 f.write(json.dumps(data))
             else:
               logging.error(path+' id-test NOT successful on project/step/task')
@@ -310,32 +311,32 @@ class JamDB:
           if produceData:
             #if you have to produce
             data = self.db.getDoc(database[path][0])
-            with open(self.basePath+path+'/data_jams.json','w') as fOut:
+            with open(self.basePath+path+'/data_jamDB.json','w') as fOut:
               fOut.write(json.dumps(data))
           elif compareToDB:
             #if you have to compare
-            with open(self.basePath+path+'/data_jams.json') as fIn:
+            with open(self.basePath+path+'/data_jamDB.json') as fIn:
               docFile = json.load(fIn)
             docDB = self.db.getDoc(docFile['_id'])
             if docDB==docFile:
-              logging.debug(path+' test _jams.json successful on project/step/task')
+              logging.debug(path+' test _jamDB.json successful on project/step/task')
             else:
-              logging.warning(path+' test _jams.json NOT successful on project/step/task')
+              logging.warning(path+' test _jamDB.json NOT successful on project/step/task')
               logging.warning(docDB)
               logging.warning(docFile)
         except:
-          logging.error("scanTree: .id_jams.json file deleted from "+path)
+          logging.error("scanTree: .id_jamDB.json file deleted from "+path)
       else:
-        if os.path.exists(self.basePath+path+'/.id_jams.json'):
-          #update .id_jams.json file and database with new path information
-          with open(self.basePath+path+'/.id_jams.json') as fIn:
+        if os.path.exists(self.basePath+path+'/.id_jamDB.json'):
+          #update .id_jamDB.json file and database with new path information
+          with open(self.basePath+path+'/.id_jamDB.json') as fIn:
             idFile  = json.load(fIn)
           logging.info('Updated path in directory and database '+idFile['branch'][0]['path']+' to '+path)
           data = self.db.updateDoc( {'branch':{'path':path,\
                                                'stack':idFile['branch'][0]['stack'],\
                                                'child':idFile['branch'][0]['child'],\
                                                'op':'u'}}, idFile['_id'])
-          with open(self.basePath+path+'/.id_jams.json','w') as f:
+          with open(self.basePath+path+'/.id_jamDB.json','w') as f:
             f.write(json.dumps(data))
         else:
           logging.warning(path+' directory (project/step/task) not in database: did user create misc. directory')
@@ -343,10 +344,11 @@ class JamDB:
       # FILES
       # compare data=files in each path (in each project, step, ..)
       for file in files:
-        if '_jams.' in file: continue
+        if '_jamDB.' in file: continue
         fileName = path+os.sep+file
-        jsonFileName = fileName.replace('.','_')+'_jams.json'
+        jsonFileName = fileName.replace('.','_')+'_jamDB.json'
         if fileName in database:
+          #test if MD5 value did not change
           with open(self.basePath+fileName,'rb') as fIn:
             md5File = hashlib.md5(fIn.read()).hexdigest()
           if md5File==database[fileName][2]:
@@ -358,6 +360,14 @@ class JamDB:
             data = self.db.getDoc(database[fileName][0])
             with open(self.basePath+jsonFileName,'w') as f:
               f.write(json.dumps(data))
+            if data['image'].startswith('data:image/jpg'):  #jpg and png
+              image = base64.b64decode( data['image'][22:].encode() )
+              ending= data['image'][11:14]
+              with open(self.basePath+jsonFileName[:-4]+ending,'wb') as fOut:
+                fOut.write(image)
+            else:                                           #svg
+              with open(self.basePath+jsonFileName[:-4]+'svg','w') as fOut:
+                fOut.write(data['image'])
           elif compareToDB:
             #database and directory agree regarding measurement/etc.
             try:
@@ -395,7 +405,7 @@ class JamDB:
 
   def cleanTree(self, all=True):
     """
-    clean all _jams.json files from directories
+    clean all _jamDB.json files from directories
     - id files in directories are kept
 
     Args:
@@ -408,7 +418,7 @@ class JamDB:
       directory = self.cwd
     for path, _, files in os.walk(directory):
       for file in files:
-        if file.endswith('_jams.json') and file!='.id_jams.json':
+        if file.endswith('_jamDB.json') and file!='.id_jamDB.json':
           filePath = os.path.normpath(path+os.sep+file)
           os.remove(filePath)
 
@@ -428,10 +438,10 @@ class JamDB:
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = filePath
-      outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_jams'
+      outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_jamDB'
     else:
       absFilePath = self.basePath + filePath
-      outFile = absFilePath.replace('.','_')+'_jams'
+      outFile = absFilePath.replace('.','_')+'_jamDB'
     pyFile = "image_"+extension+".py"
     pyPath = self.softwarePath+os.sep+pyFile
     if os.path.exists(pyPath):
@@ -582,8 +592,6 @@ class JamDB:
        addID: add docID to output
        addTags: add tags, comments, objective to output
     """
-    if addTags==True or addTags==False:
-      print("I AM NOT HERE")
     if len(self.hierStack) == 0:
       logging.warning('jams.outputHierarchy No project selected')
       return "Warning: jams.outputHierarchy No project selected"
