@@ -150,14 +150,18 @@ class Database:
       op = change['branch']['op']
       del change['branch']['op']
       if not change['branch'] in newDoc['branch']:       #skip if new path already in path
-        nothingChanged = False
         oldDoc['branch'] = newDoc['branch'].copy()
         if op=='c':    #create, append
           newDoc['branch'] += [change['branch']]
+          nothingChanged = False
         elif op=='u':  #update=remove current at zero
           newDoc['branch'][0] = change['branch']
+          nothingChanged = False
         elif op=='d':  #delete
-          newDoc['branch'] = [branch for branch in newDoc['branch'] if branch['path']!=change['branch'][0]]
+          originalLength = len(newDoc['branch'])
+          newDoc['branch'] = [branch for branch in newDoc['branch'] if branch['path']!=change['branch']['path']]
+          if originalLength!=len(newDoc['branch']):
+            nothingChanged = False
         else:
           logging.error("database:updateDoc: op(eration) unknown, exit update")
           return newDoc

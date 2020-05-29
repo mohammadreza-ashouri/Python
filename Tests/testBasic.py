@@ -129,6 +129,13 @@ class TestStringMethods(unittest.TestCase):
       shutil.move(projDirName+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteel0000LC.txt')
       self.be.scanTree()
 
+      ### Remove data: adopt branch in document
+      print("*** TEST MEASUREMENTS AND SCANNING 3.1 ***")
+      self.fileVerify(1,'=========== Before ===========')
+      os.remove(projDirName1+'/Zeiss.tif')
+      self.be.scanTree()
+      self.fileVerify(2,'=========== After  ===========')  #use diff-file to compare hierarchies, directory tree
+
       ### Try to fool system: rename file
       # verify database and filesystem into fileVerify
       # produce database entries into filesystem
@@ -137,9 +144,7 @@ class TestStringMethods(unittest.TestCase):
       print("*** TEST MEASUREMENTS AND SCANNING 4 ***")
       shutil.move(projDirName1+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteelLC.txt')
       self.be.scanTree()  #always scan before produceData: ensure that database correct
-      self.fileVerify(1,'=========== Before ===========')
       self.be.scanTree('produceData')
-      self.fileVerify(2,'=========== After ===========')  #use diff-file to compare hierarchies, directory tree
       self.be.scanTree('compareToDB')
       self.be.cleanTree()
 

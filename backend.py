@@ -398,7 +398,10 @@ class JamDB:
 
     ## if path remains, delete it
     for key in database:
-      logging.debug("Still in database "+key)
+      logging.debug("Remove branch from database "+key)
+      data = {'_id':database[key][0], 'type':database[key][1]}
+      data['branch'] = {'path':key, 'op':'d', 'stack':[None]}
+      data = self.db.updateDoc(data, data['_id'])
     logging.info("scanTree finished")
     return
 
