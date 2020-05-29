@@ -2,13 +2,14 @@
 import os, shutil, traceback, sys, logging, subprocess
 import warnings
 import unittest
+sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
+sys.path.append('/home/sbrinckm/FZJ/JamDB/Python')
 from backend import JamDB
 
 class TestStringMethods(unittest.TestCase):
   def test_main(self):
     ### MAIN ###
     # initialization: create database, destroy on filesystem and database and then create new one
-    sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
     warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
     warnings.filterwarnings("ignore", message="invalid escape sequence")
     warnings.filterwarnings("ignore", category=ResourceWarning, module="PIL")
@@ -34,8 +35,8 @@ class TestStringMethods(unittest.TestCase):
       ### create some steps and tasks in the first (by id-number) project
       # add also some empty measurements
       print("*** TEST PROJECT HIERARCHY: no output ***")
-      doc = self.be.db.getView('viewProjects/viewProjects')
-      projID  = [i['id'] for i in doc][0]
+      viewProj = self.be.db.getView('viewProjects/viewProjects')
+      projID  = [i['id'] for i in viewProj][0]
       self.be.changeHierarchy(projID)
       projDirName = self.be.basePath+self.be.cwd
       self.be.addData('step',    {'comment': 'More random text', 'name': 'Test step one'})
@@ -99,6 +100,17 @@ class TestStringMethods(unittest.TestCase):
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
       self.be.scanTree()
 
+      ### Change plot-type
+      viewMeasurements = self.be.db.getView('viewMeasurements/viewMeasurements')
+      for item in viewMeasurements:
+        fileName = item['value'][0]
+        if fileName == 'Zeiss.tif':
+          hierStack = [ item['id'] ]
+          doc = self.be.getDoc(item['id'])
+          newType = doc['type']+['maximum Contrast']
+          fullPath= doc['branch'][0]['path'] #here choose first branch, but other are possible
+          self.be.addData('-edit-', {'type':newType, 'name':fullPath}, hierStack=hierStack, forceNewImage=True)
+
       ### Try to fool system: move directory that includes data to another random name
       print("*** TEST MEASUREMENTS AND SCANNING 2 ***")
       origin = self.be.basePath+self.be.db.getDoc(stepID)['branch'][0]['path']
@@ -108,7 +120,7 @@ class TestStringMethods(unittest.TestCase):
 
       ### Move data, copy data into different project
       print("*** TEST MEASUREMENTS AND SCANNING 3 ***")
-      projID1  = [i['id'] for i in doc][1]
+      projID1  = [i['id'] for i in viewProj][1]
       self.be.changeHierarchy(projID1) #change into non-existant path; try to confuse software
       self.be.changeHierarchy(None)
       self.be.changeHierarchy(projID1) #change into existant path

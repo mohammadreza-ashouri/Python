@@ -83,7 +83,7 @@ class JamDB:
   ######################################################
   ### Change in database
   ######################################################
-  def addData(self, docType, data, hierStack=[], localCopy=False):
+  def addData(self, docType, data, hierStack=[], localCopy=False, forceNewImage=False):
     """
     Save data to data base, also after edit
 
@@ -92,6 +92,7 @@ class JamDB:
         data: to be stored
         hierStack: hierStack from external functions
         localCopy: copy a remote file to local version
+        forceNewImage: create new image in any case
     """
     logging.debug('addData beginning data: '+docType+' | hierStack'+str(hierStack))
     data['user']   = self.userID
@@ -166,7 +167,7 @@ class JamDB:
             with open(self.basePath+path,'rb') as fIn:
               md5sum = hashlib.md5(fIn.read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
-          if len(view)==0 or 'forceNewImage' in data:  #measurement not in database: create data
+          if len(view)==0 or forceNewImage:  #measurement not in database: create data
             data.update( self.getImage(path,md5sum,data) )
           if len(view)==1:
             data['_id'] = view[0]['id']
@@ -292,7 +293,7 @@ class JamDB:
         #database and directory agree regarding project/step/task
         #check id-file
         try:
-          with open("self.basePath+path+'/.id_jams.json", 'r') as fIn:
+          with open(self.basePath+path+'/.id_jams.json', 'r') as fIn:
             idFile  = json.load(fIn)
           if idFile['branch'][0]['path']==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
             logging.debug(path+' id-test successful on project/step/task')
@@ -309,11 +310,12 @@ class JamDB:
           if produceData:
             #if you have to produce
             data = self.db.getDoc(database[path][0])
-            with open(self.basePath+path+'/data_jams.json','w') as f:
-              f.write(json.dumps(data))
+            with open(self.basePath+path+'/data_jams.json','w') as fOut:
+              fOut.write(json.dumps(data))
           elif compareToDB:
             #if you have to compare
-            docFile = json.load(open(self.basePath+path+'/data_jams.json'))
+            with open(self.basePath+path+'/data_jams.json') as fIn:
+              docFile = json.load(fIn)
             docDB = self.db.getDoc(docFile['_id'])
             if docDB==docFile:
               logging.debug(path+' test _jams.json successful on project/step/task')

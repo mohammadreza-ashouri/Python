@@ -8,7 +8,7 @@
       "name": "Verify",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/verify.py",
+      "program": "${workspaceFolder}/Tests/testBasic.py",
       "console": "externalTerminal"
     },
     {

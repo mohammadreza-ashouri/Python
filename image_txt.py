@@ -10,7 +10,6 @@ def getImage(fileName, dataType):
      fileName: full path file name
      dataType: supplied to guide image creation dataType['type']
   """
-  print("getImage_txt:",dataType)
   try:
     #if Hysitron file
     i = Indentation(fileName, verbose=1)

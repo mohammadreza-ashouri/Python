@@ -9,15 +9,18 @@ def getImage(fileName, dataType):
      fileName: full path file name
      dataType: supplied to guide image creation dataType['type']
   """
-  print("getImage_tif:",dataType)
   try:
     # try Steffen's Tif library
     i = Tif(fileName)
     if i is not None:
-      i.enhance()
-      i.addScaleBar()
-      measurementType = i.meta.pop('measurementType')
-      meta = {'measurementType':[measurementType],
+      if dataType['type'][-1] =='maximum Contrast':
+        i.enhance('a')
+        measurementType = dataType['type'][1:]
+      else:                                #default
+        i.enhance()
+        i.addScaleBar()
+        measurementType = [i.meta.pop('measurementType')]
+      meta = {'measurementType':measurementType,
               'metaSystem':i.meta,
               'metaUser':{}}
       return i.image, 'waves', meta

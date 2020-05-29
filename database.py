@@ -157,11 +157,11 @@ class Database:
         elif op=='u':  #update=remove current at zero
           newDoc['branch'][0] = change['branch']
         elif op=='d':  #delete
-          aa = 4/0
+          aa = 4/0 #TODO handle instead of causing exception
           newDoc['branch'] = [directory for directory in newDoc['branch'] if directory!=change['branch'][0]]
         else:
           print("I should not be here")
-          a = 4/0
+          a = 4/0 #TODO handle instead of causing exception
     #handle other items
     for item in change:
       if item in ['revisions','_id','_rev','branch']:                #skip items cannot come from change
