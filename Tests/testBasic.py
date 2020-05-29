@@ -162,7 +162,11 @@ class TestStringMethods(unittest.TestCase):
 
       ### check consistency of database and replicate to global server
       print("\n*** Check this database ***")
-      print(self.be.checkDB())
+      output = self.be.checkDB()
+      print(output)
+      self.assertTrue(output.count('**UNSURE')==1)
+      self.assertTrue(output.count('**WARNING')==1)
+      self.assertTrue(output.count('**ERROR')==0)
       print("Replication test")
       self.be.replicateDB(databaseName,True)
       print("\n*** DONE WITH VERIFY ***")
@@ -173,6 +177,10 @@ class TestStringMethods(unittest.TestCase):
 
   def tearDown(self):
     self.be.exit()
+    with open(self.be.softwarePath+'/jamDB.log','r') as fIn:
+      text = fIn.read()
+      self.assertFalse("WARNING:" in text)
+      self.assertFalse("ERROR:" in text)
     return
 
 
