@@ -1,0 +1,7 @@
+test:unittest:
+    image: python:3.6
+    script:
+        - pip install numpy matplotlib scipy Pillow scikit-image opencv-python
+        - pip install pandas lmfit xlrd
+        - pip install pprint json cloudant shutil hashlib base64 urllib traceback PyInquirer
+        - python3 -m unittest discover -s Tests
