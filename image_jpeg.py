@@ -18,10 +18,10 @@ def getImage(fileName, dataType):
     else:
       image = Image.open(fileName).convert("L").convert("P")
     meta = {'measurementType':['unknown'],
-            'metaSystem':{},
+            'metaVendor':{},
             'metaUser':{}}
     return image, 'waves', meta
   except:
     logging.error("image_JPEG: JPEG "+fileName)
     logging.error(traceback.format_exc())
-    return None, None, {'measurementType':[],'metaSystem':{},'metaUser':{}}
+    return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}

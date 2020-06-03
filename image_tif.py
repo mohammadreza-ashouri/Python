@@ -21,7 +21,7 @@ def getImage(fileName, dataType):
         i.addScaleBar()
         measurementType = [i.meta.pop('measurementType')]
       meta = {'measurementType':measurementType,
-              'metaSystem':i.meta,
+              'metaVendor':i.meta,
               'metaUser':{}}
       return i.image, 'waves', meta
     # other data routines follow here
@@ -29,8 +29,8 @@ def getImage(fileName, dataType):
     # .
     # .
     # if nothing successful
-    return None, None, {'measurementType':[],'metaSystem':{},'metaUser':{}}
+    return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
   except:
     logging.error("image_tif: Tif "+fileName)
     logging.error(traceback.format_exc())
-    return None, None, {'measurementType':[],'metaSystem':{},'metaUser':{}}
+    return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}

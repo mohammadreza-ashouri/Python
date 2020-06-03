@@ -2,9 +2,9 @@
   "_id": "-dataDictionary-",
   "-hierarchy-":["project","step","task"],
   "-names-":{
-    "main":["name","tags","comments","dirName"],
+    "main":["name","tags","comments"],
     "database":["_id","_rev","type","hierarchy","user","client","revisions"],
-    "special":["image","metaUser","metaSystem","md5sum","qr_code"]
+    "special":["image","metaUser","metaVendor","md5sum","qrCode"]
   },
 
 
@@ -38,7 +38,7 @@
       {"chemistry":"What is its chemical composition?","length":25},
       {"tags":"",                               "length":25, "generate":true},
       {"comment":"#tags comments :field:value:","length":25},
-      {"qr_code":"What is its QR-code?",        "length":-5}
+      {"qrCode":"What is its QR-code?",        "length":-5}
     ]},
 
   "procedure": {"Procedures":[

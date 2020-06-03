@@ -485,18 +485,18 @@ class JamDB:
             shutil.copyfileobj(figfile, f)
       else:
         image = ''
-        meta  = {'measurementType':[],'metaSystem':{},'metaUser':{}}
+        meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
         logging.error('getImage Not implemented yet 1'+str(imgType))
     else:
       image = ''
-      meta  = {'measurementType':[],'metaSystem':{},'metaUser':{}}
+      meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
       logging.warning("getImage: could not find pyFile to convert "+pyFile)
     #combine into document
     measurementType = meta['measurementType']
-    metaSystem      = meta['metaSystem']
+    metaVendor      = meta['metaVendor']
     metaUser        = meta['metaUser']
     document = {'image': image, 'type': ['measurement']+measurementType, 'comment': '',
-            'metaUser':metaUser, 'metaSystem':metaSystem, 'md5sum':md5sum}
+            'metaUser':metaUser, 'metaVendor':metaVendor, 'md5sum':md5sum}
     logging.info("getImage: success")
     return document
 

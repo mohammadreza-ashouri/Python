@@ -79,8 +79,8 @@ class Database:
     if "_design/viewMD5" not in self.db:
       self.saveView('viewMD5','viewMD5',"if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.md5sum, doc.name);}")
     if "_design/viewQR" not in self.db:
-      jsString = "if (doc.qr_code.length > 0 && !('current_rev' in doc))"
-      jsString+=   "{doc.qr_code.forEach(function(thisCode) {emit(thisCode, doc.name);});}"
+      jsString = "if (doc.qrCode.length > 0 && !('current_rev' in doc))"
+      jsString+=   "{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}"
       self.saveView('viewQR','viewQR', jsString )
     return
 
@@ -336,8 +336,8 @@ class Database:
 
         #doc-type specific tests
         if doc['type'][0] == 'sample':
-          if 'qr_code' not in doc:
-            outstring+= f'{bcolors.FAIL}**ERROR qr_code not in sample '+doc['_id']+f'{bcolors.ENDC}\n'
+          if 'qrCode' not in doc:
+            outstring+= f'{bcolors.FAIL}**ERROR qrCode not in sample '+doc['_id']+f'{bcolors.ENDC}\n'
         elif doc['type'][0] == 'measurement':
           if 'md5sum' not in doc:
             outstring+= f'{bcolors.FAIL}**ERROR md5sum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
