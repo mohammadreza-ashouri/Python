@@ -552,17 +552,15 @@ class JamDB:
     docList = self.db.dataLabels+self.db.hierarchyLabels
     idx     = list(dict(docList).values()).index(docLabel)
     docType = list(dict(docList).keys())[idx]
-    for item in self.db.dataDictionary[docType][docLabel]:
-      key = list(item.keys())[0]
+    for item in self.db.dataDictionary[docType]["default"]:
       if item['length']!=0:
         outputString = '{0: <'+str(abs(item['length']))+'}'
-        outString.append(outputString.format(key) )
+        outString.append(outputString.format(item['name']) )
     outString = "|".join(outString)+'\n'
     outString += '-'*110+'\n'
     for lineItem in self.db.getView(view+os.sep+view):
       rowString = []
-      for idx, item in enumerate(self.db.dataDictionary[docType][docLabel]):
-        key = list(item.keys())[0]
+      for idx, item in enumerate(self.db.dataDictionary[docType]["default"]):
         if item['length']!=0:
           outputString = '{0: <'+str(abs(item['length']))+'}'
           if isinstance(lineItem['value'][idx], str ):

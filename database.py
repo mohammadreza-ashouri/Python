@@ -50,14 +50,13 @@ class Database:
         else:     #only show first instance in list "doc.branch[0]""
           jsString = jsDefault.replace('$docType$', "doc.type[0]=='"+docType+"'").replace('$key$','doc.branch[0].stack[0]')
         outputList = []
-        for item in self.dataDictionary[docType][docLabel]:
-          key = list(item.keys())[0]
-          if key == 'image':
+        for item in self.dataDictionary[docType]["default"]:
+          if item['name'] == 'image':
             outputList.append('(doc.image.length>3).toString()')
-          elif key == 'tags':
+          elif item['name'] == 'tags':
             outputList.append("doc.tags.join(' ')")
           else:
-            outputList.append('doc.'+key)
+            outputList.append('doc.'+item['name'])
         outputList = ','.join(outputList)
         jsString = jsString.replace('$outputList$', outputList)
         logging.info("database:init "+view+" not defined. Use default one:"+jsString)
