@@ -27,9 +27,9 @@ while be.alive:
   #####################
   if nextMenu in menuOutline and nextMenu != 'edit':
     #main and output menu are outlined in file, use those
-    nextMenu = copy.deepcopy(menuOutline[nextMenu])
-    question = [{'type': 'list', 'name': 'choice', 'message': nextMenu[0], 'choices':[]}]
-    for idx, item in enumerate(nextMenu):
+    thisMenu = copy.deepcopy(menuOutline[nextMenu])
+    question = [{'type': 'list', 'name': 'choice', 'message': thisMenu[0], 'choices':[]}]
+    for idx, item in enumerate(thisMenu):
       if idx == 0:
         continue
       #extract properties of dictionary item
@@ -89,25 +89,21 @@ while be.alive:
         if label_ == docType:
           docType = type_
     docLabel = next(iter(be.dataDictionary[docType]))
-    for line in be.dataDictionary[docType][docLabel]:  # iterate over all data stored within this docType
+    for line in be.dataDictionary[docType]["default"]:  # iterate over all data stored within this docType
       ### convert line into json-string that PyInquirer understands
       # decode incoming json
-      keywords = {"list": None, "generate": None, "length":None}
-      for item in keywords:
-        if item in line:
-          keywords[item] = line[item]
-          del line[item]
-      if len(line) > 1:
-            print("**ERROR** QUESTION ILLDEFINED", line)
-      name, questionString = line.popitem()
+      itemList = line['list'] if "list" in line else None
+      name = line['name']
+      questionString = line['long']
+      generate = True if len(questionString)==0 else False
       # encode outgoing json
-      if keywords['generate'] is not None:
+      if generate:
         continue  # it is generated, no need to ask
       newQuestion = {"type": "input", "name": name, "message": questionString}
-      if keywords['list'] is not None:
+      if itemList is not None:
         newQuestion['type'] = 'list'
-      if isinstance(keywords['list'], list):
-        newQuestion['choices'] = keywords['list']
+      if isinstance(itemList, list):
+        newQuestion['choices'] = itemList
       question.append(newQuestion)
   #####################
   ### ask question  ###
@@ -140,7 +136,9 @@ while be.alive:
     # all data collected, save it
     if nextMenu=='edit': #edit-> update data
       be.setEditString(answer['comment'])
-    else:
+    elif len(answer)!=0:
       be.addData(docType, answer)
+    else:
+      print("Did not understand you.")
     nextMenu = 'main'
   continue

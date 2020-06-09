@@ -12,10 +12,10 @@
       "console": "externalTerminal"
     },
     {
-      "name": "AgileScience CLI",
+      "name": "jamDB CLI",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/agileScienceCLI.py",
+      "program": "${workspaceFolder}/jamDB_CLI.py",
       "console": "externalTerminal",
     }
   ]
