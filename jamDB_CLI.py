@@ -66,7 +66,7 @@ while be.alive:
     question['default'] = be.getEditString()
   elif nextMenu.startswith('change'):
     #change menu
-    question = [{'type': 'list', 'name': 'choice', 'message': nextMenu[0], 'choices':[]}]
+    question = [{'type': 'list', 'name': 'choice', 'message': nextMenu, 'choices':[]}]
     if len(be.hierStack) == 0: # no project in list: use VIEW
       doc    = be.db.getView('viewProjects/viewProjects')
       values = [i['id'] for i in doc]
@@ -136,7 +136,7 @@ while be.alive:
     # all data collected, save it
     if nextMenu=='edit': #edit-> update data
       be.setEditString(answer['comment'])
-    elif len(answer)!=0:
+    elif len(answer)!=0 and len(answer['name'])>2:
       be.addData(docType, answer)
     else:
       print("Did not understand you.")

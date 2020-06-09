@@ -15,7 +15,7 @@
    {"Output hierarchy":    "function_outputHierarchy"}
 ],
 "scanTree": [ "How to scan directories?",
-   {"Find new data":                     "function_scanTree"},
+   {"Find new data & clean directories" :"function_scanTree"},
    {"Create data in directories":        "function_scanTree_produceData"},
    {"Compare directory data to database":"function_scanTree_compareToDB"}
 ],

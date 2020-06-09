@@ -189,7 +189,7 @@ class JamDB:
     if self.cwd is not None and data['type'][0]=='text':
       #project, step, task
       path = data['branch'][0]['path']
-      os.makedirs(self.basePath+path, exist_ok=True)
+      os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
       with open(self.basePath+path+'/.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(data))
     self.currentID = data['_id']
@@ -286,6 +286,7 @@ class JamDB:
 
     # iterate directory-tree and compare
     parentID = None
+    toDelete = []
     for path, _, files in os.walk('.'):
       #compare path: project/step/task
       path = os.path.normpath(self.cwd+path)
@@ -331,13 +332,19 @@ class JamDB:
           #update .id_jamDB.json file and database with new path information
           with open(self.basePath+path+'/.id_jamDB.json') as fIn:
             idFile  = json.load(fIn)
-          logging.info('Updated path in directory and database '+idFile['branch'][0]['path']+' to '+path)
-          data = self.db.updateDoc( {'branch':{'path':path,\
-                                               'stack':idFile['branch'][0]['stack'],\
-                                               'child':idFile['branch'][0]['child'],\
-                                               'op':'u'}}, idFile['_id'])
-          with open(self.basePath+path+'/.id_jamDB.json','w') as f:
-            f.write(json.dumps(data))
+          onDB = self.getDoc(idFile['_id'])
+          onRecordPath = onDB['branch'][0]['path']
+          if os.path.exists(self.basePath+onRecordPath):
+            logging.info('Remove path in directory '+self.basePath+path)
+            toDelete.append(self.basePath+path)
+          else:
+            logging.info('Updated path in directory and database '+idFile['branch'][0]['path']+' to '+path)
+            data = self.db.updateDoc( {'branch':{'path':path,\
+                                                'stack':idFile['branch'][0]['stack'],\
+                                                'child':idFile['branch'][0]['child'],\
+                                                'op':'u'}}, idFile['_id'])
+            with open(self.basePath+path+'/.id_jamDB.json','w') as f:
+              f.write(json.dumps(data))
         else:
           logging.warning(path+' directory (project/step/task) not in database: did user create misc. directory')
 
@@ -397,6 +404,9 @@ class JamDB:
         del database[path]
 
     ## if path remains, delete it
+    for item in toDelete:
+      if os.path.exists(item):
+        shutil.rmtree(item)
     for key in database:
       logging.debug("Remove branch from database "+key)
       data = {'_id':database[key][0], 'type':database[key][1]}
