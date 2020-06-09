@@ -169,7 +169,11 @@ class JamDB:
               md5sum = hashlib.md5(fIn.read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
           if len(view)==0 or forceNewImage:  #measurement not in database: create data
-            data.update( self.getImage(path,md5sum,data) )
+            dataImage = self.getImage(path,md5sum,data)
+            if len(dataImage['metaVendor'])==0 and len(dataImage['metaUser'])==0 and \
+               dataImage['image']=='' and len(dataImage['type'])==1:
+              return
+            data.update(dataImage)
           if len(view)==1:
             data['_id'] = view[0]['id']
             data['md5sum'] = md5sum
@@ -239,7 +243,8 @@ class JamDB:
             dirName = self.createDirName(doc['name'],doc['type'][0],childNum)
           if not os.path.exists(dirName):
             #should only happen during complex edit: should not get None as childNum
-            #move directory
+            #move directory; this is the first point where the non-existance of the folder is seen and can be corrected
+            #  changing it in addData(), happens after this and has no benefit
             parentID = doc['branch'][0]['stack'][-1]  #exception handled
             pathParent = self.db.getDoc(parentID)['branch'][0]['path']
             path = pathParent+os.sep+path.split(os.sep)[-1]
