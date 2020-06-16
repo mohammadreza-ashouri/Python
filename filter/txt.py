@@ -4,7 +4,7 @@ import logging, traceback
 from nanoIndent import Indentation
 
 
-def getImage(fileName, dataType):
+def getMeasurement(fileName, dataType):
   """
   Args:
      fileName: full path file name

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """ Python Backend
 """
-import os, json, base64, hashlib, shutil, re
+import os, json, base64, hashlib, shutil, re, sys
 import importlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -56,6 +56,7 @@ class JamDB:
     else:
         logging.warning("Base folder did not exist. No directory saving\n"+self.basePath)
         self.cwd   = None
+    sys.path.append(self.softwarePath+os.sep+'filter')  #allow filters
     # hierarchy structure
     self.dataDictionary = self.db.getDoc("-dataDictionary-")
     self.hierList = self.dataDictionary["-hierarchy-"]
@@ -169,7 +170,7 @@ class JamDB:
               md5sum = hashlib.md5(fIn.read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
           if len(view)==0 or forceNewImage:  #measurement not in database: create data
-            dataImage = self.getImage(path,md5sum,data)
+            dataImage = self.getMeasurement(path,md5sum,data)
             if len(dataImage['metaVendor'])==0 and len(dataImage['metaUser'])==0 and \
                dataImage['image']=='' and len(dataImage['type'])==1:
               return
@@ -441,9 +442,9 @@ class JamDB:
           os.remove(filePath)
 
 
-  def getImage(self, filePath, md5sum, doc=None, maxSize=600):
+  def getMeasurement(self, filePath, md5sum, doc=None, maxSize=600):
     """
-    get image from datafile: central distribution point
+    get measurements from datafile: central distribution point
     - max image size defined here
 
     Args:
@@ -452,7 +453,7 @@ class JamDB:
         doc: pass known data/measurement type, can be used to create image
         maxSize: maximum size of jpeg images
     """
-    logging.info("getImage started for path "+filePath)
+    logging.info("getMeasurement started for path "+filePath)
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = filePath
@@ -460,12 +461,12 @@ class JamDB:
     else:
       absFilePath = self.basePath + filePath
       outFile = absFilePath.replace('.','_')+'_jamDB'
-    pyFile = "image_"+extension+".py"
-    pyPath = self.softwarePath+os.sep+pyFile
+    pyFile = extension+".py"
+    pyPath = self.softwarePath+os.sep+"filter"+os.sep+pyFile
     if os.path.exists(pyPath):
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
-      image, imgType, meta = module.getImage(absFilePath, doc)
+      image, imgType, meta = module.getMeasurement(absFilePath, doc)
       # depending on imgType: produce image
       if imgType == "line":  #no scaling
         figfile = StringIO()
@@ -501,18 +502,18 @@ class JamDB:
       else:
         image = ''
         meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
-        logging.error('getImage Not implemented yet 1'+str(imgType))
+        logging.error('getMeasurement Not implemented yet 1'+str(imgType))
     else:
       image = ''
       meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
-      logging.warning("getImage: could not find pyFile to convert "+pyFile)
+      logging.warning("getMeasurement: could not find pyFile to convert "+pyFile)
     #combine into document
     measurementType = meta['measurementType']
     metaVendor      = meta['metaVendor']
     metaUser        = meta['metaUser']
     document = {'image': image, 'type': ['measurement']+measurementType, 'comment': '',
             'metaUser':metaUser, 'metaVendor':metaVendor, 'md5sum':md5sum}
-    logging.info("getImage: success")
+    logging.info("getMeasurement: success")
     return document
 
 

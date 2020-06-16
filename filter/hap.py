@@ -1,9 +1,9 @@
-"""create measurement data from .py file
+"""create measurement data from .hap file
 
-- python file
+- Fischer-Scope .hap file: unknown
 """
 
-def getImage(fileName, dataType):
+def getMeasurement(fileName, dataType):
   """
   Args:
      fileName: full path file name

@@ -5,7 +5,7 @@ import requests
 from io import BytesIO
 import logging, traceback
 
-def getImage(fileName, dataType):
+def getMeasurement(fileName, dataType):
   """
   Args:
      fileName: full path file name

@@ -3,7 +3,7 @@
 import logging, traceback
 from Tif import Tif
 
-def getImage(fileName, dataType):
+def getMeasurement(fileName, dataType):
   """
   Args:
      fileName: full path file name
