@@ -66,12 +66,13 @@ class JamDB:
     return
 
 
-  def exit(self, deleteDB=False):
+  def exit(self, deleteDB=False, callback=None):
     """
     Shutting down things
 
     Args:
       deleteDB: remove database
+      callback: un-used placeholder to achieve common interface
     """
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
@@ -84,7 +85,7 @@ class JamDB:
   ######################################################
   ### Change in database
   ######################################################
-  def addData(self, docType, data, hierStack=[], localCopy=False, forceNewImage=False):
+  def addData(self, docType, data, hierStack=[], localCopy=False, forceNewImage=False, callback=None):
     """
     Save data to data base, also after edit
 
@@ -170,11 +171,16 @@ class JamDB:
               md5sum = hashlib.md5(fIn.read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
           if len(view)==0 or forceNewImage:  #measurement not in database: create data
-            dataImage = self.getMeasurement(path,md5sum,data)
-            if len(dataImage['metaVendor'])==0 and len(dataImage['metaUser'])==0 and \
-               dataImage['image']=='' and len(dataImage['type'])==1:
-              return
-            data.update(dataImage)
+            rerun = True
+            while rerun:
+              self.getMeasurement(path,md5sum,data)
+              if len(data['metaVendor'])==0 and len(data['metaUser'])==0 and \
+                data['image']=='' and len(data['type'])==1:
+                return
+              if callback is None:
+                rerun = False
+              else:
+                rerun = callback(data)
           if len(view)==1:
             data['_id'] = view[0]['id']
             data['md5sum'] = md5sum
@@ -221,12 +227,13 @@ class JamDB:
   ######################################################
   ### Disk directory/folder methods
   ######################################################
-  def changeHierarchy(self, docID, childNum=None):
+  def changeHierarchy(self, docID, childNum=None, callback=None):
     """
     Change through text hierarchy structure
 
     Args:
         id: information on how to change
+        callback: un-used placeholder to achieve common interface
     """
     if docID is None or docID in self.hierList:  # none, "project", "step", "task" are given: close
       self.hierStack.pop()
@@ -261,7 +268,7 @@ class JamDB:
     return
 
 
-  def scanTree(self, method=None):
+  def scanTree(self, method=None, callback=None):
     """ Scan directory tree recursively from project/...
     - find changes on file system and move those changes to DB
     - use .id_jamDB.json to track changes of directories, aka projects/steps/tasks
@@ -405,7 +412,7 @@ class JamDB:
           for branch in parentDoc['branch']:
             if path in branch['path']:
               hierStack = branch['stack']+[parentID]
-          self.addData('measurement', newDoc, hierStack)
+          self.addData('measurement', newDoc, hierStack, callback=callback)
       if path in database:
         del database[path]
 
@@ -442,7 +449,7 @@ class JamDB:
           os.remove(filePath)
 
 
-  def getMeasurement(self, filePath, md5sum, doc=None, maxSize=600):
+  def getMeasurement(self, filePath, md5sum, doc, maxSize=600):
     """
     get measurements from datafile: central distribution point
     - max image size defined here
@@ -450,7 +457,7 @@ class JamDB:
     Args:
         filePath: path to file
         md5sum: md5sum to store in database (not used here)
-        doc: pass known data/measurement type, can be used to create image
+        doc: pass known data/measurement type, can be used to create image; This is altered
         maxSize: maximum size of jpeg images
     """
     logging.info("getMeasurement started for path "+filePath)
@@ -461,7 +468,7 @@ class JamDB:
     else:
       absFilePath = self.basePath + filePath
       outFile = absFilePath.replace('.','_')+'_jamDB'
-    pyFile = extension+".py"
+    pyFile = 'jamDB_'+extension+".py"
     pyPath = self.softwarePath+os.sep+"filter"+os.sep+pyFile
     if os.path.exists(pyPath):
       # import module and use to get data
@@ -514,7 +521,8 @@ class JamDB:
     document = {'image': image, 'type': ['measurement']+measurementType, 'comment': '',
             'metaUser':metaUser, 'metaVendor':metaVendor, 'md5sum':md5sum}
     logging.info("getMeasurement: success")
-    return document
+    doc.update(document)
+    return
 
 
   ######################################################

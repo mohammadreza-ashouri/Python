@@ -7,6 +7,12 @@ from PyInquirer import prompt, Separator
 from pprint import pprint
 from backend import JamDB
 
+
+def curate(intputData):
+  print(intputData)
+  return False  #no new scan is necessary
+
+
 ### INITIALIZATION
 be = JamDB()
 print("Start in directory",os.path.abspath(os.path.curdir))
@@ -124,9 +130,9 @@ while be.alive:
       nextMenu = '_'.join(answer)
     else:   #e.g. function
       if len(answer) == 2:
-        res = getattr(be, answer[1])()
+        res = getattr(be, answer[1])(callback=curate)
       elif len(answer) > 2:
-        res = getattr(be, answer[1])('_'.join(answer[2:]))
+        res = getattr(be, answer[1])('_'.join(answer[2:]), callback=curate)
       else:
         res = ''
       if res is not None:
