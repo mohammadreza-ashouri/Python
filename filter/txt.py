@@ -20,7 +20,7 @@ def getMeasurement(fileName, dataType):
       meta = {'measurementType':[measurementType],
               'metaVendor':i.meta,
               'metaUser':{}}
-      return img, 'line', meta
+      return img, 'svg', meta
     # other data routines follow here
     # .
     # .

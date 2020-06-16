@@ -48,7 +48,7 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('task',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
       self.be.changeHierarchy(self.be.currentID)  #cd in task
       self.be.addData('measurement', {'name': 'geolocation.txt', 'comment': 'Center of work'})
-      self.be.addData('measurement', {'name': "https://i.picsum.photos/id/237/200/300.jpg", 'comment': 'logo'})
+      self.be.addData('measurement', {'name': "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/320px-Google_2015_logo.svg.png", 'comment': 'logo'})
       self.be.changeHierarchy(None)  #cd .. into step
       self.be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
 

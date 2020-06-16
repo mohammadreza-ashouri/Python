@@ -468,7 +468,7 @@ class JamDB:
       module = importlib.import_module(pyFile[:-3])
       image, imgType, meta = module.getMeasurement(absFilePath, doc)
       # depending on imgType: produce image
-      if imgType == "line":  #no scaling
+      if imgType == "svg":  #no scaling
         figfile = StringIO()
         plt.savefig(figfile, format='svg')
         image = figfile.getvalue()
@@ -477,7 +477,7 @@ class JamDB:
           with open(outFile+'.svg','w') as f:
             figfile.seek(0)
             shutil.copyfileobj(figfile, f)
-      elif imgType == "waves":
+      elif imgType == "jpg":
         ratio = maxSize / image.size[np.argmax(image.size)]
         image = image.resize((np.array(image.size)*ratio).astype(np.int)).convert('RGB')
         figfile = BytesIO()
@@ -488,7 +488,7 @@ class JamDB:
           with open(outFile+'.jpg','wb') as f:
             figfile.seek(0)
             shutil.copyfileobj(figfile, f)
-      elif imgType == "contours":
+      elif imgType == "png":
         ratio = maxSize / image.size[np.argmax(image.size)]
         image = image.resize((np.array(image.size)*ratio).astype(np.int))
         figfile = BytesIO()
@@ -665,34 +665,32 @@ class JamDB:
     hierLevel = None
     children   = [-1]
     for doc in docList:
-      #use variables to change directories
-      if hierLevel is not None and doc['type']<hierLevel:
-        children.pop()
-      elif hierLevel is not None and doc['type']>hierLevel:
-        children.append(-1)
-      children[-1] += 1
       # add elements to doc
-      edit = doc['edit'];  del doc['edit']
-      doc['type'] = ['text',self.hierList[doc['type']]]
+      del doc['edit']  #since original state is unknown, each doc has edit
+      docID       = doc['type']
+      doc['type'] = ['text',self.hierList[docID]]
       if hierLevel is not None and doc['type'][1] != 'project':
         doc['childNum'] = children[-1]
-      if doc['objective']=='': del doc['objective']
+      if doc['objective']=='':
+        del doc['objective']
       #use variables to change directories
-      if hierLevel is not None and self.hierList.index(doc['type'][1])<hierLevel:
-        self.changeHierarchy(None)          #"cd .."
-        self.changeHierarchy(None)          #"cd .."
-        self.changeHierarchy(doc['_id'],children[-1])    #"cd directory"
-      elif hierLevel is not None and self.hierList.index(doc['type'][1])>hierLevel:
-        self.changeHierarchy(doc['_id'],children[-1])    #"cd directory"
+      if hierLevel is not None and docID<hierLevel:
+        children.pop()
+        self.changeHierarchy(None)                        #"cd .."
+        self.changeHierarchy(None)                        #"cd .."
+        self.changeHierarchy(doc['_id'],children[-1]+1)   #"cd directory"
+      elif hierLevel is not None and docID>hierLevel:
+        children.append(-1)
+        self.changeHierarchy(doc['_id'],children[-1]+1)   #"cd directory"
       elif hierLevel is not None:
-        self.changeHierarchy(None)          #"cd ../directory"
-        self.changeHierarchy(doc['_id'],children[-1])
-      if edit=='-edit-':
-        self.addData(edit, doc, self.hierStack)
-      else:
-        self.addData(doc['type'][0], doc)
+        self.changeHierarchy(None)                        #"cd .."
+        self.changeHierarchy(doc['_id'],children[-1]+1)   #"cd directory""
+      children[-1] += 1
+      # add doc to database:
+      # - have to be in the directory to edit it
+      self.addData('-edit-', doc, self.hierStack)
       #update variables for next iteration
-      hierLevel = self.hierList.index(doc['type'][1])
+      hierLevel = docID
     #at end, go down ('cd  ..') number of children-length
     for i in range(len(children)-1):
       self.changeHierarchy(None)

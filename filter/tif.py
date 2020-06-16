@@ -23,7 +23,7 @@ def getMeasurement(fileName, dataType):
       meta = {'measurementType':measurementType,
               'metaVendor':i.meta,
               'metaUser':{}}
-      return i.image, 'waves', meta
+      return i.image, 'jpg', meta
     # other data routines follow here
     # .
     # .

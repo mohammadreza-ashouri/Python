@@ -1,4 +1,4 @@
-"""create measurement data from random .jpeg file
+"""create measurement data from random .png file
 """
 from PIL import Image
 import requests
@@ -20,8 +20,8 @@ def getMeasurement(fileName, dataType):
     meta = {'measurementType':['unknown'],
             'metaVendor':{},
             'metaUser':{}}
-    return image, 'jpg', meta
+    return image, 'png', meta
   except:
-    logging.error("image_JPEG: JPEG "+fileName)
+    logging.error("image_PNG: PNG "+fileName)
     logging.error(traceback.format_exc())
     return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
