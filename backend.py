@@ -518,10 +518,11 @@ class JamDB:
     measurementType = meta['measurementType']
     metaVendor      = meta['metaVendor']
     metaUser        = meta['metaUser']
-    document = {'image': image, 'type': ['measurement']+measurementType, 'comment': '',
+    document = {'image': image, 'type': ['measurement']+measurementType,
             'metaUser':metaUser, 'metaVendor':metaVendor, 'md5sum':md5sum}
     logging.info("getMeasurement: success")
     doc.update(document)
+    if 'comment' not in doc: doc['comment']=''
     return
 
 

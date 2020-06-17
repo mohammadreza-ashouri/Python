@@ -1,8 +1,8 @@
-"""create measurement data from .tif file
+"""create measurement data from .txt file
 """
 import logging, traceback
 from nanoIndent import Indentation
-
+import matplotlib.pyplot as plt
 
 def getMeasurement(fileName, dataType):
   """
@@ -14,10 +14,22 @@ def getMeasurement(fileName, dataType):
     #if Hysitron/Fischer-Scope file
     i = Indentation(fileName, verbose=1)
     if i is not None:
-      i.analyse()
-      img = i.plot(False,False)
-      measurementType = i.meta.pop('measurementType')
-      meta = {'measurementType':[measurementType],
+
+      if dataType['type'][-1] =='all':
+        f, img = plt.subplots()
+        while len(i.testList)>1:
+          img.plot(i.h, i.p)
+          i.nextTest()
+        img.set_xlabel("depth [$\mu m$]")
+        img.set_ylabel("force [$mN$]")
+        measurementType = [ i.meta.pop('measurementType'),dataType['type'][-1] ]
+
+      else:                                #default
+        i.analyse()
+        img = i.plot(False,False)
+        measurementType = [i.meta.pop('measurementType')]
+
+      meta = {'measurementType':measurementType,
               'metaVendor':i.meta,
               'metaUser':{}}
       return img, 'svg', meta
