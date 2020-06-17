@@ -24,44 +24,46 @@ class Database:
     try:
       self.client = CouchDB(user, password, url='http://127.0.0.1:5984', connect=True)
     except Exception:
-      logging.error("database:init Something unexpected has happend"+traceback.format_exc())
+      logging.error('database:init Something unexpected has happend'+traceback.format_exc())
     self.databaseName = databaseName
     if self.databaseName in self.client.all_dbs():
       self.db = self.client[self.databaseName]
     else:
       self.db = self.client.create_database(self.databaseName)
     # check if default document exist and create
-    if "-dataDictionary-" not in self.db:
-      logging.info("database:init Data structure not defined. Use default one")
-      with open("dataDictionary.json", 'r') as fIn:
+    if '-dataDictionary-' not in self.db:
+      logging.info('database:init Data structure not defined. Use default one')
+      with open('dataDictionary.json', 'r') as fIn:
         dataDictionary = json.load(fIn)
       reply = self.db.create_document(dataDictionary)
     # check if default views exist and create them
-    self.dataDictionary = self.db["-dataDictionary-"]
+    self.dataDictionary = self.db['-dataDictionary-']
     res = cT.dataDictionary2DataLabels(self.dataDictionary)
     self.dataLabels = list(res['dataList'])
     self.hierarchyLabels = list(res['hierarchyList'])
     jsDefault = "if ($docType$ && !('current_rev' in doc)) {emit($key$, [$outputList$]);}"
     for docType, docLabel in self.dataLabels+self.hierarchyLabels:
-      view = "view"+docLabel
-      if "_design/"+view not in self.db:
+      view = 'view'+docLabel
+      if '_design/'+view not in self.db:
         if docType=='project':
           jsString = jsDefault.replace('$docType$', "doc.type[1]=='"+docType+"'").replace('$key$','doc._id')
-        else:     #only show first instance in list "doc.branch[0]""
+        else:     #only show first instance in list doc.branch[0]
           jsString = jsDefault.replace('$docType$', "doc.type[0]=='"+docType+"'").replace('$key$','doc.branch[0].stack[0]')
         outputList = []
-        for item in self.dataDictionary[docType]["default"]:
+        for item in self.dataDictionary[docType]['default']:
           if item['name'] == 'image':
             outputList.append('(doc.image.length>3).toString()')
           elif item['name'] == 'tags':
-            outputList.append("doc.tags.join(' ')")
+            outputList.append('doc.tags.join(' ')')
+          elif item['name'] == 'type':
+            outputList.append('doc.type.slice(1).join("/")')
           else:
             outputList.append('doc.'+item['name'])
         outputList = ','.join(outputList)
         jsString = jsString.replace('$outputList$', outputList)
-        logging.info("database:init "+view+" not defined. Use default one:"+jsString)
+        logging.info('database:init '+view+' not defined. Use default one:'+jsString)
         self.saveView(view, view, jsString)
-    if "_design/viewHierarchy" not in self.db:
+    if '_design/viewHierarchy' not in self.db:
       jsHierarchy  = '''
         if ('type' in doc && !('current_rev' in doc)) {
           doc.branch.forEach(function(branch) {emit(branch.stack.concat([doc._id]).join(' '),[branch.child,doc.type,doc.name]);});
@@ -74,12 +76,12 @@ class Database:
           else                     {doc.branch.forEach(function(branch){if(branch.path){emit(branch.stack[0],[branch.path,doc.type,''        ]);}});}
         }
       '''
-      self.saveView('viewHierarchy','.',{"viewHierarchy":jsHierarchy,"viewPaths":jsPath})
-    if "_design/viewMD5" not in self.db:
+      self.saveView('viewHierarchy','.',{'viewHierarchy':jsHierarchy,'viewPaths':jsPath})
+    if '_design/viewMD5' not in self.db:
       self.saveView('viewMD5','viewMD5',"if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.md5sum, doc.name);}")
-    if "_design/viewQR" not in self.db:
+    if '_design/viewQR' not in self.db:
       jsString = "if (doc.qrCode.length > 0 && !('current_rev' in doc))"
-      jsString+=   "{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}"
+      jsString+=   '{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}'
       self.saveView('viewQR','viewQR', jsString )
     return
 
@@ -91,9 +93,9 @@ class Database:
     Args:
       deleteDB: remove database
     """
-    del self.client
     if deleteDB:
       self.db.client.delete_database(self.databaseName)
+    self.client.disconnect()
     return
 
 
@@ -130,7 +132,7 @@ class Database:
     - updating new-document concurrently
     - create a docID for oldDoc
     - save this docID in list of revisions stored in new-document
-    - Bonus: save "_rev" from newDoc to oldDoc in order to track that updates cannot happen by accident
+    - Bonus: save '_rev' from newDoc to oldDoc in order to track that updates cannot happen by accident
 
     Args:
         change: dictionary of item to update
@@ -162,7 +164,7 @@ class Database:
           if originalLength!=len(newDoc['branch']):
             nothingChanged = False
         else:
-          logging.error("database:updateDoc: op(eration) unknown, exit update")
+          logging.error('database:updateDoc: op(eration) unknown, exit update')
           return newDoc
     #handle other items
     for item in change:
@@ -178,7 +180,7 @@ class Database:
         oldDoc[item] = newDoc[item]
         newDoc[item] = change[item]
     if nothingChanged:
-      logging.info("database:updateDoc no change of content compared to DB")
+      logging.info('database:updateDoc no change of content compared to DB')
       return newDoc
 
     #produce _id of revDoc
@@ -228,16 +230,16 @@ class Database:
     """
     designDoc = DesignDocument(self.db, designName)
     if isinstance(jsCode, str):
-      thisJsCode = "function (doc) {" + jsCode + "}"
+      thisJsCode = 'function (doc) {' + jsCode + '}'
       designDoc.add_view(viewName, thisJsCode)
     elif isinstance(jsCode, dict):
       for view in jsCode:
-        thisJsCode = "function (doc) {" + jsCode[view] + "}"
+        thisJsCode = 'function (doc) {' + jsCode[view] + '}'
         designDoc.add_view(view, thisJsCode)
     try:
       designDoc.save()
     except Exception:
-      logging.error("database:saveView Something unexpected has happend"+traceback.format_exc())
+      logging.error('database:saveView Something unexpected has happend'+traceback.format_exc())
     return
 
 
@@ -258,7 +260,7 @@ class Database:
     else:
       db2 = client2.create_database(dbInfo['database'])
     doc = rep.create_replication(self.db, db2, create_target=True)
-    logging.info("database:replicateDB Replication started")
+    logging.info('database:replicateDB Replication started')
     return
 
 

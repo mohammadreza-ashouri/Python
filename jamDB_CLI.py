@@ -15,46 +15,47 @@ from backend import JamDB
 sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
 be = JamDB()
 # keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
-menuOutline = json.load(open(be.softwarePath+"/userInterfaceCLI.json", 'r'))
+menuOutline = json.load(open(be.softwarePath+'/userInterfaceCLI.json', 'r'))
 
 
 ### Curate by user: say measurement good/bad/ugly
 def curate(doc):
+  print('*Curate measurement: '+doc['name'])
   #show image
   if doc['image'].startswith('<?xml'):
-    with open(tempfile.gettempdir()+os.sep+"tmpFilejamsDB.svg",'w') as outFile:
+    with open(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg','w') as outFile:
       outFile.write(doc['image'])
     # optional code if viewer (mac/windows) cannot display svg
-    # cairosvg.svg2png(bytestring=doc['image'], write_to=tempfile.gettempdir()+os.sep+"tmpFilejamsDB.png")
-    viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+"tmpFilejamsDB.svg" ])
+    # cairosvg.svg2png(bytestring=doc['image'], write_to=tempfile.gettempdir()+os.sep+'tmpFilejamsDB.png')
+    viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg' ])
   #ask question and use answer
   questions = menuOutline['curate']
   if 'comment' in doc:
     questions[0]['default'] = doc['comment']
   answer = prompt(questions)
   if  answer['measurementType']!='':
-    doc["type"]    = ["measurement", "", answer['measurementType']]
+    doc['type']    = ['measurement', '', answer['measurementType']]
   if  answer['comment']!='':
-    doc["comment"] = answer['comment']
+    doc['comment'] = answer['comment']
   #clean open windows
   viewer.terminate()
   viewer.kill() #on windows could be skiped
   viewer.wait() #wait for process to close
-  os.unlink(tempfile.gettempdir()+os.sep+"tmpFilejamsDB.svg")
+  os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg')
   return answer['measurementType']!=''  #True: rerun; False: no new scan is necessary
 
 
 ### MAIN LOOP
-print("Start in directory",os.path.abspath(os.path.curdir))
+print('Start in directory',os.path.abspath(os.path.curdir))
 nextMenu = 'main'
 while be.alive:
   #output the current hierarchical level
   if len(be.hierStack) == 0:
-    print("\n==> You are at the root |"+be.cwd+"| <==")
+    print('\n==> You are at the root |'+be.cwd+'| <==')
   else:
     levelName = be.hierList[len(be.hierStack)-1]
     objName   = be.getDoc(be.hierStack[-1])['name']
-    print("\n==> You are in "+levelName+": "+objName+" |"+be.cwd+"| <==")
+    print('\n==> You are in '+levelName+': '+objName+' |'+be.cwd+'| <==')
   #####################
   ### prepare menu  ###
   #####################
@@ -94,8 +95,8 @@ while be.alive:
         question[0]['choices'].append({'name': key+item, 'value': value+item[1:]})
   elif nextMenu == 'edit':
     #edit menu
-    question = {"default": "", "eargs": be.eargs, "message": menuOutline['edit'][0],
-                "name": "comment", "type": "editor"}
+    question = {'default': '', 'eargs': be.eargs, 'message': menuOutline['edit'][0],
+                'name': 'comment', 'type': 'editor'}
     question['default'] = be.getEditString()
   elif nextMenu.startswith('change'):
     #change menu
@@ -122,17 +123,17 @@ while be.alive:
         if label_ == docType:
           docType = type_
     docLabel = next(iter(be.dataDictionary[docType]))
-    for line in be.dataDictionary[docType]["default"]:  # iterate over all data stored within this docType
+    for line in be.dataDictionary[docType]['default']:  # iterate over all data stored within this docType
       ### convert line into json-string that PyInquirer understands
       # decode incoming json
-      itemList = line['list'] if "list" in line else None
+      itemList = line['list'] if 'list' in line else None
       name = line['name']
       questionString = line['long']
       generate = True if len(questionString)==0 else False
       # encode outgoing json
       if generate:
         continue  # it is generated, no need to ask
-      newQuestion = {"type": "input", "name": name, "message": questionString}
+      newQuestion = {'type': 'input', 'name': name, 'message': questionString}
       if itemList is not None:
         newQuestion['type'] = 'list'
       if isinstance(itemList, list):
@@ -141,7 +142,7 @@ while be.alive:
   #####################
   ### ask question  ###
   #####################
-  # print("\n\n")
+  # print('\n\n')
   # pprint(question)
   answer = prompt(question)
   # pprint(answer)
@@ -169,9 +170,9 @@ while be.alive:
     # all data collected, save it
     if nextMenu=='edit': #edit-> update data
       be.setEditString(answer['comment'])
-    elif len(answer)!=0 and len(answer['name'])>2:
+    elif len(answer)!=0 and len(answer['name'])>0:
       be.addData(docType, answer)
     else:
-      print("Did not understand you.")
+      print('Did not understand you.')
     nextMenu = 'main'
   continue

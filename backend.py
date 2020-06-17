@@ -28,38 +28,38 @@ class JamDB:
     # open configuration file and define database
     self.debug = True
     logging.basicConfig(filename='jamDB.log', filemode='w', format='%(levelname)s:%(message)s', level=logging.DEBUG)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.getLogger("requests").setLevel(logging.WARNING)
-    logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
-    logging.info("\nSTART JAMS")
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+    logging.getLogger('requests').setLevel(logging.WARNING)
+    logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
+    logging.info('\nSTART JAMS')
     with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
       configuration = json.load(f)
     if localName is None:
-      localName = configuration["-defaultLocal"]
-    remoteName= configuration["-defaultRemote"]
-    user         = configuration[localName]["user"]
-    password     = configuration[localName]["password"]
-    databaseName = configuration[localName]["database"]
+      localName = configuration['-defaultLocal']
+    remoteName= configuration['-defaultRemote']
+    user         = configuration[localName]['user']
+    password     = configuration[localName]['password']
+    databaseName = configuration[localName]['database']
     self.db = Database(user, password, databaseName)
-    self.userID   = configuration["-userID"]
+    self.userID   = configuration['-userID']
     self.remoteDB = configuration[remoteName]
-    self.eargs   = configuration["-eargs"]
+    self.eargs   = configuration['-eargs']
     # open basePath (root of directory tree) as current working directory
     # self.cwd is the addition to basePath
     self.softwarePath = os.path.abspath(os.getcwd())
-    self.basePath     = os.path.expanduser('~')+"/"+configuration[localName]["path"]
-    self.cwd          = ""
-    if not self.basePath.endswith("/"):
-        self.basePath += "/"
+    self.basePath     = os.path.expanduser('~')+os.sep+configuration[localName]['path']
+    self.cwd          = ''
+    if not self.basePath.endswith(os.sep):
+        self.basePath += os.sep
     if os.path.exists(self.basePath):
         os.chdir(self.basePath)
     else:
-        logging.warning("Base folder did not exist. No directory saving\n"+self.basePath)
+        logging.warning('Base folder did not exist. No directory saving\n'+self.basePath)
         self.cwd   = None
     sys.path.append(self.softwarePath+os.sep+'filter')  #allow filters
     # hierarchy structure
-    self.dataDictionary = self.db.getDoc("-dataDictionary-")
-    self.hierList = self.dataDictionary["-hierarchy-"]
+    self.dataDictionary = self.db.getDoc('-dataDictionary-')
+    self.hierList = self.dataDictionary['-hierarchy-']
     self.hierStack = []
     self.currentID  = None
     self.alive     = True
@@ -77,7 +77,7 @@ class JamDB:
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
     self.alive     = False
-    logging.info("\nEND JAMS")
+    logging.info('\nEND JAMS')
     logging.shutdown()
     return
 
@@ -87,7 +87,7 @@ class JamDB:
   ######################################################
   def addData(self, docType, data, hierStack=[], localCopy=False, forceNewImage=False, callback=None):
     """
-    Save data to data base, also after edit
+    Save data to database, also after edit
 
     Args:
         docType: docType to be stored
@@ -146,7 +146,7 @@ class JamDB:
         operation = 'u'
       else:
         #measurement, sample, procedure
-        md5sum = ""
+        md5sum = ''
         if '://' in data['name']:                                 #make up name
           if localCopy:
             path = self.cwd + cT.camelCase( os.path.basename(data['name']))
@@ -156,7 +156,7 @@ class JamDB:
             try:
               md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()
             except:
-              print("addData: fetch remote content failed. Data not added")
+              print('addData: fetch remote content failed. Data not added')
               return
         elif os.path.exists(self.basePath+data['name']):          #file exists
           path = data['name']
@@ -166,7 +166,7 @@ class JamDB:
         else:                                                     #make up name
           md5sum  = None
         if md5sum is not None:
-          if md5sum == "":
+          if md5sum == '':
             with open(self.basePath+path,'rb') as fIn:
               md5sum = hashlib.md5(fIn.read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
@@ -204,7 +204,7 @@ class JamDB:
       with open(self.basePath+path+'/.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(data))
     self.currentID = data['_id']
-    logging.debug("addData ending data"+data['_id']+' '+data['_rev']+' '+data['type'][0])
+    logging.debug('addData ending data'+data['_id']+' '+data['_rev']+' '+data['type'][0])
     return
 
 
@@ -221,7 +221,7 @@ class JamDB:
     else:  #steps, tasks
       if isinstance(thisChildNumber, str):
         thisChildNumber = int(thisChildNumber)
-      return ("{:03d}".format(thisChildNumber))+'_'+cT.camelCase(name)
+      return ('{:03d}'.format(thisChildNumber))+'_'+cT.camelCase(name)
 
 
   ######################################################
@@ -235,7 +235,7 @@ class JamDB:
         id: information on how to change
         callback: un-used placeholder to achieve common interface
     """
-    if docID is None or docID in self.hierList:  # none, "project", "step", "task" are given: close
+    if docID is None or docID in self.hierList:  # none, 'project', 'step', 'task' are given: close
       self.hierStack.pop()
       if self.cwd is not None:
         os.chdir('..')
@@ -257,14 +257,14 @@ class JamDB:
             pathParent = self.db.getDoc(parentID)['branch'][0]['path']
             path = pathParent+os.sep+path.split(os.sep)[-1]
             shutil.move(self.basePath+path, dirName)
-            logging.info('changeHierarchy '+self.cwd+": Could not change into non-existant directory "+dirName+" Moved old one to here")
+            logging.info('changeHierarchy '+self.cwd+': Could not change into non-existant directory '+dirName+' Moved old one to here')
           os.chdir(dirName)
           self.cwd += dirName+os.sep
         self.hierStack.append(docID)
       except:
-        print("Could not change into hierarchy. id:"+docID+"  directory:"+dirName+"  cwd:"+self.cwd)
+        print('Could not change into hierarchy. id:'+docID+'  directory:'+dirName+'  cwd:'+self.cwd)
     if self.debug and len(self.hierStack)==len(self.cwd.split(os.sep)):
-      logging.error("changeHierarchy error")
+      logging.error('changeHierarchy error')
     return
 
 
@@ -278,15 +278,15 @@ class JamDB:
       doc['path'] is adopted once changes are observed
 
     Args:
-      method: 'produceData' copy database entry to file system; for backup: "_jamDB.json"
+      method: 'produceData' copy database entry to file system; for backup: '_jamDB.json'
               'compareToDB' compare database entry to file system backup to observe accidental changes anyplace
     """
-    logging.info("scanTree started with method "+str(method))
+    logging.info('scanTree started with method '+str(method))
     if len(self.hierStack) == 0:
       logging.warning('scanTree: No project selected')
       return
-    if   method == "produceData": produceData, compareToDB = True, False
-    elif method == "compareToDB": produceData, compareToDB = False, True
+    if   method == 'produceData': produceData, compareToDB = True, False
+    elif method == 'compareToDB': produceData, compareToDB = False, True
     else                        : produceData, compareToDB = False, False
 
     # get information from database
@@ -339,7 +339,7 @@ class JamDB:
               logging.warning(docDB)
               logging.warning(docFile)
         except:
-          logging.error("scanTree: .id_jamDB.json file deleted from "+path)
+          logging.error('scanTree: .id_jamDB.json file deleted from '+path)
       else:
         if os.path.exists(self.basePath+path+'/.id_jamDB.json'):
           #update .id_jamDB.json file and database with new path information
@@ -421,11 +421,11 @@ class JamDB:
       if os.path.exists(item):
         shutil.rmtree(item)
     for key in database:
-      logging.debug("Remove branch from database "+key)
+      logging.debug('Remove branch from database '+key)
       data = {'_id':database[key][0], 'type':database[key][1]}
       data['branch'] = {'path':key, 'op':'d', 'stack':[None]}
       data = self.db.updateDoc(data, data['_id'])
-    logging.info("scanTree finished")
+    logging.info('scanTree finished')
     return
 
 
@@ -460,7 +460,7 @@ class JamDB:
         doc: pass known data/measurement type, can be used to create image; This is altered
         maxSize: maximum size of jpeg images
     """
-    logging.info("getMeasurement started for path "+filePath)
+    logging.info('getMeasurement started for path '+filePath)
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = filePath
@@ -468,14 +468,14 @@ class JamDB:
     else:
       absFilePath = self.basePath + filePath
       outFile = absFilePath.replace('.','_')+'_jamDB'
-    pyFile = 'jamDB_'+extension+".py"
-    pyPath = self.softwarePath+os.sep+"filter"+os.sep+pyFile
+    pyFile = 'jamDB_'+extension+'.py'
+    pyPath = self.softwarePath+os.sep+'filter'+os.sep+pyFile
     if os.path.exists(pyPath):
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
       image, imgType, meta = module.getMeasurement(absFilePath, doc)
       # depending on imgType: produce image
-      if imgType == "svg":  #no scaling
+      if imgType == 'svg':  #no scaling
         figfile = StringIO()
         plt.savefig(figfile, format='svg')
         image = figfile.getvalue()
@@ -484,7 +484,7 @@ class JamDB:
           with open(outFile+'.svg','w') as f:
             figfile.seek(0)
             shutil.copyfileobj(figfile, f)
-      elif imgType == "jpg":
+      elif imgType == 'jpg':
         ratio = maxSize / image.size[np.argmax(image.size)]
         image = image.resize((np.array(image.size)*ratio).astype(np.int)).convert('RGB')
         figfile = BytesIO()
@@ -495,7 +495,7 @@ class JamDB:
           with open(outFile+'.jpg','wb') as f:
             figfile.seek(0)
             shutil.copyfileobj(figfile, f)
-      elif imgType == "png":
+      elif imgType == 'png':
         ratio = maxSize / image.size[np.argmax(image.size)]
         image = image.resize((np.array(image.size)*ratio).astype(np.int))
         figfile = BytesIO()
@@ -513,14 +513,14 @@ class JamDB:
     else:
       image = ''
       meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
-      logging.warning("getMeasurement: could not find pyFile to convert "+pyFile)
+      logging.warning('getMeasurement: could not find pyFile to convert '+pyFile)
     #combine into document
     measurementType = meta['measurementType']
     metaVendor      = meta['metaVendor']
     metaUser        = meta['metaUser']
     document = {'image': image, 'type': ['measurement']+measurementType,
             'metaUser':metaUser, 'metaVendor':metaVendor, 'md5sum':md5sum}
-    logging.info("getMeasurement: success")
+    logging.info('getMeasurement: success')
     doc.update(document)
     if 'comment' not in doc: doc['comment']=''
     return
@@ -563,29 +563,30 @@ class JamDB:
   ######################################################
   ### OUTPUT COMMANDS and those connected to it      ###
   ######################################################
-  def output(self, docLabel, printID=False):
+  def output(self, docLabel, printID=False, callback=None):
     """
     output view to screen
     - length of output 110 character
 
     Args:
-        docLabel: document label to output
-        printID:  include docID in output string
+      docLabel: document label to output
+      printID:  include docID in output string
+      callback: un-used placeholder to achieve common interface
     """
     view = 'view'+docLabel
     outString = []
     docList = self.db.dataLabels+self.db.hierarchyLabels
     idx     = list(dict(docList).values()).index(docLabel)
     docType = list(dict(docList).keys())[idx]
-    for item in self.db.dataDictionary[docType]["default"]:
+    for item in self.db.dataDictionary[docType]['default']:
       if item['length']!=0:
         outputString = '{0: <'+str(abs(item['length']))+'}'
         outString.append(outputString.format(item['name']) )
-    outString = "|".join(outString)+'\n'
+    outString = '|'.join(outString)+'\n'
     outString += '-'*110+'\n'
     for lineItem in self.db.getView(view+os.sep+view):
       rowString = []
-      for idx, item in enumerate(self.db.dataDictionary[docType]["default"]):
+      for idx, item in enumerate(self.db.dataDictionary[docType]['default']):
         if item['length']!=0:
           outputString = '{0: <'+str(abs(item['length']))+'}'
           if isinstance(lineItem['value'][idx], str ):
@@ -603,7 +604,7 @@ class JamDB:
           rowString.append(outputString.format(formatString)[:abs(item['length'])] )
       if printID:
         rowString.append(' '+lineItem['id'])
-      outString += "|".join(rowString)+'\n'
+      outString += '|'.join(rowString)+'\n'
     return outString
 
 
@@ -620,7 +621,7 @@ class JamDB:
     """
     if len(self.hierStack) == 0:
       logging.warning('jams.outputHierarchy No project selected')
-      return "Warning: jams.outputHierarchy No project selected"
+      return 'Warning: jams.outputHierarchy No project selected'
     hierString = ' '.join(self.hierStack)
     view = self.db.getView('viewHierarchy/viewHierarchy', key=hierString)
     nativeView = {}
@@ -628,9 +629,9 @@ class JamDB:
       if onlyHierarchy and not item['id'].startswith('t-'):
         continue
       nativeView[item['id']] = [item['key']]+item['value']
-    if addTags=="all":
+    if addTags=='all':
       outString = cT.hierarchy2String(nativeView, addID, self.getDoc, 'all')
-    elif addTags=="tags":
+    elif addTags=='tags':
       outString = cT.hierarchy2String(nativeView, addID, self.getDoc, 'tags')
     else:
       outString = cT.hierarchy2String(nativeView, addID, None, 'none')
@@ -647,7 +648,7 @@ class JamDB:
     #simple style
     if self.eargs['style']=='simple':
       doc = self.db.getDoc(self.hierStack[-1])
-      return ", ".join([tag for tag in doc['tags']])+' '+doc['comment']
+      return ', '.join([tag for tag in doc['tags']])+' '+doc['comment']
     #complicated style
     return self.outputHierarchy(True,True,'tags')
 
@@ -685,15 +686,15 @@ class JamDB:
       #use variables to change directories
       if hierLevel is not None and docID<hierLevel:
         children.pop()
-        self.changeHierarchy(None)                        #"cd .."
-        self.changeHierarchy(None)                        #"cd .."
-        self.changeHierarchy(doc['_id'],children[-1]+1)   #"cd directory"
+        self.changeHierarchy(None)                        #'cd ..'
+        self.changeHierarchy(None)                        #'cd ..'
+        self.changeHierarchy(doc['_id'],children[-1]+1)   #'cd directory'
       elif hierLevel is not None and docID>hierLevel:
         children.append(-1)
-        self.changeHierarchy(doc['_id'],children[-1]+1)   #"cd directory"
+        self.changeHierarchy(doc['_id'],children[-1]+1)   #'cd directory'
       elif hierLevel is not None:
-        self.changeHierarchy(None)                        #"cd .."
-        self.changeHierarchy(doc['_id'],children[-1]+1)   #"cd directory""
+        self.changeHierarchy(None)                        #'cd ..'
+        self.changeHierarchy(doc['_id'],children[-1]+1)   #'cd directory'
       children[-1] += 1
       # add doc to database:
       # - have to be in the directory to edit it
@@ -709,7 +710,7 @@ class JamDB:
   def getChildren(self, docID):
     hierTree = self.outputHierarchy(True,True,False)
     if hierTree is None:
-      print("No hierarchy tree")
+      print('No hierarchy tree')
       return None, None
     result = cT.getChildren(hierTree,docID)
     return result['names'], result['ids']

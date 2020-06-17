@@ -39,9 +39,9 @@
     "config":["Measurements"],
     "default":[
       {"name":"name",           "long":"What is the file name?",      "length":25},
-      {"name":"tags",           "long":"",                            "length":25},
+      {"name":"tags",           "long":"",                            "length":15},
       {"name":"comment",        "long":"#tags comments :field:value:","length":25},
-      {"name":"measurementType","long":"Subtype",                     "length":24},
+      {"name":"type",           "long":"Measurement type",            "length":34},
       {"name":"image",          "long":"",                            "length":-5}
       ]
     },
