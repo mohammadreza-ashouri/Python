@@ -85,42 +85,42 @@ class JamDB:
   ######################################################
   ### Change in database
   ######################################################
-  def addData(self, docType, data, hierStack=[], localCopy=False, forceNewImage=False, callback=None):
+  def addData(self, docType, doc, hierStack=[], localCopy=False, forceNewImage=False, callback=None):
     """
-    Save data to database, also after edit
+    Save doc to database, also after edit
 
     Args:
         docType: docType to be stored
-        data: to be stored
+        doc: to be stored
         hierStack: hierStack from external functions
         localCopy: copy a remote file to local version
         forceNewImage: create new image in any case
     """
-    logging.debug('addData beginning data: '+docType+' | hierStack'+str(hierStack))
-    data['user']   = self.userID
+    logging.debug('addData beginning doc: '+docType+' | hierStack'+str(hierStack))
+    doc['user']   = self.userID
     childNum       = 9999
     path           = None
     operation      = 'c'
     if docType == '-edit-':
       edit = True
-      if 'type' not in data:
-        data['type'] = ['text',self.hierList[len(self.hierStack)-1]]
+      if 'type' not in doc:
+        doc['type'] = ['text',self.hierList[len(self.hierStack)-1]]
       if len(hierStack) == 0:  hierStack = self.hierStack
-      data['_id'] = hierStack[-1]
+      doc['_id'] = hierStack[-1]
       hierStack   = hierStack[:-1]
-    else:  #new data
+    else:  #new doc
       edit = False
       if docType in self.hierList:
-        data['type'] = ['text',docType]
+        doc['type'] = ['text',docType]
       else:
-        data['type'] = [docType]
+        doc['type'] = [docType]
       if len(hierStack) == 0:  hierStack = self.hierStack
 
-    # collect data and prepare
-    if data['type'][0] == 'text' and data['type'][1]!='project':
-      if 'childNum' in data:
-        childNum = data['childNum']
-        del data['childNum']
+    # collect doc and prepare
+    if doc['type'][0] == 'text' and doc['type'][1]!='project':
+      if 'childNum' in doc:
+        childNum = doc['childNum']
+        del doc['childNum']
       else:
         #should not have childnumber in other cases
         thisStack = ' '.join(self.hierStack)
@@ -130,39 +130,39 @@ class JamDB:
           if item['value'][1]=='project': continue
           if thisStack == ' '.join(item['key'].split(' ')[:-1]): #remove last item from string
             childNum += 1
-    prefix = data['type'][0][0]
+    prefix = doc['type'][0][0]
 
     # find path name on local file system; name can be anything
-    if self.cwd is not None and 'name' in data:
-      if data['type'][0] == 'text':
+    if self.cwd is not None and 'name' in doc:
+      if doc['type'][0] == 'text':
         #project, step, task
-        if data['type'][0]=='project': childNum = 0
+        if doc['type'][0]=='project': childNum = 0
         if edit:      #edit: cwd of the project/step/task: remove last directory from cwd (since cwd contains a / at end: remove two)
           parentDirectory = os.sep.join(self.cwd.split(os.sep)[:-2])
           if len(parentDirectory)>2: parentDirectory += os.sep
         else:         #new: below the current project/step/task
           parentDirectory = self.cwd
-        path = parentDirectory + self.createDirName(data['name'],data['type'][1],childNum) #update,or create (if new data, update ignored anyhow)
+        path = parentDirectory + self.createDirName(doc['name'],doc['type'][1],childNum) #update,or create (if new doc, update ignored anyhow)
         operation = 'u'
       else:
         #measurement, sample, procedure
         md5sum = ''
-        if '://' in data['name']:                                 #make up name
+        if '://' in doc['name']:                                 #make up name
           if localCopy:
-            path = self.cwd + cT.camelCase( os.path.basename(data['name']))
-            request.urlretrieve(data['name'], self.basePath+data['path'])
+            path = self.cwd + cT.camelCase( os.path.basename(doc['name']))
+            request.urlretrieve(doc['name'], self.basePath+doc['path'])
           else:
-            path = data['name']
+            path = doc['name']
             try:
-              md5sum  = hashlib.md5(request.urlopen(data['name']).read()).hexdigest()
+              md5sum  = hashlib.md5(request.urlopen(doc['name']).read()).hexdigest()
             except:
               print('addData: fetch remote content failed. Data not added')
               return
-        elif os.path.exists(self.basePath+data['name']):          #file exists
-          path = data['name']
-          data['name'] = os.path.basename(data['name'])
-        elif os.path.exists(self.basePath+self.cwd+data['name']): #file exists
-          path = self.cwd+data['name']
+        elif os.path.exists(self.basePath+doc['name']):          #file exists
+          path = doc['name']
+          doc['name'] = os.path.basename(doc['name'])
+        elif os.path.exists(self.basePath+self.cwd+doc['name']): #file exists
+          path = self.cwd+doc['name']
         else:                                                     #make up name
           md5sum  = None
         if md5sum is not None:
@@ -170,41 +170,41 @@ class JamDB:
             with open(self.basePath+path,'rb') as fIn:
               md5sum = hashlib.md5(fIn.read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
-          if len(view)==0 or forceNewImage:  #measurement not in database: create data
+          if len(view)==0 or forceNewImage:  #measurement not in database: create doc
             rerun = True
             while rerun:
-              self.getMeasurement(path,md5sum,data)
-              if len(data['metaVendor'])==0 and len(data['metaUser'])==0 and \
-                data['image']=='' and len(data['type'])==1:
+              self.getMeasurement(path,md5sum,doc)
+              if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
+                doc['image']=='' and len(doc['type'])==1:
                 return
               if callback is None:
                 rerun = False
               else:
-                rerun = callback(data)
+                rerun = callback(doc)
           if len(view)==1:
-            data['_id'] = view[0]['id']
-            data['md5sum'] = md5sum
+            doc['_id'] = view[0]['id']
+            doc['md5sum'] = md5sum
             edit = True
     # assemble branch information
-    data['branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
+    doc['branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
     if edit:
       #update document
-      data = cT.fillDocBeforeCreate(data, '--', '--').to_dict()
-      data = self.db.updateDoc(data, data['_id'])
+      doc = cT.fillDocBeforeCreate(doc, '--', '--').to_dict()
+      doc = self.db.updateDoc(doc, doc['_id'])
     else:
-      # add data to database
-      data = cT.fillDocBeforeCreate(data, data['type'], prefix).to_dict()
-      data = self.db.saveDoc(data)
+      # add doc to database
+      doc = cT.fillDocBeforeCreate(doc, doc['type'], prefix).to_dict()
+      doc = self.db.saveDoc(doc)
 
     ## adaptation of directory tree, information on disk: documentID is required
-    if self.cwd is not None and data['type'][0]=='text':
+    if self.cwd is not None and doc['type'][0]=='text':
       #project, step, task
-      path = data['branch'][0]['path']
+      path = doc['branch'][0]['path']
       os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
       with open(self.basePath+path+'/.id_jamDB.json','w') as f:  #local path, update in any case
-        f.write(json.dumps(data))
-    self.currentID = data['_id']
-    logging.debug('addData ending data'+data['_id']+' '+data['_rev']+' '+data['type'][0])
+        f.write(json.dumps(doc))
+    self.currentID = doc['_id']
+    logging.debug('addData ending doc'+doc['_id']+' '+doc['_rev']+' '+doc['type'][0])
     return
 
 
@@ -315,18 +315,18 @@ class JamDB:
           else:
             if idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
               logging.warning('produce new .id_jamDB.json after move of directory')
-              data = self.db.getDoc(database[path][0])
+              doc = self.db.getDoc(database[path][0])
               with open(self.basePath+path+'/.id_jamDB.json','w') as f:
-                f.write(json.dumps(data))
+                f.write(json.dumps(doc))
             else:
               logging.error(path+' id-test NOT successful on project/step/task')
               logging.error(idFile['branch'][0]['path']+' | '+idFile['_id']+' | '+idFile['type'])
               logging.error(path+' | '+str(database[path]))
           if produceData:
             #if you have to produce
-            data = self.db.getDoc(database[path][0])
+            doc = self.db.getDoc(database[path][0])
             with open(self.basePath+path+'/data_jamDB.json','w') as fOut:
-              fOut.write(json.dumps(data))
+              fOut.write(json.dumps(doc))
           elif compareToDB:
             #if you have to compare
             with open(self.basePath+path+'/data_jamDB.json') as fIn:
@@ -352,12 +352,12 @@ class JamDB:
             toDelete.append(self.basePath+path)
           else:
             logging.info('Updated path in directory and database '+idFile['branch'][0]['path']+' to '+path)
-            data = self.db.updateDoc( {'branch':{'path':path,\
+            doc = self.db.updateDoc( {'branch':{'path':path,\
                                                 'stack':idFile['branch'][0]['stack'],\
                                                 'child':idFile['branch'][0]['child'],\
                                                 'op':'u'}}, idFile['_id'])
             with open(self.basePath+path+'/.id_jamDB.json','w') as f:
-              f.write(json.dumps(data))
+              f.write(json.dumps(doc))
         else:
           logging.warning(path+' directory (project/step/task) not in database: did user create misc. directory')
 
@@ -377,17 +377,17 @@ class JamDB:
             logging.error(fileName+' md5-test NOT successful on measurement/etc. '+md5File+' '+database[fileName][2])
           if produceData:
             #if you have to produce
-            data = self.db.getDoc(database[fileName][0])
+            doc = self.db.getDoc(database[fileName][0])
             with open(self.basePath+jsonFileName,'w') as f:
-              f.write(json.dumps(data))
-            if data['image'].startswith('data:image/jpg'):  #jpg and png
-              image = base64.b64decode( data['image'][22:].encode() )
-              ending= data['image'][11:14]
+              f.write(json.dumps(doc))
+            if doc['image'].startswith('data:image/jpg'):  #jpg and png
+              image = base64.b64decode( doc['image'][22:].encode() )
+              ending= doc['image'][11:14]
               with open(self.basePath+jsonFileName[:-4]+ending,'wb') as fOut:
                 fOut.write(image)
             else:                                           #svg
               with open(self.basePath+jsonFileName[:-4]+'svg','w') as fOut:
-                fOut.write(data['image'])
+                fOut.write(doc['image'])
           elif compareToDB:
             #database and directory agree regarding measurement/etc.
             try:
@@ -422,9 +422,9 @@ class JamDB:
         shutil.rmtree(item)
     for key in database:
       logging.debug('Remove branch from database '+key)
-      data = {'_id':database[key][0], 'type':database[key][1]}
-      data['branch'] = {'path':key, 'op':'d', 'stack':[None]}
-      data = self.db.updateDoc(data, data['_id'])
+      doc = {'_id':database[key][0], 'type':database[key][1]}
+      doc['branch'] = {'path':key, 'op':'d', 'stack':[None]}
+      doc = self.db.updateDoc(doc, doc['_id'])
     logging.info('scanTree finished')
     return
 

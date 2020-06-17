@@ -2,11 +2,11 @@
 """
 import logging, traceback
 
-def getMeasurement(fileName, dataType):
+def getMeasurement(fileName, doc):
   """
   Args:
      fileName: full path file name
-     dataType: supplied to guide image creation dataType['type']
+     doc: supplied to guide image creation doc['type']
   """
   #pandas export (top-left cell is empty): do nothing
   with open(fileName,'r') as inFile:

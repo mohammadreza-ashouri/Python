@@ -3,19 +3,19 @@
 import logging, traceback
 from Tif import Tif
 
-def getMeasurement(fileName, dataType):
+def getMeasurement(fileName, doc):
   """
   Args:
      fileName: full path file name
-     dataType: supplied to guide image creation dataType['type']
+     doc: supplied to guide image creation doc['type']
   """
   try:
     # try Steffen's Tif library
     i = Tif(fileName)
     if i is not None:
-      if dataType['type'][-1] =='maximum Contrast':
+      if doc['type'][-1] =='maximum Contrast':
         i.enhance('a')
-        measurementType = dataType['type'][1:]
+        measurementType = doc['type'][1:]
       else:                                #default
         i.enhance()
         i.addScaleBar()

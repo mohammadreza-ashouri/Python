@@ -4,25 +4,25 @@ import logging, traceback
 from nanoIndent import Indentation
 import matplotlib.pyplot as plt
 
-def getMeasurement(fileName, dataType):
+def getMeasurement(fileName, doc):
   """
   Args:
      fileName: full path file name
-     dataType: supplied to guide image creation dataType['type']
+     doc: supplied to guide image creation doc['type']
   """
   try:
     #if Hysitron/Fischer-Scope file
     i = Indentation(fileName, verbose=1)
     if i is not None:
 
-      if dataType['type'][-1] =='all':
+      if doc['type'][-1] =='all':
         f, img = plt.subplots()
         while len(i.testList)>1:
           img.plot(i.h, i.p)
           i.nextTest()
         img.set_xlabel("depth [$\mu m$]")
         img.set_ylabel("force [$mN$]")
-        measurementType = [ i.meta.pop('measurementType'),dataType['type'][-1] ]
+        measurementType = [ i.meta.pop('measurementType'),doc['type'][-1] ]
 
       else:                                #default
         i.analyse()
