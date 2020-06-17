@@ -2,24 +2,51 @@
 ##################################
 ####  COMMAND LINE INTERFACE  ####
 ##################################
-import copy, json, os
+import copy, json, os, sys
 from PyInquirer import prompt, Separator
 from pprint import pprint
+#for measurement curation
+import subprocess, tempfile, os
+#the package
 from backend import JamDB
 
 
-def curate(intputData):
-  print(intputData)
-  return False  #no new scan is necessary
-
-
 ### INITIALIZATION
+sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
 be = JamDB()
-print("Start in directory",os.path.abspath(os.path.curdir))
 # keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
 menuOutline = json.load(open(be.softwarePath+"/userInterfaceCLI.json", 'r'))
-nextMenu = 'main'
+
+
+### Curate by user: say measurement good/bad/ugly
+def curate(doc):
+  #show image
+  if doc['image'].startswith('<?xml'):
+    with open(tempfile.gettempdir()+os.sep+"tmpFilejamsDB.svg",'w') as outFile:
+      outFile.write(doc['image'])
+    # optional code if viewer (mac/windows) cannot display svg
+    # cairosvg.svg2png(bytestring=doc['image'], write_to=tempfile.gettempdir()+os.sep+"tmpFilejamsDB.png")
+    viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+"tmpFilejamsDB.svg" ])
+  #ask question and use answer
+  questions = menuOutline['curate']
+  if 'comment' in doc:
+    questions[0]['default'] = doc['comment']
+  answer = prompt(questions)
+  if  answer['measurementType']!='':
+    doc["type"]    = ["measurement", "", answer['measurementType']]
+  if  answer['comment']!='':
+    doc["comment"] = answer['comment']
+  #clean open windows
+  viewer.terminate()
+  viewer.kill() #on windows could be skiped
+  viewer.wait() #wait for process to close
+  os.unlink(tempfile.gettempdir()+os.sep+"tmpFilejamsDB.svg")
+  return answer['measurementType']!=''  #True: rerun; False: no new scan is necessary
+
+
 ### MAIN LOOP
+print("Start in directory",os.path.abspath(os.path.curdir))
+nextMenu = 'main'
 while be.alive:
   #output the current hierarchical level
   if len(be.hierStack) == 0:

@@ -19,5 +19,9 @@
    {"Create data in directories":        "function_scanTree_produceData"},
    {"Compare directory data to database":"function_scanTree_compareToDB"}
 ],
-"edit":["Edit text in Markdown"]
+"edit":["Edit text in Markdown"],
+"curate":[
+   {"type": "input", "name": "comment",        "message": "Comment, #tags, :field:1:?",          "default":"" },
+   {"type": "input", "name": "measurementType","message": "What is the better measurement type?"}
+]
 }

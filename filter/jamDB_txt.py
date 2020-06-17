@@ -11,7 +11,7 @@ def getMeasurement(fileName, dataType):
      dataType: supplied to guide image creation dataType['type']
   """
   try:
-    #if Hysitron file
+    #if Hysitron/Fischer-Scope file
     i = Indentation(fileName, verbose=1)
     if i is not None:
       i.analyse()

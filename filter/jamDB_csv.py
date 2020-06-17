@@ -1,5 +1,6 @@
 """create measurement data from .csv file
 """
+import logging, traceback
 
 def getMeasurement(fileName, dataType):
   """
@@ -10,7 +11,7 @@ def getMeasurement(fileName, dataType):
   #pandas export (top-left cell is empty): do nothing
   with open(fileName,'r') as inFile:
     if inFile.readline().startswith(","):
-      print("Pandas output file",fileName)
+      logging.info("Pandas output file "+fileName)
       return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
 
   #other cases
