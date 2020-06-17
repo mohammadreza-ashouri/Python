@@ -22,6 +22,8 @@
 "edit":["Edit text in Markdown"],
 "curate":[
    {"type": "input", "name": "comment",        "message": "Comment, #tags, :field:1:?",          "default":"" },
+   {"type": "list",  "name": "sample",         "message": "Which sample was used?"},
+   {"type": "list",  "name": "procedure",      "message": "Which procedure was used?"},
    {"type": "input", "name": "measurementType","message": "What is the better measurement type?"}
 ]
 }

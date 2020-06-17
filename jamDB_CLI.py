@@ -20,7 +20,7 @@ menuOutline = json.load(open(be.softwarePath+'/userInterfaceCLI.json', 'r'))
 
 ### Curate by user: say measurement good/bad/ugly
 def curate(doc):
-  print('*Curate measurement: '+doc['name'])
+  print('\n=>Curate measurement: '+doc['name'])
   #show image
   if doc['image'].startswith('<?xml'):
     with open(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg','w') as outFile:
@@ -28,15 +28,27 @@ def curate(doc):
     # optional code if viewer (mac/windows) cannot display svg
     # cairosvg.svg2png(bytestring=doc['image'], write_to=tempfile.gettempdir()+os.sep+'tmpFilejamsDB.png')
     viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg' ])
-  #ask question and use answer
+  #prepare question and ask question and use answer
   questions = menuOutline['curate']
-  if 'comment' in doc:
-    questions[0]['default'] = doc['comment']
+  for item in questions:
+    if item['name']=='comment' and 'comment' in doc:
+      item['default'] = doc['comment']
+    if item['name']=='sample':
+      samples = be.output("Samples",printID=True).split("\n")[2:-1]
+      samples = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in samples]
+      item['choices'] = samples+['--']
+    if item['name']=='procedure':
+      item['choices'] = ['2Large', '2Medium', '2Small']
   answer = prompt(questions)
-  if  answer['measurementType']!='':
+  if answer['measurementType']!='':
     doc['type']    = ['measurement', '', answer['measurementType']]
-  if  answer['comment']!='':
+  if answer['comment']!='':
     doc['comment'] = answer['comment']
+  if answer['sample']!='--':
+    doc['sample'] = answer['sample'].split('|')[-1].strip()
+
+  # if answer['procedure']!='--':
+  #   doc['procedure'] = answer['procedure'].split('|').strip()
   #clean open windows
   viewer.terminate()
   viewer.kill() #on windows could be skiped
