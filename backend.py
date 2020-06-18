@@ -165,7 +165,7 @@ class JamDB:
           path = self.cwd+doc['name']
         else:                                                     #make up name
           md5sum  = None
-        if md5sum is not None:
+        if md5sum is not None and doc['type'][0]=='measurement':         #samples, procedures not added to md5 database, getMeasurement not sensible
           if md5sum == '':
             with open(self.basePath+path,'rb') as fIn:
               md5sum = hashlib.md5(fIn.read()).hexdigest()

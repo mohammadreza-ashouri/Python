@@ -1,13 +1,13 @@
 """Class for interaction with couchDB
 """
-import traceback, json, logging, os
+import traceback, json, logging, os, warnings
 from cloudant.client import CouchDB, Cloudant
 from cloudant.document import Document
 from cloudant.view import View
 from cloudant.design_document import DesignDocument
 from cloudant.replicator import Replicator
-from commonTools import commonTools as cT
 from miscTools import bcolors
+from commonTools import commonTools as cT
 
 class Database:
   """
@@ -95,6 +95,7 @@ class Database:
     """
     if deleteDB:
       self.db.client.delete_database(self.databaseName)
+    warnings.simplefilter("ignore")  #client disconnect triggers ignored ResourceWarning on socket
     self.client.disconnect()
     return
 

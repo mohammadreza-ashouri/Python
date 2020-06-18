@@ -36,9 +36,11 @@ def curate(doc):
     if item['name']=='sample':
       samples = be.output("Samples",printID=True).split("\n")[2:-1]
       samples = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in samples]
-      item['choices'] = samples+['--']
+      item['choices'] = ['--']+samples
     if item['name']=='procedure':
-      item['choices'] = ['2Large', '2Medium', '2Small']
+      procedures = be.output("Procedures",printID=True).split("\n")[2:-1]
+      procedures = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in procedures]
+      item['choices'] = ['--']+procedures
   answer = prompt(questions)
   if answer['measurementType']!='':
     doc['type']    = ['measurement', '', answer['measurementType']]
@@ -46,9 +48,8 @@ def curate(doc):
     doc['comment'] = answer['comment']
   if answer['sample']!='--':
     doc['sample'] = answer['sample'].split('|')[-1].strip()
-
-  # if answer['procedure']!='--':
-  #   doc['procedure'] = answer['procedure'].split('|').strip()
+  if answer['procedure']!='--':
+    doc['procedure'] = answer['procedure'].split('|')[-1].strip()
   #clean open windows
   viewer.terminate()
   viewer.kill() #on windows could be skiped
@@ -125,7 +126,7 @@ while be.alive:
       continue
     for name, value in zip(names, values):
       question[0]['choices'].append({'name': name, 'value': 'function_changeHierarchy_'+value})
-  else:
+  else:  #form
     #ask for measurements, samples, procedures, projects, ...
     #create form (=sequence of questions for string input) is dynamically created from dataDictonary
     docType = nextMenu.split('_')[1]
@@ -134,7 +135,6 @@ while be.alive:
       for type_, label_ in be.db.dataLabels:
         if label_ == docType:
           docType = type_
-    docLabel = next(iter(be.dataDictionary[docType]))
     for line in be.dataDictionary[docType]['default']:  # iterate over all data stored within this docType
       ### convert line into json-string that PyInquirer understands
       # decode incoming json
