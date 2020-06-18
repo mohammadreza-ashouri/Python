@@ -185,9 +185,9 @@ class JamDB:
             doc['_id'] = view[0]['id']
             doc['md5sum'] = md5sum
             edit = True
-        elif doc['type'][0]=='procedure':
+        elif doc['type'][0]=='procedure' and path is not None:
           with open(self.basePath+path,'r') as fIn:
-            doc['content'] = fIn.read() #TODO
+            doc['content'] = fIn.read()
     # assemble branch information
     doc['branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
     if edit:
@@ -542,13 +542,14 @@ class JamDB:
     return self.db.getDoc(id)
 
 
-  def replicateDB(self, remoteDB=None, removeAtStart=False):
+  def replicateDB(self, remoteDB=None, removeAtStart=False, callback=None):
     """
     Replicate local database to remote database
 
     Args:
         remoteDB: if given, use this name for external db
         removeAtStart: remove remote DB before starting new
+        callback: un-used placeholder to achieve common interface
     """
     if remoteDB is not None:
       self.remoteDB['database'] = remoteDB
@@ -556,9 +557,12 @@ class JamDB:
     return
 
 
-  def checkDB(self):
+  def checkDB(self, callback=None):
     """
     Wrapper of check database for consistencies by iterating through all documents
+
+    Args:
+      callback: un-used placeholder to achieve common interface
     """
     return self.db.checkDB(self.basePath)
 

@@ -325,7 +325,10 @@ class Database:
             outstring+= f'{bcolors.FAIL}**ERROR branch length >1 for text'+doc['_id']+' '+str(doc['type'])+f'{bcolors.ENDC}\n'
           for branch in doc['branch']:
             if len(branch['stack'])==0 and doc['type']!=['text','project']:
-              outstring+= f'{bcolors.WARNING}**WARNING branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
+              if doc['type'][0] == 'procedure':
+                outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
+              else:
+                outstring+= f'{bcolors.WARNING}**WARNING branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
             if branch['path'] is None:
               if doc['type'][0] == 'procedure' or doc['type'][0] == 'sample':
                 outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'
@@ -336,7 +339,10 @@ class Database:
             else:
               if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):
                 if '://' not in branch['path']:
-                  outstring+= f'{bcolors.HEADER}**UNSURE branch stack and path lengths do not match '+doc['_id']+f'{bcolors.ENDC}\n'
+                  if doc['type'][0] == 'procedure':
+                    outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths do not match for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
+                  else:
+                    outstring+= f'{bcolors.HEADER}**UNSURE branch stack and path lengths do not match '+doc['_id']+f'{bcolors.ENDC}\n'
 
         #doc-type specific tests
         if doc['type'][0] == 'sample':

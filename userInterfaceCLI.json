@@ -20,7 +20,8 @@
    {"Find new data & clean directories" :"function_scanTree"},
    {"Create data in directories":        "function_scanTree_produceData"},
    {"Compare directory data to database":"function_scanTree_compareToDB"},
-   {"Replicate database":                "function_replicateDB"}
+   {"Replicate database":                "function_replicateDB"},
+   {"Check database integrity":          "function_checkDB"}
 ],
 "edit":["Edit text in Markdown"],
 "__comment__curate follows the shape of default PyInquirer: see pizza.py":"",

@@ -165,7 +165,7 @@ class TestStringMethods(unittest.TestCase):
       output = self.be.checkDB()
       print(output)
       self.assertTrue(output.count('**UNSURE')==1,"UNSURE string !=1 in output")
-      self.assertTrue(output.count('**WARNING')==1,"WARNING string !=1 in output")
+      self.assertTrue(output.count('**WARNING')==0,"WARNING string in output")
       self.assertTrue(output.count('**ERROR')==0,"ERROR string in output")
       print("Replication test")
       self.be.replicateDB(databaseName,True)
