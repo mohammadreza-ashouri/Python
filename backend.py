@@ -185,6 +185,9 @@ class JamDB:
             doc['_id'] = view[0]['id']
             doc['md5sum'] = md5sum
             edit = True
+        elif doc['type'][0]=='procedure':
+          with open(self.basePath+path,'r') as fIn:
+            doc['content'] = fIn.read() #TODO
     # assemble branch information
     doc['branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
     if edit:
@@ -580,28 +583,29 @@ class JamDB:
     docType = list(dict(docList).keys())[idx]
     for item in self.db.dataDictionary[docType]['default']:
       if item['length']!=0:
-        outputString = '{0: <'+str(abs(item['length']))+'}'
-        outString.append(outputString.format(item['name']) )
+        formatString = '{0: <'+str(abs(item['length']))+'}'
+        outString.append(formatString.format(item['name']) )
     outString = '|'.join(outString)+'\n'
     outString += '-'*110+'\n'
     for lineItem in self.db.getView(view+os.sep+view):
       rowString = []
       for idx, item in enumerate(self.db.dataDictionary[docType]['default']):
         if item['length']!=0:
-          outputString = '{0: <'+str(abs(item['length']))+'}'
+          formatString = '{0: <'+str(abs(item['length']))+'}'
           if isinstance(lineItem['value'][idx], str ):
-            formatString = lineItem['value'][idx]
+            contentString = lineItem['value'][idx]
           else:
-            formatString = ' '.join(lineItem['value'][idx])
+            contentString = ' '.join(lineItem['value'][idx])
+          contentString = contentString.replace('\n',' ')
           if item['length']<0:  #test if value as non-trivial length
             if lineItem['value'][idx]=='true' or lineItem['value'][idx]=='false':
-              formatString = lineItem['value'][idx]
+              contentString = lineItem['value'][idx]
             elif len(lineItem['value'][idx])>1 and len(lineItem['value'][idx][0])>3:
-              formatString = 'true'
+              contentString = 'true'
             else:
-              formatString = 'false'
-            # formatString = True if formatString=='true' else False
-          rowString.append(outputString.format(formatString)[:abs(item['length'])] )
+              contentString = 'false'
+            # contentString = True if contentString=='true' else False
+          rowString.append(formatString.format(contentString)[:abs(item['length'])] )
       if printID:
         rowString.append(' '+lineItem['id'])
       outString += '|'.join(rowString)+'\n'

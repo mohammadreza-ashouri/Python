@@ -57,6 +57,8 @@ class Database:
             outputList.append('doc.tags.join(' ')')
           elif item['name'] == 'type':
             outputList.append('doc.type.slice(1).join("/")')
+          elif item['name'] == 'content':
+            outputList.append('doc.content.slice(0,100)')
           else:
             outputList.append('doc.'+item['name'])
         outputList = ','.join(outputList)
