@@ -66,13 +66,12 @@ class JamDB:
     return
 
 
-  def exit(self, deleteDB=False, callback=None):
+  def exit(self, deleteDB=False, **kwargs):
     """
     Shutting down things
 
     Args:
       deleteDB: remove database
-      callback: un-used placeholder to achieve common interface
     """
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
@@ -85,7 +84,7 @@ class JamDB:
   ######################################################
   ### Change in database
   ######################################################
-  def addData(self, docType, doc, hierStack=[], localCopy=False, forceNewImage=False, callback=None):
+  def addData(self, docType, doc, hierStack=[], localCopy=False, forceNewImage=False, **kwargs):
     """
     Save doc to database, also after edit
 
@@ -97,6 +96,7 @@ class JamDB:
         forceNewImage: create new image in any case
     """
     logging.debug('addData beginning doc: '+docType+' | hierStack'+str(hierStack))
+    callback = kwargs.get('callback', None)
     doc['user']   = self.userID
     childNum       = 9999
     path           = None
@@ -230,13 +230,12 @@ class JamDB:
   ######################################################
   ### Disk directory/folder methods
   ######################################################
-  def changeHierarchy(self, docID, childNum=None, callback=None):
+  def changeHierarchy(self, docID, childNum=None, **kwargs):
     """
     Change through text hierarchy structure
 
     Args:
         id: information on how to change
-        callback: un-used placeholder to achieve common interface
     """
     if docID is None or docID in self.hierList:  # none, 'project', 'step', 'task' are given: close
       self.hierStack.pop()
@@ -271,7 +270,7 @@ class JamDB:
     return
 
 
-  def scanTree(self, method=None, callback=None):
+  def scanTree(self, method=None, **kwargs):
     """ Scan directory tree recursively from project/...
     - find changes on file system and move those changes to DB
     - use .id_jamDB.json to track changes of directories, aka projects/steps/tasks
@@ -291,6 +290,7 @@ class JamDB:
     if   method == 'produceData': produceData, compareToDB = True, False
     elif method == 'compareToDB': produceData, compareToDB = False, True
     else                        : produceData, compareToDB = False, False
+    callback = kwargs.get('callback', None)
 
     # get information from database
     view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0])
@@ -542,14 +542,13 @@ class JamDB:
     return self.db.getDoc(id)
 
 
-  def replicateDB(self, remoteDB=None, removeAtStart=False, callback=None):
+  def replicateDB(self, remoteDB=None, removeAtStart=False, **kwargs):
     """
     Replicate local database to remote database
 
     Args:
         remoteDB: if given, use this name for external db
         removeAtStart: remove remote DB before starting new
-        callback: un-used placeholder to achieve common interface
     """
     if remoteDB is not None:
       self.remoteDB['database'] = remoteDB
@@ -557,12 +556,9 @@ class JamDB:
     return
 
 
-  def checkDB(self, callback=None):
+  def checkDB(self, **kwargs):
     """
     Wrapper of check database for consistencies by iterating through all documents
-
-    Args:
-      callback: un-used placeholder to achieve common interface
     """
     return self.db.checkDB(self.basePath)
 
@@ -570,7 +566,7 @@ class JamDB:
   ######################################################
   ### OUTPUT COMMANDS and those connected to it      ###
   ######################################################
-  def output(self, docLabel, printID=False, callback=None):
+  def output(self, docLabel, printID=False, **kwargs):
     """
     output view to screen
     - length of output 110 character
@@ -578,7 +574,6 @@ class JamDB:
     Args:
       docLabel: document label to output
       printID:  include docID in output string
-      callback: un-used placeholder to achieve common interface
     """
     view = 'view'+docLabel
     outString = []
@@ -616,7 +611,7 @@ class JamDB:
     return outString
 
 
-  def outputHierarchy(self, onlyHierarchy=True, addID=False, addTags=None):
+  def outputHierarchy(self, onlyHierarchy=True, addID=False, addTags=None, **kwargs):
     """
     output hierarchical structure in database
     - convert view into native dictionary

@@ -3,7 +3,7 @@
 ####  COMMAND LINE INTERFACE  ####
 ##################################
 import copy, json, os, sys
-from PyInquirer import prompt, Separator
+from questionary import prompt, Separator
 from pprint import pprint
 #for measurement curation
 import subprocess, tempfile, os
@@ -86,7 +86,7 @@ while be.alive:
       if 'expand' in item:
         expand = item.pop('expand')
       key, value = item.popitem()
-      #use properties to
+      #use properties to augment question
       if append is not None:
         if append == 'thisLevel':
           append = be.hierList[len(be.hierStack)-1] if len(be.hierStack) > 0 else None
@@ -106,11 +106,6 @@ while be.alive:
       #create list of choices
       for item in expand:
         question[0]['choices'].append({'name': key+item, 'value': value+item[1:]})
-  elif nextMenu == 'edit':
-    #edit menu
-    question = {'default': '', 'eargs': be.eargs, 'message': menuOutline['edit'][0],
-                'name': 'comment', 'type': 'editor'}
-    question['default'] = be.getEditString()
   elif nextMenu.startswith('change'):
     #change menu
     question = [{'type': 'list', 'name': 'choice', 'message': nextMenu, 'choices':[]}]
@@ -168,20 +163,27 @@ while be.alive:
       nextMenu = answer[1]
     elif answer[0] == 'form':
       nextMenu = '_'.join(answer)
-    else:   #e.g. function
-      if len(answer) == 2:
+    else:   #function and direct
+      res = None
+      if answer[1] == 'edit': #direct
+        tmpFileName = tempfile.gettempdir()+os.sep+'tmpFilejamsDB'+be.eargs['ext']
+        with open(tmpFileName,'w') as fOut:
+          fOut.write( be.getEditString() )
+        os.system( be.eargs['editor']+' '+tmpFileName)
+        with open(tmpFileName,'r') as fIn:
+          be.setEditString(fIn.read())
+        os.unlink(tmpFileName)
+      elif len(answer) == 2: #function
         res = getattr(be, answer[1])(callback=curate)
-      elif len(answer) > 2:
+      elif len(answer) > 2: #function
         res = getattr(be, answer[1])('_'.join(answer[2:]), callback=curate)
-      else:
-        res = ''
       if res is not None:
         print(res)  #output string returned from e.g. output-projects
       nextMenu = 'main'
   else:
     # all data collected, save it
     if nextMenu=='edit': #edit-> update data
-      be.setEditString(answer['comment'])
+      print("I SHOULD NOT BE HERE")
     elif len(answer)!=0 and len(answer['name'])>0:
       be.addData(docType, answer)
     else:

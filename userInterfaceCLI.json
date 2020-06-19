@@ -3,7 +3,7 @@
 "main":[ "Main menu",
    {"Add new":             "form_",                     "append":"nextLevel"},
    {"Open":                "menu_change",               "append":"nextLevel"},
-   {"Edit this":           "menu_edit_",                "append":"thisLevel"},
+   {"Edit this":           "direct_edit_",              "append":"thisLevel"},
    {"Close this":          "function_changeHierarchy_", "append":"thisLevel"},
    {"---":                 ""},
    {"Add to":              "form_",                     "expand":"docLabel"},
@@ -23,7 +23,6 @@
    {"Replicate database":                "function_replicateDB"},
    {"Check database integrity":          "function_checkDB"}
 ],
-"edit":["Edit text in Markdown"],
 "__comment__curate follows the shape of default PyInquirer: see pizza.py":"",
 "curate":[
    {"type": "input", "name": "comment",        "message": "Comment, #tags, :field:1:?",          "default":"" },
