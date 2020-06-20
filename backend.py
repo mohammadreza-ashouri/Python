@@ -5,12 +5,14 @@ import os, json, base64, hashlib, shutil, re, sys
 import importlib
 import numpy as np
 import matplotlib.pyplot as plt
+import PIL
 import logging
 from io import StringIO, BytesIO
 from urllib import request
 from pprint import pprint
 from database import Database
 from commonTools import commonTools as cT
+from miscTools import bcolors
 
 
 class JamDB:
@@ -285,7 +287,7 @@ class JamDB:
     """
     logging.info('scanTree started with method '+str(method))
     if len(self.hierStack) == 0:
-      logging.warning('scanTree: No project selected')
+      print(f'{bcolors.FAIL}Warning - scan directory: No project selected{bcolors.ENDC}')
       return
     if   method == 'produceData': produceData, compareToDB = True, False
     elif method == 'compareToDB': produceData, compareToDB = False, True
@@ -452,7 +454,7 @@ class JamDB:
           os.remove(filePath)
 
 
-  def getMeasurement(self, filePath, md5sum, doc, maxSize=600):
+  def getMeasurement(self, filePath, md5sum, doc, **kwargs):
     """
     get measurements from datafile: central distribution point
     - max image size defined here
@@ -464,6 +466,8 @@ class JamDB:
         maxSize: maximum size of jpeg images
     """
     logging.info('getMeasurement started for path '+filePath)
+    maxSize = kwargs.get('maxSize', 600)
+    show    = kwargs.get('show', False)
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = filePath
@@ -477,6 +481,11 @@ class JamDB:
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
       image, imgType, meta = module.getMeasurement(absFilePath, doc)
+      if show:
+        if isinstance(image, PIL.Image.Image):
+          image.show()
+        else:
+          plt.show()
       # depending on imgType: produce image
       if imgType == 'svg':  #no scaling
         figfile = StringIO()

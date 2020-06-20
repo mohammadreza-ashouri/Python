@@ -17,6 +17,14 @@
       "request": "launch",
       "program": "${workspaceFolder}/jamDB_CLI.py",
       "console": "externalTerminal",
+    },
+    {
+      "name": "filterTest",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/jamDB.py",
+      "args":   ["filterTest", "ColinPailletFranceInGaN/000_InitialSEMInvestigation/BF37a01.tif"],
+      "console": "externalTerminal",
     }
   ]
 }

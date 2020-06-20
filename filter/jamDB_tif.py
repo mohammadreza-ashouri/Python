@@ -13,8 +13,8 @@ def getMeasurement(fileName, doc):
     # try Steffen's Tif library
     i = Tif(fileName)
     if i is not None:
-      if doc['type'][-1] =='maximum Contrast':
-        i.enhance('a')
+      if doc['type'][-1] =='no scale':
+        i.enhance()
         measurementType = doc['type'][1:]
       else:                                #default
         i.enhance()
@@ -31,6 +31,9 @@ def getMeasurement(fileName, doc):
     # if nothing successful
     return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
   except:
+    print("Image failure")
+    print(traceback.format_exc())
+    print(doc)
     logging.error("image_tif: Tif "+fileName)
     logging.error(traceback.format_exc())
     return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}

@@ -6,7 +6,8 @@ import copy, json, os, sys
 from questionary import prompt, Separator
 from pprint import pprint
 #for measurement curation
-import subprocess, tempfile, os
+import subprocess, tempfile, os, base64, io
+from PIL import Image
 #the package
 from backend import JamDB
 
@@ -28,6 +29,12 @@ def curate(doc):
     # optional code if viewer (mac/windows) cannot display svg
     # cairosvg.svg2png(bytestring=doc['image'], write_to=tempfile.gettempdir()+os.sep+'tmpFilejamsDB.png')
     viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg' ])
+  elif doc['image'].startswith('data:image'):  #for jpg and png
+    print(doc['image'][22:30])
+    imgdata = base64.b64decode(doc['image'][22:])
+    image = Image.open(io.BytesIO(imgdata))
+    image.save(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg', format='JPEG')
+    viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg' ])
   #prepare question and ask question and use answer
   questions = menuOutline['curate']
   for item in questions:
@@ -42,6 +49,16 @@ def curate(doc):
       procedures = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in procedures]
       item['choices'] = ['--']+procedures
   answer = prompt(questions)
+  #clean open windows
+  viewer.terminate()
+  viewer.kill() #on windows could be skiped
+  viewer.wait() #wait for process to close
+  if os.path.exists(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg'):
+    os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg')
+  if os.path.exists(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg'):
+    os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg')
+  if len(answer)==0:  #ctrl-c hit
+    return False
   if answer['measurementType']!='':
     doc['type']    = ['measurement', '', answer['measurementType']]
   if answer['comment']!='':
@@ -50,11 +67,6 @@ def curate(doc):
     doc['sample'] = answer['sample'].split('|')[-1].strip()
   if answer['procedure']!='--':
     doc['procedure'] = answer['procedure'].split('|')[-1].strip()
-  #clean open windows
-  viewer.terminate()
-  viewer.kill() #on windows could be skiped
-  viewer.wait() #wait for process to close
-  os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg')
   return answer['measurementType']!=''  #True: rerun; False: no new scan is necessary
 
 
@@ -78,6 +90,9 @@ while be.alive:
     question = [{'type': 'list', 'name': 'choice', 'message': thisMenu[0], 'choices':[]}]
     for idx, item in enumerate(thisMenu):
       if idx == 0:
+        continue
+      if '---' in item:
+        question[0]['choices'].append(Separator())
         continue
       #extract properties of dictionary item
       append, expand = None, None
