@@ -534,6 +534,8 @@ class JamDB:
             'metaUser':metaUser, 'metaVendor':metaVendor, 'md5sum':md5sum}
     logging.info('getMeasurement: success')
     doc.update(document)
+    if show:
+      print("Measurement type:",document['type'])
     if 'comment' not in doc: doc['comment']=''
     return
 

@@ -21,7 +21,8 @@ Possible commands are:
 ''')
 argparser.add_argument('command', help='print, clean, scan, produce, compare, hierarchy, newDB')
 argparser.add_argument('item',    help="'Projects', 'Samples', 'Measurements', 'Procedures', 'documentID'")
-argparser.add_argument('-db','--database', help='name of database configuration')
+argparser.add_argument('-db','--database', help='name of database configuration') #required for be = JamDB(args.database)
+argparser.add_argument('--options', help='Options for filterTest')
 args = argparser.parse_args()
 if args.command=='newDB':
   #use new database configuration and store in local-config file
@@ -41,7 +42,10 @@ else:
     elif args.command=='cleanAll':
       be.cleanTree(all=True)
     elif args.command=='filterTest':
-      be.getMeasurement(args.item,"empty_md5sum",{'type':['']},show=True)
+      if args.options is None:
+        be.getMeasurement(args.item,"empty_md5sum",{'type':['measurement', '']},show=True)
+      else:
+        be.getMeasurement(args.item,"empty_md5sum",{'type':['measurement', '', args.options]},show=True)
     else:
       #all commands that require an open project
       be.changeHierarchy(args.item)

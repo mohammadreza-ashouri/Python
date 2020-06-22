@@ -13,13 +13,15 @@ def getMeasurement(fileName, doc):
     # try Steffen's Tif library
     i = Tif(fileName)
     if i is not None:
-      if doc['type'][-1] =='no scale':
+      if not 'no_autoCrop' in doc['type'][-1]:
+        i.autoCrop()
+      if "adaptive" in doc['type'][-1]:
+        i.enhance("adaptive")
+      else:
         i.enhance()
-        measurementType = doc['type'][1:]
-      else:                                #default
-        i.enhance()
+      if not 'no_scale' in doc['type'][-1]:
         i.addScaleBar()
-        measurementType = [i.meta.pop('measurementType')]
+      measurementType = [i.meta.pop('measurementType')] + doc['type'][2:]
       meta = {'measurementType':measurementType,
               'metaVendor':i.meta,
               'metaUser':{}}
