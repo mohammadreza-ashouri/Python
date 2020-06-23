@@ -285,7 +285,7 @@ class Database:
     outstring+= f'{bcolors.WARNING}Yellow: WARNING should not happen (e.g. procedures without project){bcolors.ENDC}\n'
     outstring+= f'{bcolors.FAIL}Red: FAILURE and ERROR: NOT ALLOWED AT ANY TIME{bcolors.ENDC}\n'
     outstring+= 'Normal text: not understood, did not appear initially\n'
-    outstring+= f'{bcolors.UNDERLINE}**** DOCUMENTS ****{bcolors.ENDC}\n'
+    outstring+= f'{bcolors.UNDERLINE}**** List all DOCUMENTS ****{bcolors.ENDC}\n'
     ## loop all documents
     for doc in self.db:
       if '_design' in doc['_id']:
@@ -303,10 +303,11 @@ class Database:
           outstring+= f'{bcolors.FAIL}**ERROR current_rev length not 3 '+doc['_id']+f'{bcolors.ENDC}\n'
           continue
         currentID = '-'.join(doc['_id'].split('-')[:-1])
-        if not self.db[currentID]:
+        try:
+          currentDoc= self.getDoc(currentID)
+        except:
           outstring+= f'{bcolors.FAIL}**ERROR current_rev current does not exist in db '+doc['_id']+' '+currentID+f'{bcolors.ENDC}\n'
           continue
-        currentDoc= self.getDoc(currentID)
         if currentDoc['_rev']!=doc['current_rev']:
           docIDarray = doc['_id'].split('-')
           nextRevision = '-'.join(docIDarray[:-1])+'-'+str(int(docIDarray[-1])+1)
@@ -325,7 +326,7 @@ class Database:
             outstring+= f'{bcolors.FAIL}**ERROR branch length >1 for text'+doc['_id']+' '+str(doc['type'])+f'{bcolors.ENDC}\n'
           for branch in doc['branch']:
             if len(branch['stack'])==0 and doc['type']!=['text','project']:
-              if doc['type'][0] == 'procedure':
+              if doc['type'][0] == 'procedure' or  doc['type'][0] == 'sample':
                 outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
               else:
                 outstring+= f'{bcolors.WARNING}**WARNING branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
@@ -363,7 +364,7 @@ class Database:
           outstring+= f'{bcolors.FAIL}**ERROR unknown doctype '+doc['_id']+' '+str(doc['type'])+f'{bcolors.ENDC}\n'
 
     ##TEST views
-    outstring+= f'{bcolors.UNDERLINE}**** VIEWS ****{bcolors.ENDC}\n'
+    outstring+= f'{bcolors.UNDERLINE}**** List problematic VIEWS ****{bcolors.ENDC}\n'
     view = self.getView('viewMD5/viewMD5')
     md5keys = []
     for item in view:
