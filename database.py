@@ -14,13 +14,15 @@ class Database:
   Class for interaction with couchDB
   """
 
-  def __init__(self, user, password, databaseName):
+  def __init__(self, user, password, databaseName, simulate):
     """
     Args:
         user: user name to local database
         password: password to local database
         databaseName: local database name
+        simulate: simulate writing documents to database. If True, do not write to database
     """
+    self.simulate = simulate
     try:
       self.client = CouchDB(user, password, url='http://127.0.0.1:5984', connect=True)
     except Exception:
@@ -124,7 +126,11 @@ class Database:
     doc['client'] = tracebackString
     del doc['branch']['op']  #remove operation, saveDoc creates and therefore always the same
     doc['branch'] = [doc['branch']]
-    res = self.db.create_document(doc)
+    if self.simulate:
+      print("Write doc")
+      pprint(doc)
+    else:
+      res = self.db.create_document(doc)
     return res
 
 
@@ -195,11 +201,21 @@ class Database:
 
     #add id to revisions and save
     newDoc['revisions'] = newDoc['revisions']+[oldDoc['_id']]
-    newDoc.save()
+    if self.simulate:
+      print("Update doc")
+      pprint(newDoc)
+      res = doc
+    else:
+      newDoc.save()
 
     #save _rev to backup for verification
     oldDoc['current_rev'] = newDoc['_rev']
-    res = self.db.create_document(oldDoc)
+    if self.simulate:
+      print("Write doc: old revision")
+      pprint(oldDoc)
+      res = doc
+    else:
+      res = self.db.create_document(oldDoc)
     return newDoc
 
 

@@ -2,7 +2,7 @@
 """ Python Backend
 """
 import os, json, base64, hashlib, shutil, re, sys
-import importlib
+import importlib, tempfile
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
@@ -20,12 +20,13 @@ class JamDB:
   PYTHON BACKEND
   """
 
-  def __init__(self, localName=None):
+  def __init__(self, localName=None, simulate=False):
     """
     open server and define database
 
     Args:
         localName: name of local database, otherwise taken from config file
+        simulate: simulate database writing. If True, no writing to database
     """
     # open configuration file and define database
     self.debug = True
@@ -42,7 +43,7 @@ class JamDB:
     user         = configuration[localName]['user']
     password     = configuration[localName]['password']
     databaseName = configuration[localName]['database']
-    self.db = Database(user, password, databaseName)
+    self.db = Database(user, password, databaseName, simulate=simulate)
     self.userID   = configuration['-userID']
     self.remoteDB = configuration[remoteName]
     self.eargs   = configuration['-eargs']
@@ -667,13 +668,16 @@ class JamDB:
     return self.outputHierarchy(True,True,'tags')
 
 
-  def setEditString(self, text):
+  def setEditString(self, text, callback=None):
     """
     Using Org-Mode string, replay the steps to update the database
 
     Args:
        text: org-mode structured text
+       callback: function to verify database change
     """
+    with open(tempfile.gettempdir()+os.sep+'tempSetEditString.txt','w') as fOut:
+      fOut.write(text)
     # add the prefix to org-mode structure lines
     prefix = '*'*len(self.hierStack)
     startLine = '^\*+\ '
@@ -712,12 +716,16 @@ class JamDB:
       children[-1] += 1
       # add doc to database:
       # - have to be in the directory to edit it
-      self.addData('-edit-', doc, self.hierStack)
+      if callback is not None:
+        success = callback(doc,self.hierStack)
+      if callback is None or success:
+        self.addData('-edit-', doc, self.hierStack)
       #update variables for next iteration
       hierLevel = docID
     #at end, go down ('cd  ..') number of children-length
     for i in range(len(children)-1):
       self.changeHierarchy(None)
+    os.unlink(tempfile.gettempdir()+os.sep+'tempSetEditString.txt')
     return
 
 

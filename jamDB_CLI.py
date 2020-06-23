@@ -14,7 +14,7 @@ from backend import JamDB
 
 ### INITIALIZATION
 sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
-be = JamDB()
+be = JamDB(simulate=True)
 # keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
 menuOutline = json.load(open(be.softwarePath+'/userInterfaceCLI.json', 'r'))
 
@@ -68,6 +68,14 @@ def curate(doc):
   if answer['procedure']!='--':
     doc['procedure'] = answer['procedure'].split('|')[-1].strip()
   return answer['measurementType']!=''  #True: rerun; False: no new scan is necessary
+
+  def verifyDoc(text):
+    print(text)
+    success = input("Is that ok? [y/N] ")
+    if success=='y':
+      return True
+    else:
+      return False
 
 
 ### MAIN LOOP
@@ -186,7 +194,7 @@ while be.alive:
           fOut.write( be.getEditString() )
         os.system( be.eargs['editor']+' '+tmpFileName)
         with open(tmpFileName,'r') as fIn:
-          be.setEditString(fIn.read())
+          be.setEditString(fIn.read(), callback=verifyDoc)
         os.unlink(tmpFileName)
       elif len(answer) == 2: #function
         res = getattr(be, answer[1])(callback=curate)
