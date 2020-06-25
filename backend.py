@@ -233,9 +233,10 @@ class JamDB:
   ######################################################
   ### Disk directory/folder methods
   ######################################################
-  def changeHierarchy(self, docID, childNum=None, **kwargs):
+  def changeHierarchy(self, docID, dirName=None, **kwargs):
     """
     Change through text hierarchy structure
+    change hierarchyStack, change directory, change stored cwd
 
     Args:
         id: information on how to change
@@ -249,26 +250,16 @@ class JamDB:
     else:  # existing ID is given: open that
       try:
         if self.cwd is not None:
-          doc = self.db.getDoc(docID)
-          path = doc['branch'][0]['path']
-          dirName = path.split(os.sep)[-1]
-          if childNum is not None:
-            dirName = self.createDirName(doc['name'],doc['type'][0],childNum)
-          if not os.path.exists(dirName):
-            #should only happen during complex edit: should not get None as childNum
-            #move directory; this is the first point where the non-existance of the folder is seen and can be corrected
-            #  changing it in addData(), happens after this and has no benefit
-            parentID = doc['branch'][0]['stack'][-1]  #exception handled
-            pathParent = self.db.getDoc(parentID)['branch'][0]['path']
-            path = pathParent+os.sep+path.split(os.sep)[-1]
-            shutil.move(self.basePath+path, dirName)
-            logging.info('changeHierarchy '+self.cwd+': Could not change into non-existant directory '+dirName+' Moved old one to here')
-          os.chdir(dirName)
+          if dirName is None:
+            doc = self.db.getDoc(docID)
+            path = doc['branch'][0]['path']
+            dirName = path.split(os.sep)[-1]
+          os.chdir(dirName)     #exception caught
           self.cwd += dirName+os.sep
         self.hierStack.append(docID)
       except:
         print('Could not change into hierarchy. id:'+docID+'  directory:'+dirName+'  cwd:'+self.cwd)
-    if self.debug and len(self.hierStack)==len(self.cwd.split(os.sep)):
+    if self.debug and len(self.hierStack)+1!=len(self.cwd.split(os.sep)):
       logging.error('changeHierarchy error')
     return
 
@@ -648,7 +639,7 @@ class JamDB:
       outString = cT.hierarchy2String(nativeView, addID, self.getDoc, 'all')
     elif addTags=='tags':
       outString = cT.hierarchy2String(nativeView, addID, self.getDoc, 'tags')
-    else:
+    else:  #why native view has extra "  " in StepFour?
       outString = cT.hierarchy2String(nativeView, addID, None, 'none')
     minPrefix = len(re.findall('^\*+',outString)[0])
     startLine = '\n\*{'+str(minPrefix)+'}'
@@ -691,37 +682,59 @@ class JamDB:
     docList = cT.editString2Docs(newText)
     # initialize iteration
     hierLevel = None
-    children   = [-1]
+    children   = [0]
     for doc in docList:
-      # add elements to doc
-      del doc['edit']  #since original state is unknown, each doc has edit
-      docID       = doc['type']
-      doc['type'] = ['text',self.hierList[docID]]
-      if hierLevel is not None and doc['type'][1] != 'project':
+      # identify docType
+      levelID     = doc['type']
+      doc['type'] = ['text',self.hierList[levelID]]
+      edit = '-edit-'
+      # change directories: downward
+      if hierLevel is not None:   #skip first run through
+        if levelID<hierLevel:
+          children.pop()
+          self.changeHierarchy(None)                        #'cd ..'
+          self.changeHierarchy(None)                        #'cd ..'
+          children[-1] += 1
+        elif levelID>hierLevel:
+          children.append(0)
+        else:
+          self.changeHierarchy(None)                        #'cd ..'
+          children[-1] += 1
+        #check if directory exists on disk
+        #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
+        dirName = self.createDirName(doc['name'],doc['type'][0],children[-1])
+        if not os.path.exists(dirName):                     #after move, deletion or because new
+          if doc['_id']=='':                                #because new
+            os.makedirs(dirName)
+            edit = doc['type'][-1]
+          else:                                             #after move
+            docDB = self.db.getDoc(doc['_id'])
+            path = docDB['branch'][0]['path']
+            if not os.path.exists(self.basePath+path):        #parent was moved: get 'path' from knowledge of parent
+              parentID = docDB['branch'][0]['stack'][-1]
+              pathParent = self.db.getDoc(parentID)['branch'][0]['path']
+              path = pathParent+os.sep+path.split(os.sep)[-1]
+            if not os.path.exists(self.basePath+path):        #if still does not exist
+              print("**ERROR** doc path was not found and parent path was not found\nReturn")
+              return
+            shutil.move(self.basePath+path, dirName)
+            logging.info('changeHierarchy '+self.cwd+': Could not change into non-existant directory '+dirName+' Moved old one to here')
+        if edit=='-edit-':
+          self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
         doc['childNum'] = children[-1]
+      # add information to doc and save to database
+      #   path and hierStack are added in self.addData
+      del doc['edit']  #since original state is unknown, each doc has edit
       if doc['objective']=='':
         del doc['objective']
-      #use variables to change directories
-      if hierLevel is not None and docID<hierLevel:
-        children.pop()
-        self.changeHierarchy(None)                        #'cd ..'
-        self.changeHierarchy(None)                        #'cd ..'
-        self.changeHierarchy(doc['_id'],children[-1]+1)   #'cd directory'
-      elif hierLevel is not None and docID>hierLevel:
-        children.append(-1)
-        self.changeHierarchy(doc['_id'],children[-1]+1)   #'cd directory'
-      elif hierLevel is not None:
-        self.changeHierarchy(None)                        #'cd ..'
-        self.changeHierarchy(doc['_id'],children[-1]+1)   #'cd directory'
-      children[-1] += 1
-      # add doc to database:
-      # - have to be in the directory to edit it
       if callback is not None:
         success = callback(doc,self.hierStack)
       if callback is None or success:
-        self.addData('-edit-', doc, self.hierStack)
+        self.addData(edit, doc, self.hierStack)
       #update variables for next iteration
-      hierLevel = docID
+      if edit!="-edit-" and hierLevel is not None:
+        self.changeHierarchy(self.currentID)   #'cd directory'
+      hierLevel = levelID
     #at end, go down ('cd  ..') number of children-length
     for i in range(len(children)-1):
       self.changeHierarchy(None)

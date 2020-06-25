@@ -15,6 +15,7 @@ from backend import JamDB
 ### INITIALIZATION
 sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
 be = JamDB(simulate=True)
+print("SIMULATE ON")
 # keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
 menuOutline = json.load(open(be.softwarePath+'/userInterfaceCLI.json', 'r'))
 
