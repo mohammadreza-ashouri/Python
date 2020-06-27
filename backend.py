@@ -559,11 +559,11 @@ class JamDB:
     return
 
 
-  def checkDB(self, **kwargs):
+  def checkDB(self,  mode=None, **kwargs):
     """
     Wrapper of check database for consistencies by iterating through all documents
     """
-    return self.db.checkDB(self.basePath)
+    return self.db.checkDB(self.basePath, mode, **kwargs)
 
 
   ######################################################
@@ -728,7 +728,9 @@ class JamDB:
       if doc['objective']=='':
         del doc['objective']
       if callback is not None:
-        success = callback(doc,self.hierStack)
+        print("Add with stack",self.hierStack)
+        pprint(doc)
+        success = callback('confirm')
       if callback is None or success:
         self.addData(edit, doc, self.hierStack)
       #update variables for next iteration

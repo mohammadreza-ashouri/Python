@@ -6,6 +6,7 @@ from cloudant.document import Document
 from cloudant.view import View
 from cloudant.design_document import DesignDocument
 from cloudant.replicator import Replicator
+from pprint import pprint
 from miscTools import bcolors
 from commonTools import commonTools as cT
 
@@ -283,7 +284,7 @@ class Database:
     return
 
 
-  def checkDB(self,basepath=None):
+  def checkDB(self,basepath=None, mode=None, **kwargs):
     """
     Check database for consistencies by iterating through all documents
     - slow since no views used
@@ -315,6 +316,17 @@ class Database:
       # - id has correct shape and original does exist
       # - current_rev is correct
       if 'current_rev' in doc:
+        if mode=='delRevisions':
+          print('DELETE DOC: ')
+          pprint(dict(doc))
+          callback = kwargs.get('callback', None)
+          if callback is None:
+            deleteDoc = True
+          else:
+            deleteDoc = callback('confirm')
+          if deleteDoc:
+            doc.delete()
+          continue
         if len(doc['_id'].split('-'))!=3:
           outstring+= f'{bcolors.FAIL}**ERROR current_rev length not 3 '+doc['_id']+f'{bcolors.ENDC}\n'
           continue

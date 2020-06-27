@@ -22,61 +22,61 @@ menuOutline = json.load(open(be.softwarePath+'/userInterfaceCLI.json', 'r'))
 
 ### Curate by user: say measurement good/bad/ugly
 def curate(doc):
-  print('\n=>Curate measurement: '+doc['name'])
-  #show image
-  if doc['image'].startswith('<?xml'):
-    with open(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg','w') as outFile:
-      outFile.write(doc['image'])
-    # optional code if viewer (mac/windows) cannot display svg
-    # cairosvg.svg2png(bytestring=doc['image'], write_to=tempfile.gettempdir()+os.sep+'tmpFilejamsDB.png')
-    viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg' ])
-  elif doc['image'].startswith('data:image'):  #for jpg and png
-    print(doc['image'][22:30])
-    imgdata = base64.b64decode(doc['image'][22:])
-    image = Image.open(io.BytesIO(imgdata))
-    image.save(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg', format='JPEG')
-    viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg' ])
-  #prepare question and ask question and use answer
-  questions = menuOutline['curate']
-  for item in questions:
-    if item['name']=='comment' and 'comment' in doc:
-      item['default'] = doc['comment']
-    if item['name']=='sample':
-      samples = be.output("Samples",printID=True).split("\n")[2:-1]
-      samples = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in samples]
-      item['choices'] = ['--']+samples
-    if item['name']=='procedure':
-      procedures = be.output("Procedures",printID=True).split("\n")[2:-1]
-      procedures = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in procedures]
-      item['choices'] = ['--']+procedures
-  answer = prompt(questions)
-  #clean open windows
-  viewer.terminate()
-  viewer.kill() #on windows could be skiped
-  viewer.wait() #wait for process to close
-  if os.path.exists(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg'):
-    os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg')
-  if os.path.exists(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg'):
-    os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg')
-  if len(answer)==0:  #ctrl-c hit
-    return False
-  if answer['measurementType']!='':
-    doc['type']    = ['measurement', '', answer['measurementType']]
-  if answer['comment']!='':
-    doc['comment'] = answer['comment']
-  if answer['sample']!='--':
-    doc['sample'] = answer['sample'].split('|')[-1].strip()
-  if answer['procedure']!='--':
-    doc['procedure'] = answer['procedure'].split('|')[-1].strip()
-  return answer['measurementType']!=''  #True: rerun; False: no new scan is necessary
-
-  def verifyDoc(text):
-    print(text)
+  if doc=="confirm":
     success = input("Is that ok? [y/N] ")
     if success=='y':
       return True
     else:
       return False
+  else:
+    print('\n=>Curate measurement: '+doc['name'])
+    #show image
+    if doc['image'].startswith('<?xml'):
+      with open(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg','w') as outFile:
+        outFile.write(doc['image'])
+      # optional code if viewer (mac/windows) cannot display svg
+      # cairosvg.svg2png(bytestring=doc['image'], write_to=tempfile.gettempdir()+os.sep+'tmpFilejamsDB.png')
+      viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg' ])
+    elif doc['image'].startswith('data:image'):  #for jpg and png
+      print(doc['image'][22:30])
+      imgdata = base64.b64decode(doc['image'][22:])
+      image = Image.open(io.BytesIO(imgdata))
+      image.save(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg', format='JPEG')
+      viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg' ])
+    #prepare question and ask question and use answer
+    questions = menuOutline['curate']
+    for item in questions:
+      if item['name']=='comment' and 'comment' in doc:
+        item['default'] = doc['comment']
+      if item['name']=='sample':
+        samples = be.output("Samples",printID=True).split("\n")[2:-1]
+        samples = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in samples]
+        item['choices'] = ['--']+samples
+      if item['name']=='procedure':
+        procedures = be.output("Procedures",printID=True).split("\n")[2:-1]
+        procedures = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in procedures]
+        item['choices'] = ['--']+procedures
+    answer = prompt(questions)
+    #clean open windows
+    viewer.terminate()
+    viewer.kill() #on windows could be skiped
+    viewer.wait() #wait for process to close
+    if os.path.exists(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg'):
+      os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg')
+    if os.path.exists(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg'):
+      os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg')
+    if len(answer)==0:  #ctrl-c hit
+      return False
+    if answer['measurementType']!='':
+      doc['type']    = ['measurement', '', answer['measurementType']]
+    if answer['comment']!='':
+      doc['comment'] = answer['comment']
+    if answer['sample']!='--':
+      doc['sample'] = answer['sample'].split('|')[-1].strip()
+    if answer['procedure']!='--':
+      doc['procedure'] = answer['procedure'].split('|')[-1].strip()
+    return answer['measurementType']!=''  #True: rerun; False: no new scan is necessary
+
 
 
 ### MAIN LOOP
@@ -195,7 +195,7 @@ while be.alive:
           fOut.write( be.getEditString() )
         os.system( be.eargs['editor']+' '+tmpFileName)
         with open(tmpFileName,'r') as fIn:
-          be.setEditString(fIn.read(), callback=verifyDoc)
+          be.setEditString(fIn.read(), callback=curate)
         os.unlink(tmpFileName)
       elif len(answer) == 2: #function
         res = getattr(be, answer[1])(callback=curate)
