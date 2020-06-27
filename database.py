@@ -324,6 +324,11 @@ class Database:
         except:
           outstring+= f'{bcolors.FAIL}**ERROR current_rev current does not exist in db '+doc['_id']+' '+currentID+f'{bcolors.ENDC}\n'
           continue
+        if 'branch' in doc:
+          for branch in doc['branch']:
+            dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
+            if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
+              outstring+= f'{bcolors.FAIL}**ERROR child-number and dirName dont match '+doc['_id']+f'{bcolors.ENDC}\n'
         if currentDoc['_rev']!=doc['current_rev']:
           docIDarray = doc['_id'].split('-')
           nextRevision = '-'.join(docIDarray[:-1])+'-'+str(int(docIDarray[-1])+1)
@@ -346,6 +351,10 @@ class Database:
                 outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
               else:
                 outstring+= f'{bcolors.WARNING}**WARNING branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
+            if doc['type'][0]=='text':
+              dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
+              if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
+                outstring+= f'{bcolors.FAIL}**ERROR child-number and dirName dont match '+doc['_id']+f'{bcolors.ENDC}\n'
             if branch['path'] is None:
               if doc['type'][0] == 'procedure' or doc['type'][0] == 'sample':
                 outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'

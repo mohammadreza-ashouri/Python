@@ -34,11 +34,11 @@ class JamDB:
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
-    logging.info('\nSTART JAMS '+localName)
     with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
       configuration = json.load(f)
     if localName is None:
       localName = configuration['-defaultLocal']
+    logging.info('\nSTART JAMS '+localName)
     remoteName= configuration['-defaultRemote']
     user         = configuration[localName]['user']
     password     = configuration[localName]['password']
