@@ -189,7 +189,7 @@ class Database:
         oldDoc[item] = newDoc[item]
         newDoc[item] = change[item]
     if nothingChanged:
-      logging.info('database:updateDoc no change of content compared to DB')
+      logging.info('database:updateDoc no change of content: '+newDoc['name'])
       return newDoc
 
     #produce _id of revDoc
@@ -206,7 +206,7 @@ class Database:
       pprint(newDoc)
       res = doc
     else:
-      newDoc.save()
+      newDoc.save()  #TODO: exception (update) occurs sometimes
 
     #save _rev to backup for verification
     oldDoc['current_rev'] = newDoc['_rev']

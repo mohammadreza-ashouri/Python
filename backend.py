@@ -30,11 +30,11 @@ class JamDB:
     """
     # open configuration file and define database
     self.debug = True
-    logging.basicConfig(filename='jamDB.log', filemode='w', format='%(levelname)s:%(message)s', level=logging.DEBUG)
+    logging.basicConfig(filename='jamDB.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
-    logging.info('\nSTART JAMS')
+    logging.info('\nSTART JAMS '+localName)
     with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
       configuration = json.load(f)
     if localName is None:
@@ -210,7 +210,7 @@ class JamDB:
       with open(self.basePath+path+'/.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(doc))
     self.currentID = doc['_id']
-    logging.debug('addData ending doc'+doc['_id']+' '+doc['_rev']+' '+doc['type'][0])
+    logging.debug('addData ending doc '+doc['_id']+' '+doc['_rev']+' '+doc['type'][0])
     return
 
 
@@ -402,7 +402,7 @@ class JamDB:
           del database[fileName]
         else:
           #not in database, create database entry: if it already exists, self.addData takes care of it
-          logging.info(file+' file not in database. Create in database')
+          logging.info(file+' file not in database. Create/Update in database')
           newDoc    = {'name':path+os.sep+file}
           parentDoc = self.db.getDoc(parentID)
           hierStack = []
@@ -718,7 +718,7 @@ class JamDB:
               print("**ERROR** doc path was not found and parent path was not found\nReturn")
               return
             shutil.move(self.basePath+path, dirName)
-            logging.info('changeHierarchy '+self.cwd+': Could not change into non-existant directory '+dirName+' Moved old one to here')
+            logging.info('setEditSting cwd '+self.cwd+'| non-existant directory '+dirName+'. Moved old one to here')
         if edit=='-edit-':
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
         doc['childNum'] = children[-1]
