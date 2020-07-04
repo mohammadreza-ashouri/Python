@@ -142,7 +142,7 @@ class Database:
     - saving changes to oldDoc (revision document)
     - updating new-document concurrently
     - create a docID for oldDoc
-    - save this docID in list of revisions stored in new-document
+    - save this docID suffix in nextRevision stored in new-document
     - Bonus: save '_rev' from newDoc to oldDoc in order to track that updates cannot happen by accident
 
     Args:
@@ -179,7 +179,7 @@ class Database:
           return newDoc
     #handle other items
     for item in change:
-      if item in ['revisions','_id','_rev','branch']:                #skip items cannot come from change
+      if item in ['nextRevision','_id','_rev','branch']:                #skip items cannot come from change
         continue
       if item=='type' and change['type']=='--':                      #skip non-set type
         continue
@@ -194,13 +194,9 @@ class Database:
       logging.info('database:updateDoc no change of content: '+newDoc['name'])
       return newDoc
     #produce _id of revDoc
-    if len(newDoc['revisions']) > 0:  #if revisions of document exist
-      lastID = newDoc['revisions'][-1].split('-')
-      oldDoc['_id'] = '-'.join(lastID[:-1])+'-'+str(int(lastID[-1])+1)
-    else:                             #if initial document: no copy
-      oldDoc['_id'] = docID+'-0'
+    oldDoc['_id'] = docID+'-'+str( newDoc['nextRevision'] )
+    newDoc['nextRevision'] += 1
     #add id to revisions and save
-    newDoc['revisions'] = newDoc['revisions']+[oldDoc['_id']]
     if self.verify is not None:
       print("Update doc")
       pprint(newDoc)
@@ -288,7 +284,7 @@ class Database:
     - slow since no views used
     - check views
     - only reporting, no repair
-
+    - custom changes are possible with normal scan
 
     Args:
         basepath: basepath of database on local directory; None: ignore those checks
@@ -394,6 +390,14 @@ class Database:
           pass
         else:
           outstring+= f'{bcolors.FAIL}**ERROR unknown doctype '+doc['_id']+' '+str(doc['type'])+f'{bcolors.ENDC}\n'
+
+        ###custom temporary changes: keep few as examples
+        # if 'revisions' in doc:
+        #   del doc['revisions']
+        #   doc.save()
+        # if "nextRevision" not in doc:
+        #   doc['nextRevision'] = 0
+        #   doc.save()
 
     ##TEST views
     outstring+= f'{bcolors.UNDERLINE}**** List problematic VIEWS ****{bcolors.ENDC}\n'
