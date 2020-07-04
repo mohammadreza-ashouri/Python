@@ -15,15 +15,15 @@ class Database:
   Class for interaction with couchDB
   """
 
-  def __init__(self, user, password, databaseName, simulate):
+  def __init__(self, user, password, databaseName, verify):
     """
     Args:
         user: user name to local database
         password: password to local database
         databaseName: local database name
-        simulate: simulate writing documents to database. If True, do not write to database
+        verify: simulate writing documents to database. If True, do not write to database
     """
-    self.simulate = simulate
+    self.verify = verify
     try:
       self.client = CouchDB(user, password, url='http://127.0.0.1:5984', connect=True)
     except Exception:
@@ -127,10 +127,11 @@ class Database:
     doc['client'] = tracebackString
     del doc['branch']['op']  #remove operation, saveDoc creates and therefore always the same
     doc['branch'] = [doc['branch']]
-    if self.simulate:
+    if self.verify is not None:
       print("Write doc")
       pprint(doc)
-    else:
+      success = self.verify()
+    if self.verify is None or success:
       res = self.db.create_document(doc)
     return res
 
@@ -192,30 +193,27 @@ class Database:
     if nothingChanged:
       logging.info('database:updateDoc no change of content: '+newDoc['name'])
       return newDoc
-
     #produce _id of revDoc
     if len(newDoc['revisions']) > 0:  #if revisions of document exist
       lastID = newDoc['revisions'][-1].split('-')
       oldDoc['_id'] = '-'.join(lastID[:-1])+'-'+str(int(lastID[-1])+1)
     else:                             #if initial document: no copy
       oldDoc['_id'] = docID+'-0'
-
     #add id to revisions and save
     newDoc['revisions'] = newDoc['revisions']+[oldDoc['_id']]
-    if self.simulate:
+    if self.verify is not None:
       print("Update doc")
       pprint(newDoc)
-      res = doc
-    else:
+      success = self.verify()
+    if self.verify is None or success:
       newDoc.save()  #TODO: exception (update) occurs sometimes
-
     #save _rev to backup for verification
     oldDoc['current_rev'] = newDoc['_rev']
-    if self.simulate:
+    if self.verify is not None:
       print("Write doc: old revision")
       pprint(oldDoc)
-      res = doc
-    else:
+      success = self.verify()
+    if self.verify is None or success:
       res = self.db.create_document(oldDoc)
     return newDoc
 
@@ -317,14 +315,11 @@ class Database:
       # - current_rev is correct
       if 'current_rev' in doc:
         if mode=='delRevisions':
-          print('DELETE DOC: ')
-          pprint(dict(doc))
-          callback = kwargs.get('callback', None)
-          if callback is None:
-            deleteDoc = True
-          else:
-            deleteDoc = callback('confirm')
-          if deleteDoc:
+          if self.verify is not None:
+            print("DELETE doc")
+            pprint(doc)
+            success = self.verify()
+          if self.verify is None or success:
             doc.delete()
           continue
         if len(doc['_id'].split('-'))!=3:

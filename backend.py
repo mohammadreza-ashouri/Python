@@ -20,13 +20,13 @@ class JamDB:
   PYTHON BACKEND
   """
 
-  def __init__(self, localName=None, simulate=False):
+  def __init__(self, localName=None, verify=None):
     """
     open server and define database
 
     Args:
         localName: name of local database, otherwise taken from config file
-        simulate: simulate database writing. If True, no writing to database
+        verify: simulate database writing. If True, no writing to database
     """
     # open configuration file and define database
     self.debug = True
@@ -43,7 +43,7 @@ class JamDB:
     user         = configuration[localName]['user']
     password     = configuration[localName]['password']
     databaseName = configuration[localName]['database']
-    self.db = Database(user, password, databaseName, simulate=simulate)
+    self.db = Database(user, password, databaseName, verify=verify)
     self.userID   = configuration['-userID']
     self.remoteDB = configuration[remoteName]
     self.eargs   = configuration['-eargs']
@@ -704,7 +704,7 @@ class JamDB:
         #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
         dirName = self.createDirName(doc['name'],doc['type'][0],children[-1])
         if not os.path.exists(dirName):                     #after move, deletion or because new
-          if doc['_id']=='':                                #because new
+          if doc['_id']=='':                                #because new data
             os.makedirs(dirName)
             edit = doc['type'][-1]
           else:                                             #after move
@@ -727,12 +727,7 @@ class JamDB:
       del doc['edit']  #since original state is unknown, each doc has edit
       if doc['objective']=='':
         del doc['objective']
-      if callback is not None:
-        print("Add with stack",self.hierStack)
-        pprint(doc)
-        success = callback('confirm')
-      if callback is None or success:
-        self.addData(edit, doc, self.hierStack)
+      self.addData(edit, doc, self.hierStack)
       #update variables for next iteration
       if edit!="-edit-" and hierLevel is not None:
         self.changeHierarchy(self.currentID)   #'cd directory'
