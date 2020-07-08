@@ -11,7 +11,7 @@ def getMeasurement(fileName, doc):
   #pandas export (top-left cell is empty): do nothing
   with open(fileName,'r') as inFile:
     if inFile.readline().startswith(","):
-      logging.info("Pandas output file "+fileName)
+      logging.info("Pandas output file "+fileName+" Do nothing.")
       return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
 
   #other cases

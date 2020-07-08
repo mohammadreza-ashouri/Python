@@ -346,10 +346,10 @@ class Database:
           outstring+= f'{bcolors.FAIL}**ERROR branch does not exist '+doc['_id']+f'{bcolors.ENDC}\n'
           continue
         else:
-          if len(doc['branch'])>1 and doc['type'] =='text':
+          if len(doc['branch'])>1 and doc['type'] =='text':                 #text elements only one branch
             outstring+= f'{bcolors.FAIL}**ERROR branch length >1 for text'+doc['_id']+' '+str(doc['type'])+f'{bcolors.ENDC}\n'
           for branch in doc['branch']:
-            if len(branch['stack'])==0 and doc['type']!=['text','project']:
+            if len(branch['stack'])==0 and doc['type']!=['text','project']: #if no inheritance
               if doc['type'][0] == 'procedure' or  doc['type'][0] == 'sample':
                 outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
               else:
@@ -365,14 +365,21 @@ class Database:
                 outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+f'{bcolors.ENDC}\n'
               else:
                 outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
-            else:
-              if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):
+            else:                                                            #if sensible path
+              if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):#check if length of path and stack coincide
                 if '://' not in branch['path']:
                   if doc['type'][0] == 'procedure':
                     outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths do not match for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
                   else:
                     outstring+= f'{bcolors.HEADER}**UNSURE branch stack and path lengths do not match '+doc['_id']+f'{bcolors.ENDC}\n'
-
+              for parentID in branch['stack']:  #check if all parents in doc have a corresponding path
+                parentDocBranches = self.getDoc(parentID)['branch']
+                onePathFound = False
+                for parentBranch in parentDocBranches:
+                  if parentBranch['path'] in branch['path']:
+                    onePathFound = True
+                if not onePathFound:
+                  outstring+= f'{bcolors.FAIL}**ERROR parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
         #doc-type specific tests
         if doc['type'][0] == 'sample':
           if 'qrCode' not in doc:

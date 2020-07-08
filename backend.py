@@ -297,7 +297,7 @@ class JamDB:
     # iterate directory-tree and compare
     parentID = None
     toDelete = []
-    for path, _, files in os.walk('.'):
+    for path, dirs, files in os.walk('.'):
       #compare path: project/step/task
       path = os.path.normpath(self.cwd+path)
       if path in database:
@@ -311,7 +311,7 @@ class JamDB:
             logging.debug(path+' id-test successful on project/step/task')
           else:
             if idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
-              logging.warning('produce new .id_jamDB.json after move of directory')
+              logging.warning('produce new .id_jamDB.json after move of directory '+path)
               doc = self.db.getDoc(database[path][0])
               with open(self.basePath+path+'/.id_jamDB.json','w') as f:
                 f.write(json.dumps(doc))
@@ -356,8 +356,12 @@ class JamDB:
             with open(self.basePath+path+'/.id_jamDB.json','w') as f:
               f.write(json.dumps(doc))
         else:
-          logging.warning(path+' directory (project/step/task) not in database: did user create misc. directory')
-
+          if os.path.exists(self.basePath+path+os.sep+"exclude_scan.txt"):
+            dirs[:] = []
+            logging.warning(path+' directory (project/step/task) not in database: Exclude it')
+            continue
+          else:
+            logging.warning(path+' directory (project/step/task) not in database: did user create misc. directory')
       # FILES
       # compare data=files in each path (in each project, step, ..)
       for file in files:
@@ -457,7 +461,7 @@ class JamDB:
         doc: pass known data/measurement type, can be used to create image; This is altered
         maxSize: maximum size of jpeg images
     """
-    logging.info('getMeasurement started for path '+filePath)
+    logging.debug('getMeasurement started for path '+filePath)
     maxSize = kwargs.get('maxSize', 600)
     show    = kwargs.get('show', False)
     extension = os.path.splitext(filePath)[1][1:]
@@ -513,18 +517,18 @@ class JamDB:
       else:
         image = ''
         meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
-        logging.error('getMeasurement Not implemented yet 1'+str(imgType))
+        logging.debug('getMeasurement should not read data; returned data void '+str(imgType))
     else:
       image = ''
       meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
-      logging.warning('getMeasurement: could not find pyFile to convert '+pyFile)
+      logging.warning('getMeasurement could not find pyFile to convert '+pyFile)
     #combine into document
     measurementType = meta['measurementType']
     metaVendor      = meta['metaVendor']
     metaUser        = meta['metaUser']
     document = {'image': image, 'type': ['measurement']+measurementType,
             'metaUser':metaUser, 'metaVendor':metaVendor, 'md5sum':md5sum}
-    logging.info('getMeasurement: success')
+    logging.debug('getMeasurement: finished')
     doc.update(document)
     if show:
       print("Measurement type:",document['type'])
