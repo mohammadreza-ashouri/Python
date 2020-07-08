@@ -15,15 +15,15 @@ class Database:
   Class for interaction with couchDB
   """
 
-  def __init__(self, user, password, databaseName, verify):
+  def __init__(self, user, password, databaseName, confirm):
     """
     Args:
         user: user name to local database
         password: password to local database
         databaseName: local database name
-        verify: simulate writing documents to database. If True, do not write to database
+        confirm: confirm changes to database and file-tree
     """
-    self.verify = verify
+    self.confirm = confirm
     try:
       self.client = CouchDB(user, password, url='http://127.0.0.1:5984', connect=True)
     except Exception:
@@ -127,11 +127,7 @@ class Database:
     doc['client'] = tracebackString
     del doc['branch']['op']  #remove operation, saveDoc creates and therefore always the same
     doc['branch'] = [doc['branch']]
-    if self.verify is not None:
-      print("Write doc")
-      pprint(doc)
-      success = self.verify()
-    if self.verify is None or success:
+    if self.confirm is None or self.confirm(doc,"Write this doc?"):
       res = self.db.create_document(doc)
     return res
 
@@ -197,19 +193,11 @@ class Database:
     oldDoc['_id'] = docID+'-'+str( newDoc['nextRevision'] )
     newDoc['nextRevision'] += 1
     #add id to revisions and save
-    if self.verify is not None:
-      print("Update doc")
-      pprint(newDoc)
-      success = self.verify()
-    if self.verify is None or success:
+    if self.confirm is None or self.confirm(newDoc,"Update this doc?"):
       newDoc.save()  #TODO: exception (update) occurs sometimes
     #save _rev to backup for verification
     oldDoc['current_rev'] = newDoc['_rev']
-    if self.verify is not None:
-      print("Write doc: old revision")
-      pprint(oldDoc)
-      success = self.verify()
-    if self.verify is None or success:
+    if self.confirm is None or self.confirm(oldDoc,"Keep this as revision?"):
       res = self.db.create_document(oldDoc)
     return newDoc
 
@@ -311,11 +299,7 @@ class Database:
       # - current_rev is correct
       if 'current_rev' in doc:
         if mode=='delRevisions':
-          if self.verify is not None:
-            print("DELETE doc")
-            pprint(doc)
-            success = self.verify()
-          if self.verify is None or success:
+          if self.confirm is None or self.confirm(doc,"Delete this doc?"):
             doc.delete()
           continue
         if len(doc['_id'].split('-'))!=3:
@@ -372,14 +356,15 @@ class Database:
                     outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths do not match for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
                   else:
                     outstring+= f'{bcolors.HEADER}**UNSURE branch stack and path lengths do not match '+doc['_id']+f'{bcolors.ENDC}\n'
-              for parentID in branch['stack']:  #check if all parents in doc have a corresponding path
-                parentDocBranches = self.getDoc(parentID)['branch']
-                onePathFound = False
-                for parentBranch in parentDocBranches:
-                  if parentBranch['path'] in branch['path']:
-                    onePathFound = True
-                if not onePathFound:
-                  outstring+= f'{bcolors.FAIL}**ERROR parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
+              if branch['child'] != 9999:
+                for parentID in branch['stack']:                              #check if all parents in doc have a corresponding path
+                  parentDocBranches = self.getDoc(parentID)['branch']
+                  onePathFound = False
+                  for parentBranch in parentDocBranches:
+                    if parentBranch['path'] in branch['path']:
+                      onePathFound = True
+                  if not onePathFound:
+                    outstring+= f'{bcolors.FAIL}**ERROR parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
         #doc-type specific tests
         if doc['type'][0] == 'sample':
           if 'qrCode' not in doc:

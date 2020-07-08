@@ -12,7 +12,12 @@ from PIL import Image
 from backend import JamDB
 
 
-def confirm():
+def confirm(content=None, header=None):
+  print()
+  if header is not None:
+    print(header)
+  if content is not None:
+    pprint(content)
   success = input("Is that ok? [y/N] ")
   if success=='y':
     return True
@@ -21,8 +26,7 @@ def confirm():
 
 ### INITIALIZATION
 sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
-be = JamDB(verify=confirm)
-print("SIMULATE ON")
+be = JamDB(confirm=confirm)
 # keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
 menuOutline = json.load(open(be.softwarePath+'/userInterfaceCLI.json', 'r'))
 
@@ -130,6 +134,8 @@ while be.alive:
       #create list of choices
       for item in expand:
         question[0]['choices'].append({'name': key+item, 'value': value+item[1:]})
+    if nextMenu != 'main':
+      question[0]['choices'].append({'name':'-- Go back to main --', 'value':'menu_main'})
   elif nextMenu.startswith('change'):
     #change menu
     question = [{'type': 'list', 'name': 'choice', 'message': nextMenu, 'choices':[]}]
@@ -197,7 +203,7 @@ while be.alive:
         with open(tmpFileName,'r') as fIn:
           be.setEditString(fIn.read(), callback=curate)
         os.unlink(tmpFileName)
-        print("Scan tree to ensure correct movement of directories")  #TODO automatic in future?
+        print("Scan tree AND checkDB to ensure correct movement of directories")  #TODO automatic in future?
       elif len(answer) == 2: #function
         res = getattr(be, answer[1])(callback=curate)
       elif len(answer) > 2: #function

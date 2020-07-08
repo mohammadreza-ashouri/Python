@@ -20,16 +20,17 @@ class JamDB:
   PYTHON BACKEND
   """
 
-  def __init__(self, localName=None, verify=None):
+  def __init__(self, localName=None, confirm=None):
     """
     open server and define database
 
     Args:
         localName: name of local database, otherwise taken from config file
-        verify: simulate database writing. If True, no writing to database
+        confirm: confirm changes to database and file-tree
     """
     # open configuration file and define database
     self.debug = True
+    self.confirm = confirm
     logging.basicConfig(filename='jamDB.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)
@@ -43,7 +44,7 @@ class JamDB:
     user         = configuration[localName]['user']
     password     = configuration[localName]['password']
     databaseName = configuration[localName]['database']
-    self.db = Database(user, password, databaseName, verify=verify)
+    self.db = Database(user, password, databaseName, confirm=self.confirm)
     self.userID   = configuration['-userID']
     self.remoteDB = configuration[remoteName]
     self.eargs   = configuration['-eargs']
@@ -420,7 +421,8 @@ class JamDB:
     ## if path remains, delete it
     for item in toDelete:
       if os.path.exists(item):
-        shutil.rmtree(item)
+        if self.confirm is None or self.confirm(item,"Delete this directory?"):
+          shutil.rmtree(item)
     for key in database:
       logging.debug('Remove branch from database '+key)
       doc = {'_id':database[key][0], 'type':database[key][1]}
@@ -721,7 +723,8 @@ class JamDB:
             if not os.path.exists(self.basePath+path):        #if still does not exist
               print("**ERROR** doc path was not found and parent path was not found\nReturn")
               return
-            shutil.move(self.basePath+path, dirName)
+            if self.confirm is None or self.confirm(item,"Move directory "+self.basePath+path+" -> "+dirName):
+              shutil.move(self.basePath+path, dirName)
             logging.info('setEditSting cwd '+self.cwd+'| non-existant directory '+dirName+'. Moved old one to here')
         if edit=='-edit-':
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
