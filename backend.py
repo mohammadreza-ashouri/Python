@@ -121,7 +121,7 @@ class JamDB:
       if len(hierStack) == 0:  hierStack = self.hierStack
 
     # collect doc and prepare
-    if doc['type'][0] == 'text' and doc['type'][1]!='project':
+    if doc['type'][0] == 'text' and ( doc['type'][1]!='project' or 'childNum' in doc):
       if 'childNum' in doc:
         childNum = doc['childNum']
         del doc['childNum']
@@ -424,10 +424,19 @@ class JamDB:
         if self.confirm is None or self.confirm(item,"Delete this directory?"):
           shutil.rmtree(item)
     for key in database:
-      logging.debug('Remove branch from database '+key)
-      doc = {'_id':database[key][0], 'type':database[key][1]}
-      doc['branch'] = {'path':key, 'op':'d', 'stack':[None]}
-      doc = self.db.updateDoc(doc, doc['_id'])
+      if self.confirm is None or self.confirm(key,"Yes: Remove directory from database; No: Add directory to file-tree"):
+        logging.warning('Remove branch from database '+key)
+        doc = {'_id':database[key][0], 'type':database[key][1]}
+        doc['branch'] = {'path':key, 'op':'d', 'stack':[None]}
+        doc = self.db.updateDoc(doc, doc['_id'])
+      else:
+        if database[key][1][0] == "text":  #create directory
+          os.makedirs(self.basePath+key)
+          with open(self.basePath+key+'/.id_jamDB.json','w') as f:  #local path, update in any case
+            f.write(json.dumps(self.getDoc( database[key][0] )))
+        else:
+          print("**ERROR** should not be here ",database[key][1])
+          return
     logging.info('scanTree finished')
     return
 
@@ -693,9 +702,16 @@ class JamDB:
       # identify docType
       levelID     = doc['type']
       doc['type'] = ['text',self.hierList[levelID]]
-      edit = '-edit-'
+      if doc['edit'] == "-edit-":
+        edit = "-edit-"
+      else:
+        edit = doc['type'][-1]
+      del doc['edit']
       # change directories: downward
-      if hierLevel is not None:   #skip first run through
+      if hierLevel is None:   #first run through
+        docDB = self.db.getDoc(doc['_id'])
+        doc['childNum'] = docDB['branch'][0]['child']
+      else:                   #after first entry
         if levelID<hierLevel:
           children.pop()
           self.changeHierarchy(None)                        #'cd ..'
@@ -731,7 +747,6 @@ class JamDB:
         doc['childNum'] = children[-1]
       # add information to doc and save to database
       #   path and hierStack are added in self.addData
-      del doc['edit']  #since original state is unknown, each doc has edit
       if doc['objective']=='':
         del doc['objective']
       self.addData(edit, doc, self.hierStack)

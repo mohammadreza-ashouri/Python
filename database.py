@@ -129,6 +129,8 @@ class Database:
     doc['branch'] = [doc['branch']]
     if self.confirm is None or self.confirm(doc,"Write this doc?"):
       res = self.db.create_document(doc)
+    else:
+      res = doc
     return res
 
 
@@ -273,6 +275,7 @@ class Database:
     - check views
     - only reporting, no repair
     - custom changes are possible with normal scan
+    - no interaction with harddisk
 
     Args:
         basepath: basepath of database on local directory; None: ignore those checks

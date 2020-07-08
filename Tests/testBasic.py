@@ -182,7 +182,7 @@ class TestStringMethods(unittest.TestCase):
     self.be.exit()
     with open(self.be.softwarePath+'/jamDB.log','r') as fIn:
       text = fIn.read()
-      self.assertFalse('WARNING:' in text,'WARNING string in log-file')
+      self.assertFalse(text.count('**WARNING')==7,'WARNING string !=7 in log-file')
       self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
     return
 
