@@ -58,11 +58,11 @@ class TestStringMethods(unittest.TestCase):
       print('Current directory:',self.be.cwd)
       print(self.be.outputHierarchy())
 
-      ### edit project
+      ### edit project: easy and setEditString
       print('\n*** TEST EDIT PROJECT ***')
       self.be.addData('-edit-', {'comment': '#tag1 A random text plus edition\n'})
       myString = self.be.getEditString()
-      myString = myString.replace('* Test step two: t-','** Test step two: t-')
+      myString = myString.replace('* Test step two||t-','** Test step two||t-')
       myString+= '\n* Test step four\nTags: #SomeBody\n- One line of list\n- Two lines of list\n  - One sublist\n'
       self.be.setEditString(myString)
       self.be.scanTree()  #nothing done: no harm
@@ -102,6 +102,15 @@ class TestStringMethods(unittest.TestCase):
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
       self.be.scanTree()
 
+      ### edit project to test if path of sub-measurements are adopted
+      print('\n*** TEST EDIT PROJECT AGAIN: back from previous version ***')
+      self.fileVerify(1,'=========== Before ===========')
+      myString = self.be.getEditString()
+      myString = myString.replace('** Test step two||t-','* Test step two||t-')
+      self.be.setEditString(myString)
+      self.fileVerify(2,'=========== After  ===========')  #use diff-file to compare hierarchies, directory tree
+      return
+
       ### Change plot-type
       viewMeasurements = self.be.db.getView('viewMeasurements/viewMeasurements')
       for item in viewMeasurements:
@@ -134,10 +143,8 @@ class TestStringMethods(unittest.TestCase):
 
       ### Remove data: adopt branch in document
       print('*** TEST MEASUREMENTS AND SCANNING 3.1 ***')
-      self.fileVerify(1,'=========== Before ===========')
       os.remove(projDirName1+'/Zeiss.tif')
       self.be.scanTree()
-      self.fileVerify(2,'=========== After  ===========')  #use diff-file to compare hierarchies, directory tree
 
       ### Try to fool system: rename file
       # verify database and filesystem into fileVerify

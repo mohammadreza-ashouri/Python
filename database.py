@@ -183,6 +183,16 @@ class Database:
         continue
       if item=='image' and change['image']=='':
         continue
+      ## What if content only differs by whitespace changes?
+      # These changes should occur in the database, the user wanted it so
+      # Do these changes justify a new revision?
+      # Hence one could update the doc and previous-revision(with the current _rev)
+      #  - but that would lead to special cases, more code, chaos
+      # To identify these cases use the following
+      # if (isinstance(change[item], str) and " ".join(change[item].split())!=" ".join(newDoc[item].split()) ) or \
+      #    (isinstance(change[item], list) and change[item]!=newDoc[item] ):
+      # Add to testBasic to test for it:
+      #       myString = myString.replace('A long comment','A long   comment')
       if change[item]!=newDoc[item]:
         if item not in ['date','client']:      #if only date/client change, no real change
           nothingChanged = False
