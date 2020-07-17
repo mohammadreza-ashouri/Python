@@ -120,7 +120,7 @@ class JamDB:
         doc['type'] = [docType]
       if len(hierStack) == 0:  hierStack = self.hierStack
 
-    # collect doc and prepare
+    # collect text-doc and prepare
     if doc['type'][0] == 'text' and ( doc['type'][1]!='project' or 'childNum' in doc):
       if 'childNum' in doc:
         childNum = doc['childNum']
@@ -179,7 +179,7 @@ class JamDB:
             while rerun:
               self.getMeasurement(path,md5sum,doc)
               if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
-                doc['image']=='' and len(doc['type'])==1:
+                doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: filter does not exit
                 return
               if callback is None:
                 rerun = False
@@ -288,7 +288,7 @@ class JamDB:
     callback = kwargs.get('callback', None)
 
     # get information from database
-    view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0])
+    view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0]) #TODO filter entire tree
     database = {} #path as key for lookup, required later
     for item in view:
       thisPath = item['value'][0]
@@ -739,7 +739,7 @@ class JamDB:
             if not os.path.exists(self.basePath+path):        #if still does not exist
               print("**ERROR** doc path was not found and parent path was not found\nReturn")
               return
-            if self.confirm is None or self.confirm(item,"Move directory "+self.basePath+path+" -> "+dirName):
+            if self.confirm is None or self.confirm(None,"Move directory "+self.basePath+path+" -> "+dirName):
               shutil.move(self.basePath+path, dirName)
             logging.info('setEditSting cwd '+self.cwd+'| non-existant directory '+dirName+'. Moved old one to here')
         if edit=='-edit-':

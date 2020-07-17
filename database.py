@@ -188,6 +188,7 @@ class Database:
       # Do these changes justify a new revision?
       # Hence one could update the doc and previous-revision(with the current _rev)
       #  - but that would lead to special cases, more code, chaos
+      #  - also not sure how often simple white space changes occur, how important
       # To identify these cases use the following
       # if (isinstance(change[item], str) and " ".join(change[item].split())!=" ".join(newDoc[item].split()) ) or \
       #    (isinstance(change[item], list) and change[item]!=newDoc[item] ):
@@ -403,6 +404,9 @@ class Database:
         # if "nextRevision" not in doc:
         #   doc['nextRevision'] = 0
         #   doc.save()
+
+        ## output size of document
+        # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
 
     ##TEST views
     outstring+= f'{bcolors.UNDERLINE}**** List problematic VIEWS ****{bcolors.ENDC}\n'

@@ -109,7 +109,6 @@ class TestStringMethods(unittest.TestCase):
       myString = myString.replace('** Test step two||t-','* Test step two||t-')
       self.be.setEditString(myString)
       self.fileVerify(2,'=========== After  ===========')  #use diff-file to compare hierarchies, directory tree
-      return
 
       ### Change plot-type
       viewMeasurements = self.be.db.getView('viewMeasurements/viewMeasurements')

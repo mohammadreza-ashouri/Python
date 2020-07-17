@@ -61,10 +61,10 @@
   "procedure": {
     "config":["Procedures"],
     "default":[
-      {"name":"name",   "long":"What is the name of the procedure?","length":25},
-      {"name":"tags",   "long":"",                                  "length":25},
-      {"name":"comment","long":"#tags comments :field:value:",      "length":0},
-      {"name":"content","long":"What are the steps?",               "length":58}
+      {"name":"name",   "long":"What is the name / path?",                 "length":25},
+      {"name":"tags",   "long":"",                                         "length":25},
+      {"name":"comment","long":"#tags comments :field:value: e.g. #SOP_v1","length":0},
+      {"name":"content","long":"What are the steps (autofilled if file given)?","length":58}
       ]
     }
 
