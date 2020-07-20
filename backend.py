@@ -293,12 +293,13 @@ class JamDB:
     callback = kwargs.get('callback', None)
 
     # get information from database
-    view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0])
+    if logging.root.level<15 and self.cwd[-1]!=os.sep:  #check if debug mode
+      logging.error("scanTree cwd does not end with /")
+      print("scanTree cwd does not end with /")
+    view = self.db.getView('viewHierarchy/viewPaths', key=self.cwd[:-1]) #remove trailing /; assuming that it is there
     database = {} #path as key for lookup, required later
     for item in view:
-      thisPath = item['value'][0]
-      if thisPath.startswith(self.cwd[:-1]):
-        database[thisPath] = [item['id'], item['value'][1], item['value'][2]]
+      database[item['key']] = [item['id'], item['value'][1], item['value'][2],item['value'][3]]
 
     # iterate directory-tree and compare
     parentID = None
@@ -378,10 +379,10 @@ class JamDB:
           #test if MD5 value did not change
           with open(self.basePath+fileName,'rb') as fIn:
             md5File = hashlib.md5(fIn.read()).hexdigest()
-          if md5File==database[fileName][2]:
+          if md5File==database[fileName][3]:
             logging.debug(fileName+' md5-test successful on measurement/etc.')
           else:
-            logging.error(fileName+' md5-test NOT successful on measurement/etc. '+md5File+' '+database[fileName][2])
+            logging.error(fileName+' md5-test NOT successful on measurement/etc. '+md5File+' '+database[fileName][3])
           if produceData:
             #if you have to produce
             doc = self.db.getDoc(database[fileName][0])
@@ -709,7 +710,8 @@ class JamDB:
     docList = cT.editString2Docs(newText)
     # initialize iteration
     hierLevel = None
-    children   = [0]
+    children  = [0]
+    path      = None
     for doc in docList:
       # identify docType
       levelID     = doc['type']
@@ -752,13 +754,19 @@ class JamDB:
               print("**ERROR** doc path was not found and parent path was not found\nReturn")
               return
             if self.confirm is None or self.confirm(None,"Move directory "+self.basePath+path+" -> "+dirName):
-              shutil.move(self.basePath+path, dirName)  #STEFFEN
-              origin = path
-              goal   = self.cwd+dir
-
+              shutil.move(self.basePath+path, dirName)
             logging.info('setEditSting cwd '+self.cwd+'| non-existant directory '+dirName+'. Moved old one to here')
         if edit=='-edit-':
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
+          if path is not None:
+            #adopt measurements, samples, etc: change path
+            view = self.db.getView('viewHierarchy/viewPaths', key=path)
+            for item in view:
+              if item['value'][1][0]=='text': continue  #skip since moved by itself
+              self.db.updateDoc( {'branch':{'path':self.cwd, 'oldpath':path+os.sep,\
+                                            'stack':self.hierStack,\
+                                            'child':item['value'][2],\
+                                            'op':'u'}},item['id'])
         doc['childNum'] = children[-1]
       # add information to doc and save to database
       #   path and hierStack are added in self.addData

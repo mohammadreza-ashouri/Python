@@ -76,9 +76,8 @@ class Database:
       '''
       jsPath = '''
         if ('branch' in doc && !('current_rev' in doc)){
-          if (doc.type[1] === 'project') {emit(doc._id,[doc.branch[0].path,doc.type,'']);}
-          else if ('md5sum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.stack[0],[branch.path,doc.type,doc.md5sum]);}});}
-          else                     {doc.branch.forEach(function(branch){if(branch.path){emit(branch.stack[0],[branch.path,doc.type,''        ]);}});}
+          if ('md5sum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,doc.md5sum]);}});}
+          else                {doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,''        ]);}});}
         }
       '''
       self.saveView('viewHierarchy','.',{'viewHierarchy':jsHierarchy,'viewPaths':jsPath})
@@ -165,7 +164,15 @@ class Database:
           newDoc['branch'] += [change['branch']]
           nothingChanged = False
         elif op=='u':  #update=remove current at zero
-          newDoc['branch'][0] = change['branch']
+          if 'oldpath' in change['branch']:
+            for branch in newDoc['branch']:
+              if branch['path'].startswith(change['branch']['oldpath']):
+                branch['path'] = branch['path'].replace(change['branch']['oldpath'] ,change['branch']['path'])
+                branch['stack']= change['branch']['stack']
+                del change['branch']['oldpath']
+                break
+          else:
+            newDoc['branch'][0] = change['branch'] #change the initial one
           nothingChanged = False
         elif op=='d':  #delete
           originalLength = len(newDoc['branch'])
@@ -230,7 +237,7 @@ class Database:
       res = list(v.result)
       return res
     else:
-      res = v(startkey=key, endkey=key+' zz')['rows']
+      res = v(startkey=key, endkey=key+'zzz')['rows']
       return res
 
 
