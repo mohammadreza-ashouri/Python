@@ -207,7 +207,7 @@ class Database:
     newDoc['nextRevision'] += 1
     #add id to revisions and save
     if self.confirm is None or self.confirm(newDoc,"Update this doc?"):
-      newDoc.save()  #TODO: exception (update) occurs sometimes
+      newDoc.save()  #TODO: exception (update) occurred sometimes: try to find example and debug
     #save _rev to backup for verification
     oldDoc['current_rev'] = newDoc['_rev']
     if self.confirm is None or self.confirm(oldDoc,"Keep this as revision?"):

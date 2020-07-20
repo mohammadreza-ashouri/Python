@@ -293,7 +293,7 @@ class JamDB:
     callback = kwargs.get('callback', None)
 
     # get information from database
-    view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0]) #TODO filter entire tree
+    view = self.db.getView('viewHierarchy/viewPaths', key=self.hierStack[0])
     database = {} #path as key for lookup, required later
     for item in view:
       thisPath = item['value'][0]

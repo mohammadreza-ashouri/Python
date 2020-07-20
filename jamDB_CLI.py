@@ -203,7 +203,7 @@ while be.alive:
         with open(tmpFileName,'r') as fIn:
           be.setEditString(fIn.read(), callback=curate)
         os.unlink(tmpFileName)
-        print("Scan tree AND checkDB to ensure correct movement of directories")  #TODO automatic in future?
+        print("Manual Scan tree (temporarily and checkDB) to ensure correct movement of directories")
       elif len(answer) == 2: #function
         res = getattr(be, answer[1])(callback=curate)
       elif len(answer) > 2: #function
