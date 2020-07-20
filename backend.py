@@ -76,6 +76,7 @@ class JamDB:
 
     Args:
       deleteDB: remove database
+      kwargs: additional parameter
     """
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
@@ -98,6 +99,7 @@ class JamDB:
         hierStack: hierStack from external functions
         localCopy: copy a remote file to local version
         forceNewImage: create new image in any case
+        kwargs: additional parameter, i.e. callback
     """
     logging.debug('addData beginning doc: '+docType+' | hierStack'+str(hierStack))
     callback = kwargs.get('callback', None)
@@ -240,7 +242,9 @@ class JamDB:
     change hierarchyStack, change directory, change stored cwd
 
     Args:
-        id: information on how to change
+        docID: information on how to change
+        dirName: use this name to change into
+        kwargs: additional parameter
     """
     if docID is None or docID in self.hierList:  # none, 'project', 'step', 'task' are given: close
       self.hierStack.pop()
@@ -277,6 +281,7 @@ class JamDB:
     Args:
       method: 'produceData' copy database entry to file system; for backup: '_jamDB.json'
               'compareToDB' compare database entry to file system backup to observe accidental changes anyplace
+        kwargs: additional parameter, i.e. callback
     """
     logging.info('scanTree started with method '+str(method))
     if len(self.hierStack) == 0:
@@ -470,7 +475,7 @@ class JamDB:
         filePath: path to file
         md5sum: md5sum to store in database (not used here)
         doc: pass known data/measurement type, can be used to create image; This is altered
-        maxSize: maximum size of jpeg images
+        kwargs: additional parameter, i.e. maxSize, show
     """
     logging.debug('getMeasurement started for path '+filePath)
     maxSize = kwargs.get('maxSize', 600)
@@ -567,6 +572,7 @@ class JamDB:
     Args:
         remoteDB: if given, use this name for external db
         removeAtStart: remove remote DB before starting new
+        kwargs: additional parameter
     """
     if remoteDB is not None:
       self.remoteDB['database'] = remoteDB
@@ -577,6 +583,10 @@ class JamDB:
   def checkDB(self,  mode=None, **kwargs):
     """
     Wrapper of check database for consistencies by iterating through all documents
+
+    Args:
+        mode: mode for checking database, e.g. delete revisions
+        kwargs: additional parameter, i.e. callback
     """
     return self.db.checkDB(self.basePath, mode, **kwargs)
 
@@ -592,6 +602,7 @@ class JamDB:
     Args:
       docLabel: document label to output
       printID:  include docID in output string
+      kwargs: additional parameter
     """
     view = 'view'+docLabel
     outString = []
@@ -639,6 +650,7 @@ class JamDB:
        onlyHierarchy: only print project,steps,tasks or print all (incl. measurements...)[default print all]
        addID: add docID to output
        addTags: add tags, comments, objective to output
+       kwargs: additional parameter, i.e. callback
     """
     if len(self.hierStack) == 0:
       logging.warning('jams.outputHierarchy No project selected')
