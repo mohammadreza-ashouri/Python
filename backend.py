@@ -416,10 +416,7 @@ class JamDB:
           logging.info(file+' file not in database. Create/Update in database')
           newDoc    = {'name':path+os.sep+file}
           parentDoc = self.db.getDoc(parentID)
-          hierStack = []
-          for branch in parentDoc['branch']:
-            if path in branch['path']:
-              hierStack = branch['stack']+[parentID]
+          hierStack = parentDoc['branch'][0]['stack']+[parentID]
           self.addData('measurement', newDoc, hierStack, callback=callback)
       if path in database:
         del database[path]
@@ -475,8 +472,11 @@ class JamDB:
     Args:
         filePath: path to file
         md5sum: md5sum to store in database (not used here)
-        doc: pass known data/measurement type, can be used to create image; This is altered
+        doc: pass known data/measurement type, can be used to create image; This doc is altered
         kwargs: additional parameter, i.e. maxSize, show
+
+    Return:
+        void
     """
     logging.debug('getMeasurement started for path '+filePath)
     maxSize = kwargs.get('maxSize', 600)
@@ -759,7 +759,7 @@ class JamDB:
         if edit=='-edit-':
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
           if path is not None:
-            #adopt measurements, samples, etc: change path
+            #adopt measurements, samples, etc: change / update path by supplying old path
             view = self.db.getView('viewHierarchy/viewPaths', key=path)
             for item in view:
               if item['value'][1][0]=='text': continue  #skip since moved by itself

@@ -17,7 +17,10 @@ def confirm(content=None, header=None):
   if header is not None:
     print(header)
   if content is not None:
-    pprint(content)
+    temp = content.copy()
+    if 'image'      in temp: temp['image'] = '[...]'
+    if 'metaVendor' in temp: temp['metaVendor'] = '[...]'
+    pprint(temp)
   success = input("Is that ok? [y/N] ")
   if success=='y':
     return True
@@ -203,7 +206,6 @@ while be.alive:
         with open(tmpFileName,'r') as fIn:
           be.setEditString(fIn.read(), callback=curate)
         os.unlink(tmpFileName)
-        print("Manual Scan tree (temporarily and checkDB) to ensure correct movement of directories")
       elif len(answer) == 2: #function
         res = getattr(be, answer[1])(callback=curate)
       elif len(answer) > 2: #function
