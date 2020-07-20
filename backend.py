@@ -752,7 +752,10 @@ class JamDB:
               print("**ERROR** doc path was not found and parent path was not found\nReturn")
               return
             if self.confirm is None or self.confirm(None,"Move directory "+self.basePath+path+" -> "+dirName):
-              shutil.move(self.basePath+path, dirName)
+              shutil.move(self.basePath+path, dirName)  #STEFFEN
+              origin = path
+              goal   = self.cwd+dir
+
             logging.info('setEditSting cwd '+self.cwd+'| non-existant directory '+dirName+'. Moved old one to here')
         if edit=='-edit-':
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
