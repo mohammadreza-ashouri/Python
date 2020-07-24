@@ -18,7 +18,7 @@ class TestStringMethods(unittest.TestCase):
 
     databaseName = 'temporary_test'
     dirName      = os.path.expanduser('~')+os.sep+databaseName
-    shutil.rmtree(dirName)
+    if os.path.exists(dirName): shutil.rmtree(dirName)
     os.makedirs(dirName)
     self.be = JamDB(databaseName)
     self.be.exit(deleteDB=True)
@@ -185,11 +185,14 @@ class TestStringMethods(unittest.TestCase):
 
 
   def tearDown(self):
-    self.be.exit()
-    with open(self.be.softwarePath+'/jamDB.log','r') as fIn:
-      text = fIn.read()
-      self.assertFalse(text.count('**WARNING')==7,'WARNING string !=7 in log-file')
-      self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
+    try:
+      self.be.exit()
+      with open(self.be.softwarePath+'/jamDB.log','r') as fIn:
+        text = fIn.read()
+        self.assertFalse(text.count('**WARNING')==7,'WARNING string !=7 in log-file')
+        self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
+    except:
+      pass
     return
 
 
@@ -202,7 +205,10 @@ class TestStringMethods(unittest.TestCase):
       f.write('++STATE: '+self.be.cwd+' '+str(self.be.hierStack)+'\n')
       f.write(self.be.outputHierarchy(onlyHierarchy,True,'all'))
       f.write('\n====================')
-      f.write(subprocess.run(['tree'], stdout=subprocess.PIPE).stdout.decode('utf-8'))
+      try:
+        f.write(subprocess.run(['tree'], stdout=subprocess.PIPE).stdout.decode('utf-8'))
+      except:
+        f.write("No tree command installed")
     print("Did ",text)
     return
 

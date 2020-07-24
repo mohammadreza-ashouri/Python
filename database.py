@@ -27,7 +27,9 @@ class Database:
     try:
       self.client = CouchDB(user, password, url='http://127.0.0.1:5984', connect=True)
     except Exception:
-      logging.error('database:init Something unexpected has happend'+traceback.format_exc())
+      logging.error('database:init Something unexpected has happend\n'+traceback.format_exc())
+      print('database:init Something unexpected has happend\n'+traceback.format_exc())
+      exit()
     self.databaseName = databaseName
     if self.databaseName in self.client.all_dbs():
       self.db = self.client[self.databaseName]
