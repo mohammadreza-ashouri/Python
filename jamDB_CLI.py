@@ -13,6 +13,13 @@ from backend import JamDB
 
 
 def confirm(content=None, header=None):
+  """
+  Used as callback function: confirm that the given document should be written to database
+
+  Args:
+     content: this is the content to be written
+     header: some arbitrary information used as header
+  """
   print()
   if header is not None:
     print(header)
@@ -36,6 +43,12 @@ menuOutline = json.load(open(be.softwarePath+'/userInterfaceCLI.json', 'r'))
 
 ### Curate by user: say measurement good/bad/ugly
 def curate(doc):
+  """
+  Used as callback function: curate measurement after automatically found
+
+  Args:
+     doc: document found. Image attribute used for display
+  """
   print('\n=>Curate measurement: '+doc['name'])
   #show image
   if doc['image'].startswith('<?xml'):
@@ -85,8 +98,9 @@ def curate(doc):
   return answer['measurementType']!=''  #True: rerun; False: no new scan is necessary
 
 
-
+###########################################################
 ### MAIN LOOP
+###########################################################
 print('Start in directory',os.path.abspath(os.path.curdir))
 nextMenu = 'main'
 while be.alive:
@@ -138,22 +152,31 @@ while be.alive:
       for item in expand:
         question[0]['choices'].append({'name': key+item, 'value': value+item[1:]})
     if nextMenu != 'main':
-      question[0]['choices'].append({'name':'-- Go back to main --', 'value':'menu_main'})
-  elif nextMenu.startswith('change'):
-    #change menu
+      question[0]['choices'].append({'name':'>Go back to main<', 'value':'menu_main'})
+  elif nextMenu.startswith('change') or nextMenu in [i for j,i in be.db.dataLabels]:
+    #change menu OR add/edit samples,procedures,measurements
+    addEditDoc = nextMenu in [i for j,i in be.db.dataLabels]
     question = [{'type': 'list', 'name': 'choice', 'message': nextMenu, 'choices':[]}]
-    if len(be.hierStack) == 0: # no project in list: use VIEW
-      doc    = be.db.getView('viewProjects/viewProjects')
+    if len(be.hierStack) == 0 or addEditDoc: # no project in stack or sample/procedures/measurements: use VIEW
+      if addEditDoc:
+        doc    = be.db.getView('view'+nextMenu+'/view'+nextMenu)
+      else:
+        doc    = be.db.getView('viewProjects/viewProjects')
       values = [i['id'] for i in doc]
       names  = [i['value'][0] for i in doc]
     else:                      # step/task: get its children
       names, values = be.getChildren(be.hierStack[-1])
-    if len(names)==0:
+    if len(names)==0 and not addEditDoc:
       print('Nothing to choose from!')
       nextMenu = 'main'
       continue
+    if addEditDoc:   prefix = 'direct_edit_'+nextMenu+'_'
+    else:            prefix = 'function_changeHierarchy_'
     for name, value in zip(names, values):
-      question[0]['choices'].append({'name': name, 'value': 'function_changeHierarchy_'+value})
+      question[0]['choices'].append({'name': name, 'value': prefix+value})
+    if addEditDoc:
+      question[0]['choices'].append({'name': '>Add to '+nextMenu+'<', 'value': 'form_'+nextMenu})
+    question[0]['choices'].append({'name':'>Go back to main<', 'value':'menu_main'})
   else:  #form
     #ask for measurements, samples, procedures, projects, ...
     #create form (=sequence of questions for string input) is dynamically created from dataDictonary
@@ -182,10 +205,7 @@ while be.alive:
   #####################
   ### ask question  ###
   #####################
-  # print('\n\n')
-  # pprint(question)
   answer = prompt(question)
-  # pprint(answer)
   #####################
   ### handle answer ###
   #####################
@@ -199,12 +219,20 @@ while be.alive:
     else:   #function and direct
       res = None
       if answer[1] == 'edit': #direct
-        tmpFileName = tempfile.gettempdir()+os.sep+'tmpFilejamsDB'+be.eargs['ext']
+        if len(answer)==3: #edit project/step/task
+          tmpFileName = tempfile.gettempdir()+os.sep+'tmpFilejamsDB'+be.eargs['ext']
+          inputString = be.getEditString()
+        else:              #edit sample/procedure/measurements
+          tmpFileName = tempfile.gettempdir()+os.sep+'tmpFilejamsDB.json'
+          inputString = json.dumps(be.getDoc(answer[-1]))
         with open(tmpFileName,'w') as fOut:
-          fOut.write( be.getEditString() )
+          fOut.write(inputString)
         os.system( be.eargs['editor']+' '+tmpFileName)
         with open(tmpFileName,'r') as fIn:
-          be.setEditString(fIn.read(), callback=curate)
+          if len(answer)==3: #edit project/step/task
+            be.setEditString(fIn.read(), callback=curate)
+          else:
+            be.addData('-edit-',json.load(fIn))
         os.unlink(tmpFileName)
       elif len(answer) == 2: #function
         res = getattr(be, answer[1])(callback=curate)
@@ -222,4 +250,3 @@ while be.alive:
     else:
       print('Did not understand you.')
     nextMenu = 'main'
-  continue

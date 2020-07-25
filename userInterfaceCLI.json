@@ -6,7 +6,7 @@
    {"Edit this":           "direct_edit_",              "append":"thisLevel"},
    {"Close this":          "function_changeHierarchy_", "append":"thisLevel"},
    {"---":                 ""},
-   {"Add to":              "form_",                     "expand":"docLabel"},
+   {"Edit/Add":           "menu_",                     "expand":"docLabel"},
    {"---":                 ""},
    {"Output database":     "menu_output"},
    {"Automatic functions": "menu_automate"},
@@ -18,13 +18,16 @@
 ],
 "automate": [ "How to scan directories?",
    {"Find new data & clean directories" :"function_scanTree"},
+   {"Replicate database":                "function_replicateDB"},
+   {"Check database integrity":          "function_checkDB"},
+   {"Seldom used functions":      "menu_advancedAutomate"}
+],
+"advancedAutomate": [ "How to scan directories?",
    {"Create data in directories":        "function_scanTree_produceData"},
    {"Compare directory data to database":"function_scanTree_compareToDB"},
-   {"Replicate database":                "function_replicateDB"},
-   {"Check and delete old revisions (DANGER)":     "function_checkDB_delRevisions"},
-   {"Check database integrity":          "function_checkDB"}
+   {"Check database and delete old revisions (DANGER)":     "function_checkDB_delRevisions"}
 ],
-"__comment__curate follows the shape of default PyInquirer: see pizza.py":"",
+"__comment__curate follows the shape of default questionary":"",
 "curate":[
    {"type": "input", "name": "comment",        "message": "Comment, #tags, :field:1:?",          "default":"" },
    {"type": "list",  "name": "sample",         "message": "Which sample was used?"},

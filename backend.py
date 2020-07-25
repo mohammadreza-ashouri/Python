@@ -99,7 +99,7 @@ class JamDB:
         hierStack: hierStack from external functions
         localCopy: copy a remote file to local version
         forceNewImage: create new image in any case
-        kwargs: additional parameter, i.e. callback
+        kwargs: additional parameter, i.e. callback for curation
     """
     logging.debug('addData beginning doc: '+docType+' | hierStack'+str(hierStack))
     callback = kwargs.get('callback', None)
@@ -112,8 +112,12 @@ class JamDB:
       if 'type' not in doc:
         doc['type'] = ['text',self.hierList[len(self.hierStack)-1]]
       if len(hierStack) == 0:  hierStack = self.hierStack
-      doc['_id'] = hierStack[-1]
-      hierStack   = hierStack[:-1]
+      if '_id' not in doc:
+        doc['_id'] = hierStack[-1]
+      if len(hierStack)>0:
+        hierStack   = hierStack[:-1]
+      elif 'branch' in doc:
+        hierStack   = doc['branch'][0]['stack']
     else:  #new doc
       edit = False
       if docType in self.hierList:

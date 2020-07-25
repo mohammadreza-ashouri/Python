@@ -210,6 +210,7 @@ class Database:
         newDoc[item] = change[item]
     if nothingChanged:
       logging.info('database:updateDoc no change of content: '+newDoc['name'])
+      print('database:updateDoc no change of content: '+newDoc['name'])
       return newDoc
     #produce _id of revDoc
     oldDoc['_id'] = docID+'-'+str( newDoc['nextRevision'] )
@@ -362,9 +363,12 @@ class Database:
               else:
                 outstring+= f'{bcolors.WARNING}**WARNING branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
             if doc['type'][0]=='text':
-              dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
-              if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
-                outstring+= f'{bcolors.FAIL}**ERROR child-number and dirName dont match '+doc['_id']+f'{bcolors.ENDC}\n'
+              try:
+                dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
+                if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
+                  outstring+= f'{bcolors.FAIL}**ERROR child-number and dirName dont match '+doc['_id']+f'{bcolors.ENDC}\n'
+              except:
+                pass  #handled next lines
             if branch['path'] is None:
               if doc['type'][0] == 'procedure' or doc['type'][0] == 'sample':
                 outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'
@@ -384,7 +388,7 @@ class Database:
                   parentDocBranches = self.getDoc(parentID)['branch']
                   onePathFound = False
                   for parentBranch in parentDocBranches:
-                    if parentBranch['path'] in branch['path']:
+                    if parentBranch['path'] is not None and parentBranch['path'] in branch['path']:
                       onePathFound = True
                   if not onePathFound:
                     outstring+= f'{bcolors.FAIL}**ERROR parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
