@@ -2,7 +2,7 @@
 ##################################
 ####  COMMAND LINE INTERFACE  ####
 ##################################
-import copy, json, os, sys
+import copy, json, os, sys, re
 from questionary import prompt, Separator
 from pprint import pprint
 #for measurement curation
@@ -234,7 +234,15 @@ while be.alive:
           if len(answer)==3: #edit project/step/task
             be.setEditString(fIn.read(), callback=curate)
           else:
-            be.addData('-edit-',json.load(fIn))
+            #prepare for json deciphering
+            content = fIn.read()
+            content = content.replace('\\\"',"'")  #get rid of all "
+            matches = re.findall(r'(\"\"|\".[^\"]*\")',content)
+            for oldString in matches:
+              if "\n" in oldString:
+                newString = oldString.replace("\n","\\n")
+                content = content.replace(oldString,newString)
+            be.addData('-edit-',json.loads(content))
         os.unlink(tmpFileName)
       elif len(answer) == 2: #function
         res = getattr(be, answer[1])(callback=curate)
