@@ -303,7 +303,7 @@ class Database:
     """
     outstring = f'{bcolors.UNDERLINE}**** LEGEND ****{bcolors.ENDC}\n'
     outstring+= f'{bcolors.OKGREEN}Green: perfect and as intended{bcolors.ENDC}\n'
-    outstring+= f'{bcolors.OKBLUE}Blue: ok-ish, can happen: empty files for testing{bcolors.ENDC}\n'
+    outstring+= f'{bcolors.OKBLUE}Blue: ok-ish, can happen: empty files for testing, strange path for measurements{bcolors.ENDC}\n'
     outstring+= f'{bcolors.HEADER}Pink: unsure if bug or desired (e.g. move step to random path-name){bcolors.ENDC}\n'
     outstring+= f'{bcolors.WARNING}Yellow: WARNING should not happen (e.g. procedures without project){bcolors.ENDC}\n'
     outstring+= f'{bcolors.FAIL}Red: FAILURE and ERROR: NOT ALLOWED AT ANY TIME{bcolors.ENDC}\n'
@@ -379,7 +379,7 @@ class Database:
             else:                                                            #if sensible path
               if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):#check if length of path and stack coincide
                 if '://' not in branch['path']:
-                  if doc['type'][0] == 'procedure':
+                  if doc['type'][0] == 'procedure' or doc['type'][0] == 'measurement':
                     outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths do not match for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
                   else:
                     outstring+= f'{bcolors.HEADER}**UNSURE branch stack and path lengths do not match '+doc['_id']+f'{bcolors.ENDC}\n'
