@@ -18,6 +18,7 @@
 ],
 "automate": [ "How to scan directories?",
    {"Find new data & clean directories" :"function_scanTree"},
+   {"Compare procedures database-files" :"function_compareProcedures"},
    {"Replicate database":                "function_replicateDB"},
    {"Check database integrity":          "function_checkDB"},
    {"Seldom used functions":      "menu_advancedAutomate"}
