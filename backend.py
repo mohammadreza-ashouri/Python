@@ -159,8 +159,10 @@ class JamDB:
         md5sum = ''
         if '://' in doc['name']:                                 #make up name
           if localCopy:
-            path = self.cwd + cT.camelCase( os.path.basename(doc['name']))
-            request.urlretrieve(doc['name'], self.basePath+doc['path'])
+            baseName, extension = os.path.splitext(os.path.basename(doc['name']))
+            path = self.cwd + cT.camelCase(baseName)+extension
+            request.urlretrieve(doc['name'], self.basePath+path)
+            doc['name'] = cT.camelCase(baseName)+extension
           else:
             path = doc['name']
             try:
@@ -181,16 +183,13 @@ class JamDB:
               md5sum = hashlib.md5(fIn.read()).hexdigest()
           view = self.db.getView('viewMD5/viewMD5',md5sum)
           if len(view)==0 or forceNewImage:  #measurement not in database: create doc
-            rerun = True
-            while rerun:
+            while True:
               self.getMeasurement(path,md5sum,doc)
               if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
                 doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: filter does not exit
                 return
-              if callback is None:
-                rerun = False
-              else:
-                rerun = callback(doc)
+              if callback is None or callback(doc):
+                break
           if len(view)==1:
             doc['_id'] = view[0]['id']
             doc['md5sum'] = md5sum
