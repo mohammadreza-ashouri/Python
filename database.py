@@ -157,7 +157,7 @@ class Database:
     oldDoc = {}              #this is an older revision of the document
     nothingChanged = True
     # handle branch
-    if 'branch' in change and len(change['branch']['stack'])>0:
+    if 'branch' in change and len(change['branch']['stack'])>0 and change['branch']['path'] is not None:
       op = change['branch']['op']
       del change['branch']['op']
       if not change['branch'] in newDoc['branch']:       #skip if new path already in path
