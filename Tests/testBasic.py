@@ -153,9 +153,6 @@ class TestStringMethods(unittest.TestCase):
       print('*** TEST MEASUREMENTS AND SCANNING 4 ***')
       shutil.move(projDirName1+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteelLC.txt')
       self.be.scanTree()  #always scan before produceData: ensure that database correct
-      self.be.scanTree('produceData')
-      self.be.scanTree('compareToDB')
-      self.be.cleanTree()
 
       ### Output all the measurements and changes until now
       # output MD5-sum
@@ -179,8 +176,30 @@ class TestStringMethods(unittest.TestCase):
       print('Replication test')
       self.be.replicateDB(databaseName,True)
       print('\n*** DONE WITH VERIFY ***')
+      self.backup()
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
+    return
+
+
+  def backup(self):
+    print("BACKUP TEST")
+    if os.path.exists(self.be.basePath+'jamDB_backup.zip'):
+      os.unlink(self.be.basePath+'jamDB_backup.zip')
+    warnings.simplefilter("ignore")
+    self.be.backup() #throws an "Exception ignored in SSL Socket"
+    warnings.simplefilter("default")
+    if not os.path.exists(self.be.basePath+'jamDB_backup.zip'):
+      print("Backup did not create zip file",self.be.basePath+'jamDB_backup.zip')
+      raise NameError('zip file was not created')
+    success = self.be.backup('compare')
+    if not success:
+      print('Backup comparison unsuccessful')
+      raise NameError('Backup comparison failed')
+    success = self.be.backup('restore')
+    if not success:
+      print('Backup comparison unsuccessful')
+      raise NameError('Backup comparison failed')
     return
 
 

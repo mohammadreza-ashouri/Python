@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import PIL
 import logging
 import difflib
+from zipfile import ZipFile, ZIP_DEFLATED
 from io import StringIO, BytesIO
 from urllib import request
 from pprint import pprint
@@ -277,7 +278,7 @@ class JamDB:
     return
 
 
-  def scanTree(self, method=None, **kwargs):
+  def scanTree(self, produceImages=False, **kwargs):
     """ Scan directory tree recursively from project/...
     - find changes on file system and move those changes to DB
     - use .id_jamDB.json to track changes of directories, aka projects/steps/tasks
@@ -287,17 +288,13 @@ class JamDB:
       doc['path'] is adopted once changes are observed
 
     Args:
-      method: 'produceData' copy database entry to file system; for backup: '_jamDB.json'
-              'compareToDB' compare database entry to file system backup to observe accidental changes anyplace
-        kwargs: additional parameter, i.e. callback
+      produceImages: copy images from database into corresponting directory tree
+      kwargs: additional parameter, i.e. callback
     """
-    logging.info('scanTree started with method '+str(method))
+    logging.info('scanTree started')
     if len(self.hierStack) == 0:
       print(f'{bcolors.FAIL}Warning - scan directory: No project selected{bcolors.ENDC}')
       return
-    if   method == 'produceData': produceData, compareToDB = True, False
-    elif method == 'compareToDB': produceData, compareToDB = False, True
-    else                        : produceData, compareToDB = False, False
     callback = kwargs.get('callback', None)
 
     # get information from database
@@ -334,22 +331,6 @@ class JamDB:
               logging.error(path+' id-test NOT successful on project/step/task')
               logging.error(idFile['branch'][0]['path']+' | '+idFile['_id']+' | '+idFile['type'])
               logging.error(path+' | '+str(database[path]))
-          if produceData:
-            #if you have to produce
-            doc = self.db.getDoc(database[path][0])
-            with open(self.basePath+path+'/data_jamDB.json','w') as fOut:
-              fOut.write(json.dumps(doc))
-          elif compareToDB:
-            #if you have to compare
-            with open(self.basePath+path+'/data_jamDB.json') as fIn:
-              docFile = json.load(fIn)
-            docDB = self.db.getDoc(docFile['_id'])
-            if docDB==docFile:
-              logging.debug(path+' test _jamDB.json successful on project/step/task')
-            else:
-              logging.warning(path+' test _jamDB.json NOT successful on project/step/task')
-              logging.warning(docDB)
-              logging.warning(docFile)
         except:
           logging.error('scanTree: .id_jamDB.json file deleted from '+path)
       else:
@@ -391,11 +372,9 @@ class JamDB:
             logging.debug(fileName+' md5-test successful on measurement/etc.')
           else:
             logging.error(fileName+' md5-test NOT successful on measurement/etc. '+md5File+' '+database[fileName][3])
-          if produceData:
+          if produceImages:
             #if you have to produce
             doc = self.db.getDoc(database[fileName][0])
-            with open(self.basePath+jsonFileName,'w') as f:
-              f.write(json.dumps(doc))
             if doc['image'].startswith('data:image/jpg'):  #jpg and png
               image = base64.b64decode( doc['image'][22:].encode() )
               ending= doc['image'][11:14]
@@ -404,20 +383,6 @@ class JamDB:
             else:                                           #svg
               with open(self.basePath+jsonFileName[:-4]+'svg','w') as fOut:
                 fOut.write(doc['image'])
-          elif compareToDB:
-            #database and directory agree regarding measurement/etc.
-            try:
-              with open(self.basePath+jsonFileName) as fIn:
-                docFile = json.load(fIn)  #exception handled
-              docDB = self.db.getDoc(docFile['_id'])
-              if docDB==docFile:
-                logging.debug(fileName+' slow test successful on measurement/etc.')
-              else:
-                logging.error(fileName+' slow test NOT successful on measurement/etc.')
-                logging.error(docDB)
-                logging.error(docFile)
-            except:
-              logging.error(jsonFileName+' json file does not exist')
           del database[fileName]
         else:
           #not in database, create database entry: if it already exists, self.addData takes care of it
@@ -492,24 +457,76 @@ class JamDB:
 
 
 
-  def cleanTree(self, all=True):
+  def backup(self, method='backup', zipFileName=None, **kwargs):
     """
-    clean all _jamDB.json files from directories
-    - id files in directories are kept
+    backup, verify, restore information from/to database
+    - documents are named: (docID).json
+    - all data is saved to one zip file
 
     Args:
-       all: remove files in all projects/steps/tasks
-            else: only remove in this directory recursively
+      method: backup, restore, compare
+      zipFileName: specific unique name of zip-file
+      kwargs: additional parameter, i.e. callback
+
+    Returns: True / False depending on success
     """
-    if all:
-      directory = self.basePath
-    else:
-      directory = self.cwd
-    for path, _, files in os.walk(directory):
-      for file in files:
-        if file.endswith('_jamDB.json') and file!='.id_jamDB.json':
-          filePath = os.path.normpath(path+os.sep+file)
-          os.remove(filePath)
+    if zipFileName is None and self.cwd is None:
+      print("Specify zip file name")
+      return
+    if zipFileName is None: zipFileName="jamDB_backup.zip"
+    if os.sep not in zipFileName:
+      zipFileName = self.basePath+zipFileName
+    if method=='backup':  mode = 'w'
+    else:                 mode = 'r'
+    print(method,'to file',zipFileName)
+    with ZipFile(zipFileName, mode, compression=ZIP_DEFLATED) as zipFile:
+
+      # method backup, iterate through all database entries and save to file
+      if method=='backup':
+        for doc in self.db.db:
+          fileName = doc['_id']+'.json'
+          zipFile.writestr(fileName,json.dumps(doc) )
+        compressed, fileSize = 0,0
+        for doc in zipFile.infolist():
+          compressed += doc.compress_size
+          fileSize   += doc.file_size
+        print(f'  File size: {fileSize:,} byte   Compressed: {compressed:,} byte')
+        return True
+
+      # method compare
+      elif method=='compare':
+        filesInZip = zipFile.namelist()
+        differenceFound, comparedFiles = False, 0
+        for doc in self.db.db:
+          fileName = doc['_id']+'.json'
+          if fileName not in filesInZip:
+            print("**ERROR** document not in zip file",doc['_id'])
+            differenceFound = True
+          else:
+            filesInZip.remove(fileName)
+            zipData = json.loads( zipFile.read(fileName) )
+            if doc!=zipData:
+              print('  Data disagrees database, zipfile ',doc['_id'])
+              differenceFound = True
+            comparedFiles += 1
+        if len(filesInZip)>0:
+          differenceFound = True
+          print('Files in zipfile not in database',filesInZip)
+        if differenceFound: print("  Difference exists between database and zipfile")
+        else:               print("  Database and zipfile are identical.",comparedFiles,'files were compared')
+        return not differenceFound
+
+      # method restore: loop through all files in zip and save to database
+      #  - skip design and dataDictionary
+      elif method=='restore':
+        beforeLength = len(self.db.db)
+        for fileName in zipFile.namelist():
+          if not ( fileName.startswith('_') or fileName.startswith('-') ):
+            zipData = json.loads( zipFile.read(fileName) )
+            self.db.saveDoc(zipData)
+        print('  number of documents before and after restore:',beforeLength, len(self.db.db))
+        return True
+    return False
 
 
   def getMeasurement(self, filePath, md5sum, doc, **kwargs):

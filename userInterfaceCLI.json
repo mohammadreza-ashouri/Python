@@ -21,11 +21,12 @@
    {"Compare procedures database-files" :"function_compareProcedures"},
    {"Replicate database":                "function_replicateDB"},
    {"Check database integrity":          "function_checkDB"},
-   {"Seldom used functions":      "menu_advancedAutomate"}
+   {"Backup and advanced cleaning":      "menu_advancedAutomate"}
 ],
 "advancedAutomate": [ "How to scan directories?",
-   {"Create data in directories":        "function_scanTree_produceData"},
-   {"Compare directory data to database":"function_scanTree_compareToDB"},
+   {"Create  backup":               "function_backup_backup"},
+   {"Compare backup to database":   "function_backup_compare"},
+   {"Restore backup":               "function_backup_restore"},
    {"Check database and delete old revisions (DANGER)":     "function_checkDB_delRevisions"}
 ],
 "__comment__curate follows the shape of default questionary":"",

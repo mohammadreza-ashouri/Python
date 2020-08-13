@@ -126,8 +126,9 @@ class Database:
     tracebackString = traceback.format_stack()
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
     doc['client'] = tracebackString
-    del doc['branch']['op']  #remove operation, saveDoc creates and therefore always the same
-    doc['branch'] = [doc['branch']]
+    if 'branch' in doc and 'op' in doc['branch']:
+      del doc['branch']['op']  #remove operation, saveDoc creates and therefore always the same
+      doc['branch'] = [doc['branch']]
     if self.confirm is None or self.confirm(doc,"Create this document?"):
       res = self.db.create_document(doc)
     else:
@@ -275,16 +276,19 @@ class Database:
         dbInfo: info on the remote database
         removeAtStart: remove remote DB before starting new
     """
-    rep = Replicator(self.client)
-    client2 = Cloudant(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
-    if dbInfo['database'] in client2.all_dbs() and removeAtStart:
-        client2.delete_database(dbInfo['database'])
-    if dbInfo['database'] in client2.all_dbs():
-      db2 = client2[dbInfo['database']]
-    else:
-      db2 = client2.create_database(dbInfo['database'])
-    doc = rep.create_replication(self.db, db2, create_target=True)
-    logging.info('database:replicateDB Replication started')
+    try:
+      rep = Replicator(self.client)
+      client2 = Cloudant(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
+      if dbInfo['database'] in client2.all_dbs() and removeAtStart:
+          client2.delete_database(dbInfo['database'])
+      if dbInfo['database'] in client2.all_dbs():
+        db2 = client2[dbInfo['database']]
+      else:
+        db2 = client2.create_database(dbInfo['database'])
+      doc = rep.create_replication(self.db, db2, create_target=True)
+      logging.info('database:replicateDB Replication started')
+    except:
+      print("**ERROR** preplicate\n",traceback.format_exc())
     return
 
 

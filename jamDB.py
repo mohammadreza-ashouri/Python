@@ -39,8 +39,8 @@ else:
     be = JamDB(args.database)
     if args.command=='print':
       print(be.output(args.item,True))
-    elif args.command=='cleanAll':
-      be.cleanTree(all=True)
+    elif args.command=='backup':
+      be.backup(args.item)
     elif args.command=='filterTest':
       if args.options is None:
         be.getMeasurement(args.item,"empty_md5sum",{'type':['measurement', '']},show=True)
@@ -49,14 +49,8 @@ else:
     else:
       #all commands that require an open project
       be.changeHierarchy(args.item)
-      if args.command=='clean':
-        be.cleanTree(all=False)
-      elif args.command=='scan':
+      if args.command=='scan':
         be.scanTree()                 #there can not be a callback function
-      elif args.command=='produce':
-        be.scanTree('produceData')
-      elif args.command=='compare':
-        be.scanTree('compareToDB')
       elif args.command=='hierarchy':
         print(be.outputHierarchy(True,True))
       else:

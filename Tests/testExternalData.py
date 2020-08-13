@@ -1,5 +1,8 @@
 #!/usr/bin/python3
-import os, shutil, traceback, sys
+"""
+TEST IF EXTERNAL DATA CAN BE READ,...
+"""
+import os, shutil, traceback, sys, time
 import warnings
 import unittest
 sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
@@ -17,9 +20,9 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', module='js2py')
 
     databaseName = 'temporary_test0'
-    dirName      = os.path.expanduser('~')+os.sep+databaseName
-    if os.path.exists(dirName): shutil.rmtree(dirName)
-    os.makedirs(dirName)
+    self.dirName      = os.path.expanduser('~')+os.sep+databaseName
+    if os.path.exists(self.dirName): shutil.rmtree(self.dirName)
+    os.makedirs(self.dirName)
     self.be = JamDB(databaseName)
     self.be.exit(deleteDB=True)
     self.be = JamDB(databaseName)
@@ -55,9 +58,11 @@ class TestStringMethods(unittest.TestCase):
 
   def tearDown(self):
     try:
-      self.be.exit()
+      self.be.exit(deleteDB=True)
     except:
       pass
+    time.sleep(2)
+    if os.path.exists(self.dirName): shutil.rmtree(self.dirName)
     return
 
 if __name__ == '__main__':
