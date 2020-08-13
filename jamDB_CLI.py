@@ -2,7 +2,7 @@
 ##################################
 ####  COMMAND LINE INTERFACE  ####
 ##################################
-import copy, json, os, sys, re
+import copy, json, os, sys, re, warnings
 from questionary import prompt, Separator
 from pprint import pprint
 #for measurement curation
@@ -10,6 +10,7 @@ import subprocess, tempfile, os, base64, io
 from PIL import Image
 #the package
 from backend import JamDB
+from miscTools import bcolors
 
 
 def confirm(content=None, header=None):
@@ -22,19 +23,21 @@ def confirm(content=None, header=None):
   """
   print()
   if header is not None:
-    print(header)
+    print(f'{bcolors.UNDERLINE}'+header+f'{bcolors.ENDC}')
   if isinstance(content, dict):
     temp = content.copy()
-    if 'image'      in temp: temp['image'] = '[...]'
-    if 'metaVendor' in temp: temp['metaVendor'] = '[...]'
+    if 'new' in temp and 'image'      in temp['new']: temp['new']['image'] = '[...]'
+    if 'new' in temp and 'metaVendor' in temp['new']: temp['new']['metaVendor'] = '[...]'
+    if 'old' in temp and 'image'      in temp['old']: temp['old']['image'] = '[...]'
+    if 'old' in temp and 'metaVendor' in temp['old']: temp['old']['metaVendor'] = '[...]'
     pprint(temp)
   elif isinstance(content, str):
     print(content)
-  success = input("Is that ok? [y/N] ")
-  if success=='y':
-    return True
-  else:
+  success = input("Is that ok? [Y/n] ")
+  if success=='n' or success=='N':
     return False
+  else:
+    return True
 
 ### INITIALIZATION
 sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
@@ -47,11 +50,12 @@ menuOutline = json.load(open(be.softwarePath+'/userInterfaceCLI.json', 'r'))
 def curate(doc):
   """
   Used as callback function: curate measurement after automatically found
+  - needs menuOutline, hence here
 
   Args:
      doc: document found. Image attribute used for display
   """
-  print('\n=>Curate measurement: '+doc['name'])
+  print(f'\n{bcolors.BOLD}=> Curate measurement:'+doc['name']+f' <={bcolors.ENDC}')
   #show image
   if doc['image'].startswith('<?xml'):
     with open(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg','w') as outFile:
@@ -60,9 +64,13 @@ def curate(doc):
     # cairosvg.svg2png(bytestring=doc['image'], write_to=tempfile.gettempdir()+os.sep+'tmpFilejamsDB.png')
     viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg' ])
   elif doc['image'].startswith('data:image'):  #for jpg and png
-    print(doc['image'][22:30])
     imgdata = base64.b64decode(doc['image'][22:])
     image = Image.open(io.BytesIO(imgdata))
+    print("Verify image mode in curate: ",image.mode)
+    if image.mode=='P':
+      warnings.simplefilter("ignore")  #some images might have transparency which is would trigger warning
+      image = image.convert('RGB')
+      warnings.simplefilter('default')
     image.save(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg', format='JPEG')
     viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg' ])
   #prepare question and ask question and use answer

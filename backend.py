@@ -35,6 +35,8 @@ class JamDB:
     logging.basicConfig(filename='jamDB.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)
+    logging.getLogger('asyncio').setLevel(logging.WARNING)
+    logging.getLogger('PIL').setLevel(logging.WARNING)
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
     with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
       configuration = json.load(f)
@@ -170,7 +172,7 @@ class JamDB:
               md5sum  = hashlib.md5(request.urlopen(doc['name']).read()).hexdigest()
             except:
               print('addData: fetch remote content failed. Data not added')
-              return
+              return False
         elif os.path.exists(self.basePath+doc['name']):          #file exists
           path = doc['name']
           doc['name'] = os.path.basename(doc['name'])
@@ -188,8 +190,10 @@ class JamDB:
               self.getMeasurement(path,md5sum,doc)
               if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
                 doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: filter does not exit
-                return
+                return False
               if callback is None or callback(doc):
+                if doc['type'][-1]=='trash':
+                  return False
                 break
           if len(view)==1:
             doc['_id'] = view[0]['id']
@@ -217,8 +221,8 @@ class JamDB:
       with open(self.basePath+path+'/.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(doc))
     self.currentID = doc['_id']
-    logging.debug('addData ending doc '+doc['_id']+' '+doc['_rev']+' '+doc['type'][0])
-    return
+    logging.debug('addData ending doc '+doc['_id']+' '+doc['type'][0])
+    return True
 
 
   def createDirName(self,name,docType,thisChildNumber):
@@ -421,7 +425,10 @@ class JamDB:
           newDoc    = {'name':path+os.sep+file}
           parentDoc = self.db.getDoc(parentID)
           hierStack = parentDoc['branch'][0]['stack']+[parentID]
-          self.addData('measurement', newDoc, hierStack, callback=callback)
+          success = self.addData('measurement', newDoc, hierStack, callback=callback)
+          if not success:
+            aaa = 4/0
+            #exclude this file foreever
       if path in database:
         del database[path]
 

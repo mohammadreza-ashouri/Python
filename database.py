@@ -128,7 +128,7 @@ class Database:
     doc['client'] = tracebackString
     del doc['branch']['op']  #remove operation, saveDoc creates and therefore always the same
     doc['branch'] = [doc['branch']]
-    if self.confirm is None or self.confirm(doc,"Write this doc?"):
+    if self.confirm is None or self.confirm(doc,"Create this document?"):
       res = self.db.create_document(doc)
     else:
       res = doc
@@ -216,7 +216,7 @@ class Database:
     oldDoc['_id'] = docID+'-'+str( newDoc['nextRevision'] )
     newDoc['nextRevision'] += 1
     #add id to revisions and save
-    if self.confirm is None or self.confirm({'new':newDoc,'old':oldDoc},"Update this doc?"):
+    if self.confirm is None or self.confirm({'new':newDoc,'old':oldDoc},"Update this document?"):
       newDoc.save()  #TODO: exception (update) occurred sometimes: try to find example and debug
       #save _rev to backup for verification
       oldDoc['current_rev'] = newDoc['_rev']
