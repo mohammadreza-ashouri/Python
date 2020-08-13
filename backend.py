@@ -191,7 +191,7 @@ class JamDB:
               if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
                 doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: filter does not exit
                 return False
-              if callback is None or callback(doc):
+              if callback is None or not callback(doc):
                 if doc['type'][-1]=='trash':
                   return False
                 break
@@ -427,8 +427,8 @@ class JamDB:
           hierStack = parentDoc['branch'][0]['stack']+[parentID]
           success = self.addData('measurement', newDoc, hierStack, callback=callback)
           if not success:
-            aaa = 4/0
-            #exclude this file foreever
+            aaa = 40
+            #TODO exclude this file foreever
       if path in database:
         del database[path]
 

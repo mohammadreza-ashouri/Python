@@ -23,9 +23,11 @@ def confirm(content=None, header=None):
   """
   print()
   if header is not None:
-    print(f'{bcolors.UNDERLINE}'+header+f'{bcolors.ENDC}')
+    print(f'{bcolors.BOLD}'+header+f'{bcolors.ENDC}')
   if isinstance(content, dict):
     temp = content.copy()
+    if 'image'      in temp:                          temp['image'] = '[...]'
+    if 'metaVendor' in temp:                          temp['metaVendor'] = '[...]'
     if 'new' in temp and 'image'      in temp['new']: temp['new']['image'] = '[...]'
     if 'new' in temp and 'metaVendor' in temp['new']: temp['new']['metaVendor'] = '[...]'
     if 'old' in temp and 'image'      in temp['old']: temp['old']['image'] = '[...]'
