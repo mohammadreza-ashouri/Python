@@ -52,6 +52,7 @@ class JamDB:
     self.userID   = configuration['-userID']
     self.remoteDB = configuration[remoteName]
     self.eargs   = configuration['-eargs']
+    self.magicTags= configuration['-magicTags']
     # open basePath (root of directory tree) as current working directory
     # self.cwd is the addition to basePath
     self.softwarePath = os.path.abspath(os.getcwd())
@@ -496,6 +497,7 @@ class JamDB:
       # method compare
       elif method=='compare':
         filesInZip = zipFile.namelist()
+        print('  Number of documents in file:',len(filesInZip))
         differenceFound, comparedFiles = False, 0
         for doc in self.db.db:
           fileName = doc['_id']+'.json'
@@ -524,7 +526,8 @@ class JamDB:
           if not ( fileName.startswith('_') or fileName.startswith('-') ):
             zipData = json.loads( zipFile.read(fileName) )
             self.db.saveDoc(zipData)
-        print('  number of documents before and after restore:',beforeLength, len(self.db.db))
+        print('  Number of documents in file:',len(zipFile.namelist()))
+        print('  Number of documents before and after restore:',beforeLength, len(self.db.db))
         return True
     return False
 
@@ -729,11 +732,12 @@ class JamDB:
         continue
       nativeView[item['id']] = [item['key']]+item['value']
     if addTags=='all':
-      outString = cT.hierarchy2String(nativeView, addID, self.getDoc, 'all')
+      outString = cT.hierarchy2String(nativeView, addID, self.getDoc, 'all', self.magicTags)
     elif addTags=='tags':
-      outString = cT.hierarchy2String(nativeView, addID, self.getDoc, 'tags')
-    else:  #why native view has extra "  " in StepFour?
-      outString = cT.hierarchy2String(nativeView, addID, None, 'none')
+      outString = cT.hierarchy2String(nativeView, addID, self.getDoc, 'tags', self.magicTags)
+    else:
+      outString = cT.hierarchy2String(nativeView, addID, None, 'none', None)
+    #remove superficial * from head of all lines
     minPrefix = len(re.findall('^\*+',outString)[0])
     startLine = '\n\*{'+str(minPrefix)+'}'
     outString = re.sub(startLine,'\n',outString)[minPrefix+1:] #also remove from head of string
@@ -744,11 +748,11 @@ class JamDB:
     """
     Return Markdown string of hierarchy tree
     """
-    #simple style
+    #simple editor style: only this document, no tree
     if self.eargs['style']=='simple':
       doc = self.db.getDoc(self.hierStack[-1])
       return ', '.join([tag for tag in doc['tags']])+' '+doc['comment']
-    #complicated style
+    #complicated style: this document and all its children and grandchildren...
     return self.outputHierarchy(True,True,'tags')
 
 
@@ -760,6 +764,7 @@ class JamDB:
        text: org-mode structured text
        callback: function to verify database change
     """
+    # write backup
     with open(tempfile.gettempdir()+os.sep+'tempSetEditString.txt','w') as fOut:
       fOut.write(text)
     # add the prefix to org-mode structure lines
@@ -772,7 +777,7 @@ class JamDB:
       else:                                  #other lines, incl. first
         newText += line+'\n'
     newText = prefix+' '+newText
-    docList = cT.editString2Docs(newText)
+    docList = cT.editString2Docs(newText, self.magicTags)
     # initialize iteration
     hierLevel = None
     children  = [0]

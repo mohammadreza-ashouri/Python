@@ -2,11 +2,8 @@
   "-userID": "*INITIALS-UUID*",
   "-defaultLocal": "local",
   "-defaultRemote": "remote",
-  "-eargs": {
-    "editor": "emacs",
-    "ext": ".org",
-    "style": "all"
-  },
+  "-eargs": { "editor": "emacs", "ext": ".org", "style": "all" },
+  "-magicTags": ["P1","P2","P3","TODO","WAIT","DONE"],
   "local": {
     "user": "*USER*",
     "password": "*PASSWORD*",

@@ -47,7 +47,6 @@ be = JamDB(confirm=confirm)
 # keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
 menuOutline = json.load(open(be.softwarePath+'/userInterfaceCLI.json', 'r'))
 
-
 ### Curate by user: say measurement good/bad/ugly
 def curate(doc):
   """
@@ -241,10 +240,9 @@ while be.alive:
           fOut.write(inputString)
         os.system( be.eargs['editor']+' '+tmpFileName)
         with open(tmpFileName,'r') as fIn:
-          if len(answer)==3: #edit project/step/task
+          if len(answer)==3:          #edit project/step/task
             be.setEditString(fIn.read(), callback=curate)
-          else:
-            #prepare for json deciphering
+          else:                       #edit json for samples, procedures,...
             content = fIn.read()
             content = content.replace('\\\"',"'")  #get rid of all "
             matches = re.findall(r'(\"\"|\".[^\"]*\")',content)
