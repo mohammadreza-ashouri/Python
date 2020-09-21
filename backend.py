@@ -392,9 +392,7 @@ class JamDB:
           parentDoc = self.db.getDoc(parentID)
           hierStack = parentDoc['branch'][0]['stack']+[parentID]
           success = self.addData('measurement', newDoc, hierStack, callback=callback)
-          if not success:
-            aaa = 40
-            #TODO exclude this file foreever
+          if not success:  raise ValueError
       if path in database:
         del database[path]
 
