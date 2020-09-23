@@ -5,6 +5,7 @@
 import copy, json, os, sys, re, warnings
 from questionary import prompt, Separator
 from pprint import pprint
+import numpy as np
 #for measurement curation
 import subprocess, tempfile, os, base64, io
 from PIL import Image
@@ -43,7 +44,9 @@ def confirm(content=None, header=None):
 
 ### INITIALIZATION
 sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
-be = JamDB(confirm=confirm)
+if len(sys.argv)>1: configName=sys.argv[1]
+else:               configName=None
+be = JamDB(configName=configName, confirm=confirm)
 # keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
 menuOutline = json.load(open(be.softwarePath+'/userInterfaceCLI.json', 'r'))
 
@@ -263,7 +266,7 @@ while be.alive:
     # all data collected, save it
     if nextMenu=='edit': #edit-> update data
       print("I SHOULD NOT BE HERE")
-    elif len(answer)!=0 and len(answer['name'])>0:
+    elif len(answer)!=0 and np.sum([len(i) for i in list(answer.values())])>0:
       be.addData(docType, answer)
     else:
       print('Did not understand you.')

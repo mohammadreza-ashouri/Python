@@ -22,12 +22,12 @@ class JamDB:
   PYTHON BACKEND
   """
 
-  def __init__(self, localName=None, confirm=None):
+  def __init__(self, configName=None, confirm=None):
     """
     open server and define database
 
     Args:
-        localName: name of local database, otherwise taken from config file
+        configName: name of configuration used; if not given, use the one defined by '-defaultLocal' in config file
         confirm: confirm changes to database and file-tree
     """
     # open configuration file and define database
@@ -41,22 +41,22 @@ class JamDB:
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
     with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
       configuration = json.load(f)
-    if localName is None:
-      localName = configuration['-defaultLocal']
-    logging.info('\nSTART JAMS '+localName)
+    if configName is None:
+      configName = configuration['-defaultLocal']
+    logging.info('\nSTART JAMS '+configName)
     remoteName= configuration['-defaultRemote']
-    user         = configuration[localName]['user']
-    password     = configuration[localName]['password']
-    databaseName = configuration[localName]['database']
+    user         = configuration[configName]['user']
+    password     = configuration[configName]['password']
+    databaseName = configuration[configName]['database']
     self.db = Database(user, password, databaseName, confirm=self.confirm)
     self.userID   = configuration['-userID']
     self.remoteDB = configuration[remoteName]
     self.eargs   = configuration['-eargs']
-    self.magicTags= configuration['-magicTags']
+    self.magicTags= configuration['-magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
     # open basePath (root of directory tree) as current working directory
     # self.cwd is the addition to basePath
     self.softwarePath = os.path.abspath(os.getcwd())
-    self.basePath     = os.path.expanduser('~')+os.sep+configuration[localName]['path']
+    self.basePath     = os.path.expanduser('~')+os.sep+configuration[configName]['path']
     self.cwd          = ''
     if not self.basePath.endswith(os.sep):
         self.basePath += os.sep
