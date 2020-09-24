@@ -2,19 +2,18 @@
 """ Python Backend
 """
 import os, json, base64, hashlib, shutil, re, sys
+import logging
+from io import StringIO, BytesIO
 import importlib, tempfile
+from zipfile import ZipFile, ZIP_DEFLATED
+from urllib import request
+import difflib
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
-import logging
-import difflib
-from zipfile import ZipFile, ZIP_DEFLATED
-from io import StringIO, BytesIO
-from urllib import request
-from pprint import pprint
 from database import Database
 from commonTools import commonTools as cT
-from miscTools import bcolors
+from miscTools import bcolors, createDirName
 
 
 class JamDB:
@@ -59,12 +58,12 @@ class JamDB:
     self.basePath     = os.path.expanduser('~')+os.sep+configuration[configName]['path']
     self.cwd          = ''
     if not self.basePath.endswith(os.sep):
-        self.basePath += os.sep
+      self.basePath += os.sep
     if os.path.exists(self.basePath):
-        os.chdir(self.basePath)
+      os.chdir(self.basePath)
     else:
-        logging.warning('Base folder did not exist. No directory saving\n'+self.basePath)
-        self.cwd   = None
+      logging.warning('Base folder did not exist. No directory saving\n'+self.basePath)
+      self.cwd   = None
     sys.path.append(self.softwarePath+os.sep+'filter')  #allow filters
     # hierarchy structure
     self.dataDictionary = self.db.getDoc('-dataDictionary-')
@@ -94,7 +93,7 @@ class JamDB:
   ######################################################
   ### Change in database
   ######################################################
-  def addData(self, docType, doc, hierStack=[], localCopy=False, forceNewImage=False, **kwargs):
+  def addData(self, docType, doc, hierStack=None, localCopy=False, **kwargs):
     """
     Save doc to database, also after edit
 
@@ -106,8 +105,10 @@ class JamDB:
         forceNewImage: create new image in any case
         kwargs: additional parameter, i.e. callback for curation
     """
+    if hierStack is None: hierStack=[]
     logging.debug('addData beginning doc: '+docType+' | hierStack'+str(hierStack))
     callback = kwargs.get('callback', None)
+    forceNewImage=kwargs.get('forceNewImage',False)
     doc['user']   = self.userID
     childNum       = 9999
     path           = None
@@ -157,7 +158,7 @@ class JamDB:
           if len(parentDirectory)>2: parentDirectory += os.sep
         else:         #new: below the current project/step/task
           parentDirectory = self.cwd
-        path = parentDirectory + self.createDirName(doc['name'],doc['type'][1],childNum) #update,or create (if new doc, update ignored anyhow)
+        path = parentDirectory + createDirName(doc['name'],doc['type'][1],childNum) #update,or create (if new doc, update ignored anyhow)
         operation = 'u'
       else:
         #measurement, sample, procedure
@@ -225,22 +226,6 @@ class JamDB:
     self.currentID = doc['_id']
     logging.debug('addData ending doc '+doc['_id']+' '+doc['type'][0])
     return True
-
-
-  def createDirName(self,name,docType,thisChildNumber):
-    """ create directory-name by using camelCase and a prefix
-
-    Args:
-       name: name with spaces etc.
-       docType: document type used for prefix
-       thisChildNumber: number of myself
-    """
-    if docType == 'project':
-      return cT.camelCase(name)
-    else:  #steps, tasks
-      if isinstance(thisChildNumber, str):
-        thisChildNumber = int(thisChildNumber)
-      return ('{:03d}'.format(thisChildNumber))+'_'+cT.camelCase(name)
 
 
   ######################################################
@@ -427,7 +412,6 @@ class JamDB:
       kwargs: additional parameter, i.e. callback
     """
     logging.info('compareProcedures started')
-    callback = kwargs.get('callback', None)
     view = self.db.getView('viewProcedures/viewProcedures')
     for item in view:
       doc = self.getDoc(item['id'])
@@ -471,7 +455,7 @@ class JamDB:
     """
     if zipFileName is None and self.cwd is None:
       print("Specify zip file name")
-      return
+      return False
     if zipFileName is None: zipFileName="jamDB_backup.zip"
     if os.sep not in zipFileName:
       zipFileName = self.basePath+zipFileName
@@ -610,7 +594,7 @@ class JamDB:
     metaVendor      = meta['metaVendor']
     metaUser        = meta['metaUser']
     document = {'image': image, 'type': ['measurement']+measurementType,
-            'metaUser':metaUser, 'metaVendor':metaVendor, 'md5sum':md5sum}
+                'metaUser':metaUser, 'metaVendor':metaVendor, 'md5sum':md5sum}
     logging.debug('getMeasurement: finished')
     doc.update(document)
     if show:
@@ -622,14 +606,14 @@ class JamDB:
   ######################################################
   ### Wrapper for database functions
   ######################################################
-  def getDoc(self, id):
+  def getDoc(self, docID):
     """
     Wrapper for getting data from database
 
     Args:
-        id: document id
+        docID: document id
     """
-    return self.db.getDoc(id)
+    return self.db.getDoc(docID)
 
 
   def replicateDB(self, remoteDB=None, removeAtStart=False, **kwargs):
@@ -736,8 +720,8 @@ class JamDB:
     else:
       outString = cT.hierarchy2String(nativeView, addID, None, 'none', None)
     #remove superficial * from head of all lines
-    minPrefix = len(re.findall('^\*+',outString)[0])
-    startLine = '\n\*{'+str(minPrefix)+'}'
+    minPrefix = len(re.findall(r'^\*+',outString)[0])
+    startLine = r'\n\*{'+str(minPrefix)+'}'
     outString = re.sub(startLine,'\n',outString)[minPrefix+1:] #also remove from head of string
     return outString
 
@@ -767,7 +751,7 @@ class JamDB:
       fOut.write(text)
     # add the prefix to org-mode structure lines
     prefix = '*'*len(self.hierStack)
-    startLine = '^\*+\ '
+    startLine = r'^\*+\ '
     newText = ''
     for line in text.split('\n'):
       if len(re.findall(startLine,line))>0:  #structure line
@@ -806,7 +790,7 @@ class JamDB:
           children[-1] += 1
         #check if directory exists on disk
         #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
-        dirName = self.createDirName(doc['name'],doc['type'][0],children[-1])
+        dirName = createDirName(doc['name'],doc['type'][0],children[-1])
         if not os.path.exists(dirName):                     #after move, deletion or because new
           if doc['_id']=='':                                #because new data
             os.makedirs(dirName)
@@ -821,7 +805,7 @@ class JamDB:
             if not os.path.exists(self.basePath+path):        #if still does not exist
               print("**ERROR** doc path was not found and parent path was not found\nReturn")
               return
-            if self.confirm is None or self.confirm(None,"Move directory "+self.basePath+path+" -> "+dirName):
+            if self.confirm is None or self.confirm(None,"Move directory "+path+" -> "+self.cwd+dirName):
               shutil.move(self.basePath+path, dirName)
             logging.info('setEditSting cwd '+self.cwd+'| non-existant directory '+dirName+'. Moved old one to here')
         if edit=='-edit-':
@@ -846,13 +830,19 @@ class JamDB:
         self.changeHierarchy(self.currentID)   #'cd directory'
       hierLevel = levelID
     #at end, go down ('cd  ..') number of children-length
-    for i in range(len(children)-1):
+    for _ in range(len(children)-1):
       self.changeHierarchy(None)
     os.unlink(tempfile.gettempdir()+os.sep+'tempSetEditString.txt')
     return
 
 
   def getChildren(self, docID):
+    """
+    Get children from this parent using outputHierarchy
+
+    Args:
+       docID: id parent document
+    """
     hierTree = self.outputHierarchy(True,True,False)
     if hierTree is None:
       print('No hierarchy tree')

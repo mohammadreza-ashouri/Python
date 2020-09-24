@@ -1,13 +1,16 @@
 #!/usr/bin/python3
-import js2py
-
-import json, re
-import base64, io
-import js2py, os
+"""
+Misc methods and diffinitions for json, colors
+"""
+import json, re, base64, io
 import numpy as np
 from PIL import Image
+import js2py
 
 class bcolors:
+  """
+  Colors for Command-Line-Interface and output
+  """
   HEADER = '\033[95m'
   OKBLUE = '\033[94m'
   OKGREEN = '\033[92m'
@@ -16,6 +19,26 @@ class bcolors:
   ENDC = '\033[0m'
   BOLD = '\033[1m'
   UNDERLINE = '\033[4m'
+
+
+def createDirName(name,docType,thisChildNumber):
+  """ create directory-name by using camelCase and a prefix
+
+  Args:
+      name: name with spaces etc.
+      docType: document type used for prefix
+      thisChildNumber: number of myself
+  """
+  from commonTools import commonTools as cT
+  if docType == 'project':
+    return cT.camelCase(name)
+  else:  #steps, tasks
+    if isinstance(thisChildNumber, str):
+      thisChildNumber = int(thisChildNumber)
+    return ('{:03d}'.format(thisChildNumber))+'_'+cT.camelCase(name)
+
+
+
 
 def jsonValidator(data):
   """
@@ -34,6 +57,7 @@ def jsonValidator(data):
 
 def imageToString(url):
   """
+  *DEPRECATED*
   convert png file to b64-string
   - not really used
 
@@ -51,6 +75,7 @@ def imageToString(url):
 
 def stringToImage(aString, show=True):
   """
+  *DEPRECATED*
   convert a b64-string to png file
   - not really used
 

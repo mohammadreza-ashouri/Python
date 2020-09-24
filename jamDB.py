@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 """ Main function when command-line commands used
 """
-import argparse, textwrap, traceback, sys
+import os, json
+import argparse, traceback, sys
 from backend import JamDB
 
 sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path

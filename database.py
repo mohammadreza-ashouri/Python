@@ -2,11 +2,9 @@
 """
 import traceback, json, logging, os, warnings
 from cloudant.client import CouchDB, Cloudant
-from cloudant.document import Document
 from cloudant.view import View
 from cloudant.design_document import DesignDocument
 from cloudant.replicator import Replicator
-from pprint import pprint
 from miscTools import bcolors
 from commonTools import commonTools as cT
 
@@ -26,7 +24,7 @@ class Database:
     self.confirm = confirm
     try:
       self.client = CouchDB(user, password, url='http://127.0.0.1:5984', connect=True)
-    except Exception:
+    except:
       logging.error('database:init Something unexpected has happend\n'+traceback.format_exc())
       print('database:init Something unexpected has happend\n'+traceback.format_exc())
       exit()
@@ -40,7 +38,7 @@ class Database:
       logging.info('database:init Data structure not defined. Use default one')
       with open('dataDictionary.json', 'r') as fIn:
         dataDictionary = json.load(fIn)
-      reply = self.db.create_document(dataDictionary)
+      _ = self.db.create_document(dataDictionary)
     # check if default views exist and create them
     self.dataDictionary = self.db['-dataDictionary-']
     res = cT.dataDictionary2DataLabels(self.dataDictionary)
@@ -106,14 +104,14 @@ class Database:
     return
 
 
-  def getDoc(self, id):
+  def getDoc(self, docID):
     """
     Wrapper for get from database function
 
     Args:
-        id: document id
+        docID: document id
     """
-    return self.db[id]
+    return self.db[docID]
 
 
   def saveDoc(self, doc):
@@ -221,7 +219,7 @@ class Database:
       newDoc.save()
       #save _rev to backup for verification
       oldDoc['current_rev'] = newDoc['_rev']
-      res = self.db.create_document(oldDoc)
+      _ = self.db.create_document(oldDoc)
     return newDoc
 
 
@@ -239,9 +237,8 @@ class Database:
     if key is None:
       res = list(v.result)
       return res
-    else:
-      res = v(startkey=key, endkey=key+'zzz')['rows']
-      return res
+    res = v(startkey=key, endkey=key+'zzz')['rows']
+    return res
 
 
   def saveView(self, designName, viewName, jsCode):
@@ -263,7 +260,7 @@ class Database:
         designDoc.add_view(view, thisJsCode)
     try:
       designDoc.save()
-    except Exception:
+    except:
       logging.error('database:saveView Something unexpected has happend'+traceback.format_exc())
     return
 
@@ -280,12 +277,12 @@ class Database:
       rep = Replicator(self.client)
       client2 = Cloudant(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
       if dbInfo['database'] in client2.all_dbs() and removeAtStart:
-          client2.delete_database(dbInfo['database'])
+        client2.delete_database(dbInfo['database'])
       if dbInfo['database'] in client2.all_dbs():
         db2 = client2[dbInfo['database']]
       else:
         db2 = client2.create_database(dbInfo['database'])
-      doc = rep.create_replication(self.db, db2, create_target=True)
+      _ = rep.create_replication(self.db, db2, create_target=True)
       logging.info('database:replicateDB Replication started')
     except:
       print("**ERROR** preplicate\n",traceback.format_exc())
@@ -317,7 +314,7 @@ class Database:
       if '_design' in doc['_id']:
         outstring+= f'{bcolors.OKGREEN}..info: Design document '+doc['_id']+f'{bcolors.ENDC}\n'
         continue
-      if '-dataDictionary-' == doc['_id']:
+      if doc['_id'] == '-dataDictionary-':
         outstring+= f'{bcolors.OKGREEN}..info: Data dictionary exists{bcolors.ENDC}\n'
         continue
 

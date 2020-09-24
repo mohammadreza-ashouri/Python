@@ -1,6 +1,6 @@
 """create measurement data from .csv file
 """
-import logging, traceback
+import logging
 
 def getMeasurement(fileName, doc):
   """

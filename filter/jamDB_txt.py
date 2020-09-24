@@ -1,8 +1,8 @@
 """create measurement data from .txt file
 """
 import logging, traceback
-from nanoIndent import Indentation
 import matplotlib.pyplot as plt
+from nanoIndent import Indentation
 
 def getMeasurement(fileName, doc):
   """
@@ -16,12 +16,12 @@ def getMeasurement(fileName, doc):
     if i is not None:
 
       if doc['type'][-1] =='all':
-        f, img = plt.subplots()
+        _, img = plt.subplots()
         while len(i.testList)>1:
           img.plot(i.h, i.p)
           i.nextTest()
-        img.set_xlabel("depth [$\mu m$]")
-        img.set_ylabel("force [$mN$]")
+        img.set_xlabel(r"depth [$\mu m$]")
+        img.set_ylabel(r"force [$mN$]")
         measurementType = [ i.meta.pop('measurementType'),doc['type'][-1] ]
 
       else:                                #default

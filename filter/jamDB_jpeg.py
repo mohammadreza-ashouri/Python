@@ -1,9 +1,9 @@
 """create measurement data from random .jpeg file
 """
-from PIL import Image
-import requests
-from io import BytesIO
 import logging, traceback
+from io import BytesIO
+import requests
+from PIL import Image
 
 def getMeasurement(fileName, doc):
   """

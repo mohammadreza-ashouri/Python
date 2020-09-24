@@ -1,32 +1,38 @@
 #!/usr/bin/python3
-##################################
-####  COMMAND LINE INTERFACE  ####
-##################################
+"""
+COMMAND LINE INTERFACE
+"""
 import copy, json, os, sys, re, warnings
-from questionary import prompt, Separator
+import subprocess, tempfile, base64, io, traceback
 from pprint import pprint
 import numpy as np
-#for measurement curation
-import subprocess, tempfile, os, base64, io
 from PIL import Image
+from questionary import prompt, Separator
 #the package
 from backend import JamDB
 from miscTools import bcolors
 
 
-def confirm(content=None, header=None):
+### global parameters
+sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
+menuOutline = json.load(open(os.path.abspath(os.getcwd())+'/userInterfaceCLI.json', 'r')) # keep menus separate from dataDictionary since only CLI needs menu
+
+
+### functions
+def confirm(doc=None, header=None):
   """
   Used as callback function: confirm that the given document should be written to database
+    required for initialization
 
   Args:
-     content: this is the content to be written
+     doc: this is the content to be written
      header: some arbitrary information used as header
   """
   print()
   if header is not None:
     print(f'{bcolors.BOLD}'+header+f'{bcolors.ENDC}')
-  if isinstance(content, dict):
-    temp = content.copy()
+  if isinstance(doc, dict):
+    temp = doc.copy()
     if 'image'      in temp:                          temp['image'] = '[...]'
     if 'metaVendor' in temp:                          temp['metaVendor'] = '[...]'
     if 'new' in temp and 'image'      in temp['new']: temp['new']['image'] = '[...]'
@@ -34,30 +40,23 @@ def confirm(content=None, header=None):
     if 'old' in temp and 'image'      in temp['old']: temp['old']['image'] = '[...]'
     if 'old' in temp and 'metaVendor' in temp['old']: temp['old']['metaVendor'] = '[...]'
     pprint(temp)
-  elif isinstance(content, str):
-    print(content)
+  elif isinstance(doc, str):
+    print(doc)
   success = input("Is that ok? [Y/n] ")
   if success=='n' or success=='N':
     return False
-  else:
-    return True
+  return True
 
-### INITIALIZATION
-sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
-if len(sys.argv)>1: configName=sys.argv[1]
-else:               configName=None
-be = JamDB(configName=configName, confirm=confirm)
-# keep main-menu and the other menus separate from dataDictionary since only CLI needs menu
-menuOutline = json.load(open(be.softwarePath+'/userInterfaceCLI.json', 'r'))
 
-### Curate by user: say measurement good/bad/ugly
 def curate(doc):
   """
-  Used as callback function: curate measurement after automatically found
-  - needs menuOutline, hence here
+  Curate by user: say measurement good/bad/ugly
+  Used as callback function after information is automatically found
+    requires global variable menuOutline
 
   Args:
      doc: document found. Image attribute used for display
+     menuOutline: outline of the menu of questions, userInterfaceCLI.json
   """
   print(f'\n{bcolors.BOLD}=> Curate measurement:'+doc['name']+f' <={bcolors.ENDC}')
   #show image
@@ -79,18 +78,18 @@ def curate(doc):
     viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg' ])
   #prepare question and ask question and use answer
   questions = menuOutline['curate']
-  for item in questions:
-    if item['name']=='comment' and 'comment' in doc:
-      item['default'] = doc['comment']
-    if item['name']=='sample':
+  for itemJ in questions:
+    if itemJ['name']=='comment' and 'comment' in doc:
+      itemJ['default'] = doc['comment']
+    if itemJ['name']=='sample':
       samples = be.output("Samples",printID=True).split("\n")[2:-1]
       samples = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in samples]
-      item['choices'] = ['--']+samples
-    if item['name']=='procedure':
+      itemJ['choices'] = ['--']+samples
+    if itemJ['name']=='procedure':
       procedures = be.output("Procedures",printID=True).split("\n")[2:-1]
       procedures = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in procedures]
-      item['choices'] = ['--']+procedures
-  answer = prompt(questions)
+      itemJ['choices'] = ['--']+procedures
+  answerJ = prompt(questions)
   #clean open windows
   viewer.terminate()
   viewer.kill() #on windows could be skiped
@@ -99,22 +98,25 @@ def curate(doc):
     os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg')
   if os.path.exists(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg'):
     os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg')
-  if len(answer)==0:  #ctrl-c hit
+  if len(answerJ)==0:  #ctrl-c hit
     return False
-  if answer['measurementType']!='':
-    doc['type']    = ['measurement', '', answer['measurementType']]
-  if answer['comment']!='':
-    doc['comment'] = answer['comment']
-  if answer['sample']!='--':
-    doc['sample'] = answer['sample'].split('|')[-1].strip()
-  if answer['procedure']!='--':
-    doc['procedure'] = answer['procedure'].split('|')[-1].strip()
-  return answer['measurementType']!=''  #True: rerun; False: no new scan is necessary
+  if answerJ['measurementType']!='':
+    doc['type']    = ['measurement', '', answerJ['measurementType']]
+  if answerJ['comment']!='':
+    doc['comment'] = answerJ['comment']
+  if answerJ['sample']!='--':
+    doc['sample'] = answerJ['sample'].split('|')[-1].strip()
+  if answerJ['procedure']!='--':
+    doc['procedure'] = answerJ['procedure'].split('|')[-1].strip()
+  return answerJ['measurementType']!=''  #True: rerun; False: no new scan is necessary
 
 
 ###########################################################
-### MAIN LOOP
+### MAIN FUNCTION
 ###########################################################
+if len(sys.argv)>1: configName=sys.argv[1]
+else:               configName=None
+be = JamDB(configName=configName, confirm=confirm)
 print('Start in directory',os.path.abspath(os.path.curdir))
 nextMenu = 'main'
 while be.alive:
@@ -163,8 +165,8 @@ while be.alive:
         else:  # output
           expand = [' '+j for i, j in be.db.dataLabels+be.db.hierarchyLabels]
       #create list of choices
-      for item in expand:
-        question[0]['choices'].append({'name': key+item, 'value': value+item[1:]})
+      for itemI in expand:
+        question[0]['choices'].append({'name': key+itemI, 'value': value+itemI[1:]})
     if nextMenu != 'main':
       question[0]['choices'].append({'name':'>Go back to main<', 'value':'menu_main'})
   elif nextMenu.startswith('change') or nextMenu in [i for j,i in be.db.dataLabels]:
@@ -173,11 +175,11 @@ while be.alive:
     question = [{'type': 'list', 'name': 'choice', 'message': nextMenu, 'choices':[]}]
     if len(be.hierStack) == 0 or addEditDoc: # no project in stack or sample/procedures/measurements: use VIEW
       if addEditDoc:
-        doc    = be.db.getView('view'+nextMenu+'/view'+nextMenu)
+        view    = be.db.getView('view'+nextMenu+'/view'+nextMenu)
       else:
-        doc    = be.db.getView('viewProjects/viewProjects')
-      values = [i['id'] for i in doc]
-      names  = [i['value'][0] for i in doc]
+        view    = be.db.getView('viewProjects/viewProjects')
+      values = [i['id'] for i in view]
+      names  = [i['value'][0] for i in view]
     else:                      # step/task: get its children
       names, values = be.getChildren(be.hierStack[-1])
     if len(names)==0 and not addEditDoc:
@@ -253,7 +255,10 @@ while be.alive:
               if "\n" in oldString:
                 newString = oldString.replace("\n","\\n")
                 content = content.replace(oldString,newString)
-            be.addData('-edit-',json.loads(content))
+            try:
+              be.addData('-edit-',json.loads(content))
+            except:
+              print('Error likely during json conversion\n'+traceback.format_exc())
         os.unlink(tmpFileName)
       elif len(answer) == 2: #function
         res = getattr(be, answer[1])(callback=curate)
