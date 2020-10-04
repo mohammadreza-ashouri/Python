@@ -17,13 +17,13 @@ Possible commands are:
     cleanAll: cleans all directories: item not needed
     newDB: add/update database configuration. item is e.g.
         '{"test":{"user":"Peter","password":"Parker",...}}'
-    filterTest: test the filter for this file
+    extractorTest: test the extractor of this file
         item is the path to file from base folder
 ''')
 argparser.add_argument('command', help='print, clean, scan, produce, compare, hierarchy, newDB')
 argparser.add_argument('item',    help="'Projects', 'Samples', 'Measurements', 'Procedures', 'documentID'")
 argparser.add_argument('-db','--database', help='name of database configuration') #required for be = JamDB(args.database)
-argparser.add_argument('--options', help='Options for filterTest')
+argparser.add_argument('--options', help='Options for extractor test')
 args = argparser.parse_args()
 if args.command=='newDB':
   #use new database configuration and store in local-config file
@@ -42,7 +42,7 @@ else:
       print(be.output(args.item,True))
     elif args.command=='backup':
       be.backup(args.item)
-    elif args.command=='filterTest':
+    elif args.command=='extractorTest':
       if args.options is None:
         be.getMeasurement(args.item,"empty_md5sum",{'type':['measurement', '']},show=True)
       else:

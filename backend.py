@@ -64,7 +64,7 @@ class JamDB:
     else:
       logging.warning('Base folder did not exist. No directory saving\n'+self.basePath)
       self.cwd   = None
-    sys.path.append(self.softwarePath+os.sep+'filter')  #allow filters
+    sys.path.append(self.softwarePath+os.sep+'extractors')  #allow extractors
     # hierarchy structure
     self.dataDictionary = self.db.getDoc('-dataDictionary-')
     self.hierList = self.dataDictionary['-hierarchy-']
@@ -192,7 +192,7 @@ class JamDB:
             while True:
               self.getMeasurement(path,md5sum,doc)
               if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
-                doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: filter does not exit
+                doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: extractor does not exit
                 return False
               if callback is None or not callback(doc):
                 if doc['type'][-1]=='trash':
@@ -539,7 +539,7 @@ class JamDB:
       absFilePath = self.basePath + filePath
       outFile = absFilePath.replace('.','_')+'_jamDB'
     pyFile = 'jamDB_'+extension+'.py'
-    pyPath = self.softwarePath+os.sep+'filter'+os.sep+pyFile
+    pyPath = self.softwarePath+os.sep+'extractors'+os.sep+pyFile
     if os.path.exists(pyPath):
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
