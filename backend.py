@@ -54,7 +54,7 @@ class JamDB:
     self.magicTags= configuration['-magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
     # open basePath (root of directory tree) as current working directory
     # self.cwd is the addition to basePath
-    self.softwarePath = os.path.abspath(os.getcwd())
+    self.softwarePath = os.path.dirname(os.path.abspath(__file__))
     self.basePath     = os.path.expanduser('~')+os.sep+configuration[configName]['path']
     self.cwd          = ''
     if not self.basePath.endswith(os.sep):

@@ -14,9 +14,8 @@ from miscTools import bcolors
 
 
 ### global parameters
-sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
-menuOutline = json.load(open(os.path.abspath(os.getcwd())+'/userInterfaceCLI.json', 'r')) # keep menus separate from dataDictionary since only CLI needs menu
-
+pathSoftware = os.path.dirname(os.path.abspath(__file__))
+menuOutline = json.load(open(pathSoftware+'/userInterfaceCLI.json', 'r')) # keep menus separate from dataDictionary since only CLI needs menu
 
 ### functions
 def confirm(doc=None, header=None):
