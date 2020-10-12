@@ -11,10 +11,10 @@ import difflib
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
+from pygit2 import Repository
 from database import Database
 from commonTools import commonTools as cT
 from miscTools import bcolors, createDirName
-
 
 class JamDB:
   """
@@ -29,31 +29,20 @@ class JamDB:
         configName: name of configuration used; if not given, use the one defined by '-defaultLocal' in config file
         confirm: confirm changes to database and file-tree
     """
-    # open configuration file and define database
+    # open configuration file
     self.debug = True
     self.confirm = confirm
-    logging.basicConfig(filename='jamDB.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
-    logging.getLogger('urllib3').setLevel(logging.WARNING)
-    logging.getLogger('requests').setLevel(logging.WARNING)
-    logging.getLogger('asyncio').setLevel(logging.WARNING)
-    logging.getLogger('PIL').setLevel(logging.WARNING)
-    logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
     with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
       configuration = json.load(f)
     if configName is None:
       configName = configuration['-defaultLocal']
-    logging.info('\nSTART JAMS '+configName)
     remoteName= configuration['-defaultRemote']
     user         = configuration[configName]['user']
     password     = configuration[configName]['password']
     databaseName = configuration[configName]['database']
-    self.db = Database(user, password, databaseName, confirm=self.confirm)
-    self.userID   = configuration['-userID']
-    self.remoteDB = configuration[remoteName]
-    self.eargs   = configuration['-eargs']
-    self.magicTags= configuration['-magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
-    # open basePath (root of directory tree) as current working directory
-    # self.cwd is the addition to basePath
+    # directories
+    #    self.basePath (root of directory tree) is root of all projects
+    #    self.cwd changes during program
     self.softwarePath = os.path.dirname(os.path.abspath(__file__))
     self.basePath     = os.path.expanduser('~')+os.sep+configuration[configName]['path']
     self.cwd          = ''
@@ -62,10 +51,31 @@ class JamDB:
     if os.path.exists(self.basePath):
       os.chdir(self.basePath)
     else:
-      logging.warning('Base folder did not exist. No directory saving\n'+self.basePath)
-      self.cwd   = None
+      print('**ERROR**: Base folder did not exist:'+self.basePath)
+      exit(1)
     sys.path.append(self.softwarePath+os.sep+'extractors')  #allow extractors
-    # hierarchy structure
+    # ensure that development git-branch does not interfere with master
+    gitRepository = Repository(self.softwarePath)
+    headName=gitRepository.head.name.split('/')[-1]
+    if headName!='master' and not configName.startswith('develop'):
+      print("**ERROR**: Do not use non-master git-branch on other than develop directory")
+      exit(1)
+    if not confirm(None,'VERIFY git-branch and configName: '+headName+' | '+configName): exit(1)
+    # start logging
+    logging.basicConfig(filename=self.softwarePath+os.sep+'jamDB.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+    logging.getLogger('requests').setLevel(logging.WARNING)
+    logging.getLogger('asyncio').setLevel(logging.WARNING)
+    logging.getLogger('PIL').setLevel(logging.WARNING)
+    logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
+    logging.info('\nSTART JAMS '+configName)
+    # start database
+    self.db = Database(user, password, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep)
+    self.userID   = configuration['-userID']
+    self.remoteDB = configuration[remoteName]
+    self.eargs   = configuration['-eargs']
+    self.magicTags= configuration['-magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
+    # internal hierarchy structure
     self.dataDictionary = self.db.getDoc('-dataDictionary-')
     self.hierList = self.dataDictionary['-hierarchy-']
     self.hierStack = []

@@ -1,9 +1,7 @@
 #!/usr/bin/python3
-import os, shutil, traceback, sys, logging, subprocess
+import os, shutil, traceback, logging, subprocess
 import warnings
 import unittest
-sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
-sys.path.append('/home/sbrinckm/FZJ/JamDB/Python')
 from backend import JamDB
 
 class TestStringMethods(unittest.TestCase):
@@ -16,13 +14,13 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ImportWarning)
     warnings.filterwarnings('ignore', module='js2py')
 
-    databaseName = 'temporary_test'
-    dirName      = os.path.expanduser('~')+os.sep+databaseName
+    configName = 'develop_test'
+    dirName      = os.path.expanduser('~')+os.sep+configName
     if os.path.exists(dirName): shutil.rmtree(dirName)
     os.makedirs(dirName)
-    self.be = JamDB(databaseName)
+    self.be = JamDB(configName)
     self.be.exit(deleteDB=True)
-    self.be = JamDB(databaseName)
+    self.be = JamDB(configName)
 
     try:
       ### create some projects and show them
@@ -174,7 +172,7 @@ class TestStringMethods(unittest.TestCase):
       self.assertTrue(output.count('**WARNING')==0,'WARNING string in output')
       self.assertTrue(output.count('**ERROR')==0,'ERROR string in output')
       print('Replication test')
-      self.be.replicateDB(databaseName,True)
+      self.be.replicateDB(configName,True)
       print('\n*** DONE WITH VERIFY ***')
       self.backup()
     except:

@@ -13,13 +13,14 @@ class Database:
   Class for interaction with couchDB
   """
 
-  def __init__(self, user, password, databaseName, confirm):
+  def __init__(self, user, password, databaseName, confirm, softwarePath=''):
     """
     Args:
         user: user name to local database
         password: password to local database
         databaseName: local database name
         confirm: confirm changes to database and file-tree
+        softwarePath: path to software and default dataDictionary.json
     """
     self.confirm = confirm
     try:
@@ -36,7 +37,7 @@ class Database:
     # check if default document exist and create
     if '-dataDictionary-' not in self.db:
       logging.info('database:init Data structure not defined. Use default one')
-      with open('dataDictionary.json', 'r') as fIn:
+      with open(softwarePath+'dataDictionary.json', 'r') as fIn:
         dataDictionary = json.load(fIn)
       _ = self.db.create_document(dataDictionary)
     # check if default views exist and create them

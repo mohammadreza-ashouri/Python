@@ -2,11 +2,9 @@
 """
 TEST IF EXTERNAL DATA CAN BE READ,...
 """
-import os, shutil, traceback, sys, time
+import os, shutil, traceback, time
 import warnings
 import unittest
-sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
-sys.path.append('/home/sbrinckm/FZJ/JamDB/Python')
 from backend import JamDB
 
 class TestStringMethods(unittest.TestCase):

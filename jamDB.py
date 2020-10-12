@@ -2,10 +2,9 @@
 """ Main function when command-line commands used
 """
 import os, json
-import argparse, traceback, sys
+import argparse, traceback
 from backend import JamDB
 
-sys.path.append('/home/sbrinckm/FZJ/SourceCode/Micromechanics/src')  #allow debugging in vscode which strips the python-path
 argparser = argparse.ArgumentParser(usage='''
 jamDB.py <command> <item>
 
