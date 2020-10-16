@@ -1,8 +1,8 @@
 {
 "__comment__most menus follow own structure":"",
 "main":[ "Main menu",
-   {"Add new":             "form_",                     "append":"nextLevel"},
    {"Open":                "menu_change",               "append":"nextLevel"},
+   {"Add new":             "form_",                     "append":"nextLevel"},
    {"Edit this":           "direct_edit_",              "append":"thisLevel"},
    {"Close this":          "function_changeHierarchy_", "append":"thisLevel"},
    {"---":                 ""},
