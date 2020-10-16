@@ -2,7 +2,7 @@
 """ Python Backend
 """
 import os, json, base64, hashlib, shutil, re, sys
-import logging
+import logging, subprocess
 from io import StringIO, BytesIO
 import importlib, tempfile
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -12,9 +12,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import PIL
 from pygit2 import Repository
+from datalad import api as datalad
 from database import Database
 from commonTools import commonTools as cT
-from miscTools import bcolors, createDirName
+from miscTools import bcolors, createDirName, LoggerWriter
 
 class JamDB:
   """
@@ -230,7 +231,14 @@ class JamDB:
     if self.cwd is not None and doc['type'][0]=='text':
       #project, step, task
       path = doc['branch'][0]['path']
-      os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
+      if doc['type']==['text','project']:
+        # datalad.create(path,description=doc['objective'], cfg_proc='text2git')
+        cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
+        output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        print("-----------\n"+output.stdout.decode('utf-8')+"----------")
+        logging.debug('addData created new dataset in directory '+doc['_id']+' path:'+path)
+      else:
+        os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
       with open(self.basePath+path+'/.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(doc))
     self.currentID = doc['_id']
@@ -292,6 +300,36 @@ class JamDB:
       print(f'{bcolors.FAIL}Warning - scan directory: No project selected{bcolors.ENDC}')
       return
     callback = kwargs.get('callback', None)
+
+    while len(self.hierStack)>1:
+      self.changeHierarchy(None)
+    print("DEBUG I should be in project directory ", self.cwd, os.curdir)
+    # cmd = ['datalad','status']
+    # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # print("-----------\n"+output.stdout.decode('utf-8')+"-----------")
+    # print(self.basePath,self.cwd)
+    directoryChanged = False
+    while not directoryChanged:
+      directoryChanged = False
+      try:
+        print("DataLad output:")
+        ds = datalad.Dataset('.')
+        entryList = ds.status()
+      except:
+        logging.error("scanTree: No DataLad repository in ",os.curdir(),path)
+        return
+      # iterate through all entries
+      for entry in entryList:
+        print("Entry:",entry)
+        if entry['state'] == 'clean':                continue
+        if entry['type']  == 'directory':
+          ds.save(path=entry['path']+os.sep+'.id_jamDB.json', message='Added new subfolder with .id_jamDB.json')
+        if entry['path'].endswith('.id_jamDB.json'):
+          ds.save(path=entry['path'],                         message='Added project`s .id_jamDB.json')
+        print("  File change to handle")
+      break
+    print("scanTree finished!")
+    return
 
     # get information from database
     if logging.root.level<15 and self.cwd[-1]!=os.sep:  #check if debug mode
@@ -421,6 +459,7 @@ class JamDB:
     Args:
       kwargs: additional parameter, i.e. callback
     """
+    #TODO when used??
     logging.info('compareProcedures started')
     view = self.db.getView('viewProcedures/viewProcedures')
     for item in view:
