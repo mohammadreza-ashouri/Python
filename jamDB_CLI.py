@@ -121,7 +121,11 @@ nextMenu = 'main'
 while be.alive:
   #output the current hierarchical level
   if len(be.hierStack) == 0:
-    print('\n==> You are at the root |'+be.cwd+'| <==')
+    try:
+      print('\n==> You are at the root |'+be.cwd+'| <==')
+    except:
+      print('CWD not set:', be.cwd)
+      exit(1)
   else:
     levelName = be.hierList[len(be.hierStack)-1]
     objName   = be.getDoc(be.hierStack[-1])['name']
