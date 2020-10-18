@@ -304,28 +304,46 @@ class JamDB:
     while len(self.hierStack)>1:
       self.changeHierarchy(None)
     print("DEBUG I should be in project directory ", self.cwd, os.curdir)
-    # cmd = ['datalad','status']
-    # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    # print("-----------\n"+output.stdout.decode('utf-8')+"-----------")
-    # print(self.basePath,self.cwd)
     directoryChanged = False
     while not directoryChanged:
       directoryChanged = False
       try:
         print("DataLad output:")
-        ds = datalad.Dataset('.')
-        entryList = ds.status()
+        cmd = ['datalad','status']
+        output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        entryList = []
+        for textLine in output.stdout.decode('utf-8').split('\n'):
+          fileName = ' '.join(textLine.split(' ')[1:-1])
+          fileDir  = textLine.split('(')[-1][:-1]
+          if len(fileName)==0: continue     #skip last row after the \n
+          print('Debug datalad status: |'+fileName+'|'+fileDir+'|'+textLine)
+          if fileName=='.id_jamDB.json' and fileDir=='file':
+            cmd = ['datalad','save','-m','Added new subfolder with .id_jamDB.json', fileName]
+            output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            print("datalad save",output)
+            continue
+
+
+        exit(4)
+        # ds = datalad.Dataset('.')
+        # entryList = ds.status()
       except:
-        logging.error("scanTree: No DataLad repository in ",os.curdir(),path)
+        print('scanTree:\n'+traceback.format_exc())
         return
       # iterate through all entries
       for entry in entryList:
         print("Entry:",entry)
-        if entry['state'] == 'clean':                continue
+        if entry['state'] == 'clean':
+          print('-- cleaned --')
+          continue
         if entry['type']  == 'directory':
           ds.save(path=entry['path']+os.sep+'.id_jamDB.json', message='Added new subfolder with .id_jamDB.json')
+          print('-- saved: type directory --')
+          continue
         if entry['path'].endswith('.id_jamDB.json'):
           ds.save(path=entry['path'],                         message='Added project`s .id_jamDB.json')
+          print('-- saved: path .id_jamDB --')
+          continue
         print("  File change to handle")
       break
     print("scanTree finished!")
