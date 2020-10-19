@@ -235,12 +235,17 @@ class JamDB:
         # datalad.create(path,description=doc['objective'], cfg_proc='text2git')
         cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
         output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        print("-----------\n"+output.stdout.decode('utf-8')+"----------")
         logging.debug('addData created new dataset in directory '+doc['_id']+' path:'+path)
       else:
         os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
-      with open(self.basePath+path+'/.id_jamDB.json','w') as f:  #local path, update in any case
+        datalad = False
+      with open(self.basePath+path+os.sep+'.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(doc))
+      projectPath = path.split(os.sep)[0]
+      cmd = ['datalad','save','-m','Added new subfolder with .id_jamDB.json', '-d', self.basePath+projectPath ,self.basePath+path+os.sep+'.id_jamDB.json']
+      # print("cmd",cmd)
+      output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      # print("datalad save",output.stdout.decode('utf-8'))
     self.currentID = doc['_id']
     logging.debug('addData ending doc '+doc['_id']+' '+doc['type'][0])
     return True
@@ -282,7 +287,7 @@ class JamDB:
     return
 
 
-  def scanTree(self, produceImages=False, **kwargs):
+  def scanTree(self, **kwargs):
     """ Scan directory tree recursively from project/...
     - find changes on file system and move those changes to DB
     - use .id_jamDB.json to track changes of directories, aka projects/steps/tasks
@@ -292,7 +297,6 @@ class JamDB:
       doc['path'] is adopted once changes are observed
 
     Args:
-      produceImages: copy images from database into corresponting directory tree
       kwargs: additional parameter, i.e. callback
     """
     logging.info('scanTree started')
@@ -303,170 +307,39 @@ class JamDB:
 
     while len(self.hierStack)>1:
       self.changeHierarchy(None)
-    print("DEBUG I should be in project directory ", self.cwd, os.curdir)
-    directoryChanged = False
-    while not directoryChanged:
-      directoryChanged = False
-      try:
-        print("DataLad output:")
-        cmd = ['datalad','status']
-        output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        entryList = []
-        for textLine in output.stdout.decode('utf-8').split('\n'):
-          fileName = ' '.join(textLine.split(' ')[1:-1])
-          fileDir  = textLine.split('(')[-1][:-1]
-          if len(fileName)==0: continue     #skip last row after the \n
-          print('Debug datalad status: |'+fileName+'|'+fileDir+'|'+textLine)
-          if fileName=='.id_jamDB.json' and fileDir=='file':
-            cmd = ['datalad','save','-m','Added new subfolder with .id_jamDB.json', fileName]
-            output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            print("datalad save",output)
-            continue
-
-
-        exit(4)
-        # ds = datalad.Dataset('.')
-        # entryList = ds.status()
-      except:
-        print('scanTree:\n'+traceback.format_exc())
-        return
-      # iterate through all entries
-      for entry in entryList:
-        print("Entry:",entry)
-        if entry['state'] == 'clean':
-          print('-- cleaned --')
-          continue
-        if entry['type']  == 'directory':
-          ds.save(path=entry['path']+os.sep+'.id_jamDB.json', message='Added new subfolder with .id_jamDB.json')
-          print('-- saved: type directory --')
-          continue
-        if entry['path'].endswith('.id_jamDB.json'):
-          ds.save(path=entry['path'],                         message='Added project`s .id_jamDB.json')
-          print('-- saved: path .id_jamDB --')
-          continue
-        print("  File change to handle")
-      break
-    print("scanTree finished!")
-    return
-
-    # get information from database
-    if logging.root.level<15 and self.cwd[-1]!=os.sep:  #check if debug mode
-      logging.error("scanTree cwd does not end with /")
-      print("scanTree cwd does not end with /")
-    view = self.db.getView('viewHierarchy/viewPaths', key=self.cwd[:-1]) #remove trailing /; assuming that it is there
-    database = {} #path as key for lookup, required later
-    for item in view:
-      database[item['key']] = [item['id'], item['value'][1], item['value'][2],item['value'][3]]
-
-    # iterate directory-tree and compare
-    parentID = None
-    toDelete = []
-    for path, dirs, files in os.walk('.'):
-      #compare path: project/step/task
-      path = os.path.normpath(self.cwd+path)
-      if path in database:
-        parentID = database[path][0]
-        #database and directory agree regarding project/step/task
-        #check id-file
-        try:
-          with open(self.basePath+path+'/.id_jamDB.json', 'r') as fIn:
-            idFile  = json.load(fIn)
-          if idFile['branch'][0]['path']==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
-            logging.debug(path+' id-test successful on project/step/task')
-          else:
-            if idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
-              logging.warning('produce new .id_jamDB.json after move of directory '+path)
-              doc = self.db.getDoc(database[path][0])
-              with open(self.basePath+path+'/.id_jamDB.json','w') as f:
-                f.write(json.dumps(doc))
-            else:
-              logging.error(path+' id-test NOT successful on project/step/task')
-              logging.error(idFile['branch'][0]['path']+' | '+idFile['_id']+' | '+idFile['type'])
-              logging.error(path+' | '+str(database[path]))
-        except:
-          logging.error('scanTree: .id_jamDB.json file deleted from '+path)
-      else:
-        if os.path.exists(self.basePath+path+'/.id_jamDB.json'):
-          #update .id_jamDB.json file and database with new path information
-          with open(self.basePath+path+'/.id_jamDB.json') as fIn:
-            idFile  = json.load(fIn)
-          onDB = self.getDoc(idFile['_id'])
-          onRecordPath = onDB['branch'][0]['path']
-          if os.path.exists(self.basePath+onRecordPath):
-            logging.info('Remove path in directory '+self.basePath+path)
-            toDelete.append(self.basePath+path)
-          else:
-            logging.info('Updated path in directory and database '+idFile['branch'][0]['path']+' to '+path)
-            doc = self.db.updateDoc( {'branch':{'path':path,\
-                                                'stack':idFile['branch'][0]['stack'],\
-                                                'child':idFile['branch'][0]['child'],\
-                                                'op':'u'}}, idFile['_id'])
-            with open(self.basePath+path+'/.id_jamDB.json','w') as f:
-              f.write(json.dumps(doc))
-        else:
-          if os.path.exists(self.basePath+path+os.sep+"exclude_scan.txt"):
-            dirs[:] = []
-            logging.warning(path+' directory (project/step/task) not in database: Exclude it')
-            continue
-          else:
-            logging.warning(path+' directory (project/step/task) not in database: did user create misc. directory')
-      # FILES
-      # compare data=files in each path (in each project, step, ..)
-      for file in files:
-        if '_jamDB.' in file: continue
-        fileName = path+os.sep+file
-        jsonFileName = fileName.replace('.','_')+'_jamDB.json'
-        if fileName in database:
-          #test if MD5 value did not change
-          with open(self.basePath+fileName,'rb') as fIn:
-            md5File = hashlib.md5(fIn.read()).hexdigest()
-          if md5File==database[fileName][3]:
-            logging.debug(fileName+' md5-test successful on measurement/etc.')
-          else:
-            logging.error(fileName+' md5-test NOT successful on measurement/etc. '+md5File+' '+database[fileName][3])
-          if produceImages:
-            #if you have to produce
-            doc = self.db.getDoc(database[fileName][0])
-            if doc['image'].startswith('data:image/jpg'):  #jpg and png
-              image = base64.b64decode( doc['image'][22:].encode() )
-              ending= doc['image'][11:14]
-              with open(self.basePath+jsonFileName[:-4]+ending,'wb') as fOut:
-                fOut.write(image)
-            else:                                           #svg
-              with open(self.basePath+jsonFileName[:-4]+'svg','w') as fOut:
-                fOut.write(doc['image'])
-          del database[fileName]
-        else:
-          #not in database, create database entry: if it already exists, self.addData takes care of it
-          logging.info(file+' file not in database. Create/Update in database')
-          newDoc    = {'name':path+os.sep+file}
+    #git-annex lists all the files at once
+    #   datalad and git give the directories, if untracked/random
+    #   also, git-annex status is empty if nothing has to be done
+    #   git-annex output is nice to parse
+    for iteration in range(2):  #iterate twice: first time data, second time _jamDB.jpg etc are added to datalad
+      cmd = ['git-annex','status']
+      output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      for textLine in output.stdout.decode('utf-8').split('\n'):
+        fileName = textLine[2:].strip()
+        if fileName=='': continue   #empty line after the last \n
+        logging.info('scanTree file not in database.'+fileName)
+        #add to database
+        if iteration==0:
+          filePath = self.cwd+fileName
+          dir, _ = os.path.split(filePath)
+          newDoc    = {'name':filePath}
+          parentID = None
+          while parentID is None:
+            if len(dir)==0:
+              print("**ERROR** dir is too short")
+              break
+            view = self.db.getView('viewHierarchy/viewPaths', key=dir)
+            for item in view:
+              if item['key']==dir:
+                parentID = item['id']
+            dir = os.sep.join(dir.split(os.sep)[:-1])
           parentDoc = self.db.getDoc(parentID)
           hierStack = parentDoc['branch'][0]['stack']+[parentID]
           success = self.addData('measurement', newDoc, hierStack, callback=callback)
           if not success:  raise ValueError
-      if path in database:
-        del database[path]
-
-    ## if path remains, delete it
-    for item in toDelete:
-      if os.path.exists(item):
-        if self.confirm is None or self.confirm(item,"Delete this directory?"):
-          shutil.rmtree(item)
-    for key in database:
-      if self.confirm is None or self.confirm(key,"Yes: Remove directory from database; No: Add directory to file-tree"):
-        logging.warning('Remove branch from database '+key)
-        doc = {'_id':database[key][0], 'type':database[key][1]}
-        doc['branch'] = {'path':key, 'op':'d', 'stack':[None]}
-        doc = self.db.updateDoc(doc, doc['_id'])
-      else:
-        if database[key][1][0] == "text":  #create directory
-          os.makedirs(self.basePath+key)
-          with open(self.basePath+key+'/.id_jamDB.json','w') as f:  #local path, update in any case
-            f.write(json.dumps(self.getDoc( database[key][0] )))
-        else:
-          print("**ERROR** should not be here ",database[key][1])
-          return
-    logging.info('scanTree finished')
+        #add to datalad
+        cmd = ['datalad','save','-m','Added document', '-d', self.basePath+self.cwd,fileName]
+        output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return
 
 
