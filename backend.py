@@ -233,15 +233,16 @@ class JamDB:
     if self.cwd is not None and doc['type'][0]=='text':
       #project, step, task
       path = doc['branch'][0]['path']
-      if doc['type']==['text','project']:
-        # datalad api version
-        datalad.create(path,description=doc['objective'], cfg_proc='text2git')
-        # shell command
-        # cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
-        # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        # logging.debug('addData created new dataset in directory '+doc['_id']+' path:'+path)
-      else:
-        os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
+      if not edit:
+        if doc['type']==['text','project']:
+          # datalad api version
+          datalad.create(path,description=doc['objective'], cfg_proc='text2git')
+          # shell command
+          # cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
+          # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+          # logging.debug('addData created new dataset in directory '+doc['_id']+' path:'+path)
+        else:
+          os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
       with open(self.basePath+path+os.sep+'.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(doc))
       projectPath = path.split(os.sep)[0]
@@ -310,9 +311,9 @@ class JamDB:
       print(f'{bcolors.FAIL}Warning - scan directory: No project selected{bcolors.ENDC}')
       return
     callback = kwargs.get('callback', None)
-
     while len(self.hierStack)>1:
       self.changeHierarchy(None)
+
     #git-annex lists all the files at once
     #   datalad and git give the directories, if untracked/random
     #   also, git-annex status is empty if nothing has to be done
@@ -331,9 +332,13 @@ class JamDB:
           continue
         fileName = os.path.relpath(str(posixPath), self.basePath+self.cwd)
         logging.info('scanTree file not in database: '+fileName)
+        if fileName.endswith('.id_jamDB.json'):
+          print("**WARNING: should not occur",fileName.endswith('.id_jamDB.json'))
         #add to database
         if not (fileName.endswith('_jamDB.jpg') or
-                fileName.endswith('_jamDB.svg')):
+                fileName.endswith('_jamDB.svg') or
+                fileName.endswith('.id_jamDB.json')  #TODO remove this line, should not be necessary
+                ):
           filePath = self.cwd+fileName
           dir, _ = os.path.split(filePath)
           newDoc    = {'name':filePath}
@@ -350,11 +355,18 @@ class JamDB:
           parentDoc = self.db.getDoc(parentID)
           hierStack = parentDoc['branch'][0]['stack']+[parentID]
           success = self.addData('measurement', newDoc, hierStack, callback=callback)
-          if not success:  raise ValueError
+          if not success:
+            print("**Error could not add measurement to database")
+            print(newDoc)
+            raise ValueError
         ### Add to datalad
         # python api version
         dataset = datalad.Dataset(self.basePath+self.cwd)
         dataset.save(path=fileName, message='Added document')
+        try:     #git-annex handled files can be unlocked
+          dataset.unlock(path=fileName)  #all files are by default unlocked
+        except:  #git handled files cannot be unlocked
+          print("**Warning**: file could not be unlocked",fileName)
         # shell command version
         # cmd = ['datalad','save','-m','Added document', '-d', self.basePath+self.cwd,fileName]
         # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

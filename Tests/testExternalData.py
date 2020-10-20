@@ -3,7 +3,7 @@
 TEST IF EXTERNAL DATA CAN BE READ,...
 """
 import os, shutil, traceback, time
-import warnings
+import warnings, subprocess
 import unittest
 from backend import JamDB
 
@@ -17,13 +17,14 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ImportWarning)
     warnings.filterwarnings('ignore', module='js2py')
 
-    databaseName = 'temporary_test0'
-    self.dirName      = os.path.expanduser('~')+os.sep+databaseName
+    configName = 'develop_test0'
+    dirName    = 'temporary_test0'
+    self.dirName      = os.path.expanduser('~')+os.sep+dirName
     if os.path.exists(self.dirName): shutil.rmtree(self.dirName)
     os.makedirs(self.dirName)
-    self.be = JamDB(databaseName)
+    self.be = JamDB(configName)
     self.be.exit(deleteDB=True)
-    self.be = JamDB(databaseName)
+    self.be = JamDB(configName)
 
     try:
       ### create some project and move into it
@@ -60,7 +61,17 @@ class TestStringMethods(unittest.TestCase):
     except:
       pass
     time.sleep(2)
-    if os.path.exists(self.dirName): shutil.rmtree(self.dirName)
+    if os.path.exists(self.dirName):
+      #uninit / delete everything of git-annex and datalad
+      curDirectory = os.path.curdir
+      os.chdir(self.dirName)
+      for iDir in os.listdir('.'):
+        os.chdir(iDir)
+        output = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        os.chdir('..')
+      os.chdir(curDirectory)
+      #remove directory
+      shutil.rmtree(self.dirName)
     return
 
 if __name__ == '__main__':

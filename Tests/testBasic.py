@@ -15,9 +15,20 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', module='js2py')
 
     configName = 'develop_test'
-    dirName      = os.path.expanduser('~')+os.sep+configName
-    if os.path.exists(dirName): shutil.rmtree(dirName)
-    os.makedirs(dirName)
+    dirName    = 'temporary_test'
+    self.dirName      = os.path.expanduser('~')+os.sep+dirName
+    if os.path.exists(self.dirName):
+      #uninit / delete everything of git-annex and datalad
+      curDirectory = os.path.curdir
+      os.chdir(self.dirName)
+      for iDir in os.listdir('.'):
+        os.chdir(iDir)
+        output = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        os.chdir('..')
+      os.chdir(curDirectory)
+      #remove directory
+      shutil.rmtree(self.dirName)
+    os.makedirs(self.dirName)
     self.be = JamDB(configName)
     self.be.exit(deleteDB=True)
     self.be = JamDB(configName)
@@ -109,6 +120,7 @@ class TestStringMethods(unittest.TestCase):
       self.fileVerify(2,'=========== After  ===========')  #use diff-file to compare hierarchies, directory tree
 
       ### Change plot-type
+      print('\n*** TEST CHANGE PLOT-TYPE ***')
       viewMeasurements = self.be.db.getView('viewMeasurements/viewMeasurements')
       for item in viewMeasurements:
         fileName = item['value'][0]
