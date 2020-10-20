@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """ Main function when command-line commands used
 """
-import os, json
+import os, json, sys
 import argparse, traceback
 from backend import JamDB
 
@@ -61,4 +61,4 @@ else:
     print(traceback.format_exc())
     print("HELP:")
     argparser.print_help()
-    exit(1)
+    sys.exit(1)

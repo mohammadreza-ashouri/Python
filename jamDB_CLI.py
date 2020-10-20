@@ -43,7 +43,7 @@ def confirm(doc=None, header=None):
   elif isinstance(doc, str):
     print(doc)
   success = input("Is that ok? [Y/n] ")
-  if success=='n' or success=='N':
+  if success in ('n','N'):
     return False
   return True
 
@@ -209,7 +209,7 @@ while be.alive:
       itemList = line['list'] if 'list' in line else None
       name = line['name']
       questionString = line['long']
-      generate = True if len(questionString)==0 else False
+      generate = bool(len(questionString)==0)
       # encode outgoing json
       if generate:
         continue  # it is generated, no need to ask

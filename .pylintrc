@@ -137,7 +137,10 @@ disable=print-statement,
         logging-not-lazy,
         unused-argument,
         too-few-public-methods,
-        useless-return
+        useless-return,
+        fixme,
+        no-member,
+        import-outside-toplevel
 
 #Reasons:
 # looks better: len-as-condition, multiple-statements, bad-whitespace, multiple-imports

@@ -19,11 +19,10 @@ def getMeasurement(fileName, doc):
       image = Image.open(fileName)
     if 'Software' in image.info and 'matplotlib' in image.info['Software']:  #ignore python.matplotlib files since they are not measurements
       return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
-    else:
-      image = image.convert("P")
-      meta = {'measurementType':['unknown'],
-              'metaVendor':{},
-              'metaUser':{}}
+    image = image.convert("P")
+    meta = {'measurementType':['unknown'],
+            'metaVendor':{},
+            'metaUser':{}}
     return image, 'png', meta
   except:
     logging.error("image_PNG: PNG "+fileName)

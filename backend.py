@@ -2,7 +2,7 @@
 """ Python Backend
 """
 import os, json, base64, hashlib, shutil, re, sys
-import logging, subprocess
+import logging
 from io import StringIO, BytesIO
 import importlib, tempfile
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -16,7 +16,7 @@ import datalad.api as datalad
 import datalad.support.annexrepo as git_annex
 from database import Database
 from commonTools import commonTools as cT
-from miscTools import bcolors, createDirName, LoggerWriter
+from miscTools import bcolors, createDirName
 
 class JamDB:
   """
@@ -54,16 +54,17 @@ class JamDB:
       os.chdir(self.basePath)
     else:
       print('**ERROR**: Base folder did not exist:'+self.basePath)
-      exit(1)
+      sys.exit(1)
     sys.path.append(self.softwarePath+os.sep+'extractors')  #allow extractors
     # ensure that development git-branch does not interfere with master
     gitRepository = Repository(self.softwarePath)
     headName=gitRepository.head.name.split('/')[-1]
     if headName!='master' and not configName.startswith('develop'):
       print("**ERROR**: Do not use non-master git-branch on other than develop directory")
-      exit(1)
+      sys.exit(1)
     if confirm is not None:
-      if not confirm(None,'VERIFY git-branch and configName: '+headName+' | '+configName): exit(1)
+      if not confirm(None,'VERIFY git-branch and configName: '+headName+' | '+configName):
+        sys.exit(1)
     # start logging
     logging.basicConfig(filename=self.softwarePath+os.sep+'jamDB.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -237,7 +238,7 @@ class JamDB:
         if doc['type']==['text','project']:
           # datalad api version
           datalad.create(path,description=doc['objective'], cfg_proc='text2git')
-          # shell command
+          ## shell command
           # cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
           # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
           # logging.debug('addData created new dataset in directory '+doc['_id']+' path:'+path)
@@ -249,7 +250,7 @@ class JamDB:
       # datalad api version
       dataset = datalad.Dataset(self.basePath+projectPath)
       dataset.save(path=self.basePath+path+os.sep+'.id_jamDB.json', message='Added new subfolder with .id_jamDB.json')
-      # shell command
+      ## shell command
       # cmd = ['datalad','save','-m','Added new subfolder with .id_jamDB.json', '-d', self.basePath+projectPath ,self.basePath+path+os.sep+'.id_jamDB.json']
       # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       # print("datalad save",output.stdout.decode('utf-8'))
@@ -318,7 +319,7 @@ class JamDB:
     #   datalad and git give the directories, if untracked/random
     #   also, git-annex status is empty if nothing has to be done
     #   git-annex output is nice to parse
-    for iteration in range(2):  #iterate twice: first time data, second time _jamDB.jpg etc are added to datalad
+    for _ in range(2):  #iterate twice: first time data, second time _jamDB.jpg etc are added to datalad
       ## datalad api version
       fileList = git_annex.AnnexRepo('.').status()
       ## shell command
@@ -340,18 +341,18 @@ class JamDB:
                 fileName.endswith('.id_jamDB.json')  #TODO remove this line, should not be necessary
                 ):
           filePath = self.cwd+fileName
-          dir, _ = os.path.split(filePath)
+          directory, _ = os.path.split(filePath)
           newDoc    = {'name':filePath}
           parentID = None
           while parentID is None:
-            if len(dir)==0:
+            if len(directory)==0:
               print("**ERROR** dir is too short")
               break
-            view = self.db.getView('viewHierarchy/viewPaths', key=dir)
+            view = self.db.getView('viewHierarchy/viewPaths', key=directory)
             for item in view:
-              if item['key']==dir:
+              if item['key']==directory:
                 parentID = item['id']
-            dir = os.sep.join(dir.split(os.sep)[:-1])
+            directory = os.sep.join(directory.split(os.sep)[:-1])
           parentDoc = self.db.getDoc(parentID)
           hierStack = parentDoc['branch'][0]['stack']+[parentID]
           success = self.addData('measurement', newDoc, hierStack, callback=callback)
@@ -367,7 +368,7 @@ class JamDB:
           dataset.unlock(path=fileName)  #all files are by default unlocked
         except:  #git handled files cannot be unlocked
           print("**Warning**: file could not be unlocked",fileName)
-        # shell command version
+        ## shell command version
         # cmd = ['datalad','save','-m','Added document', '-d', self.basePath+self.cwd,fileName]
         # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return
@@ -394,7 +395,7 @@ class JamDB:
             contentDB   = [i+'\n' for i in doc['content'].split('\n') ]
             output = ''
             for line in difflib.unified_diff(contentFile, contentDB, fromfile='file', tofile='database'):
-              output+= line
+              output = ''.join([output,line])
             if len(output)>2:
               if self.confirm(output,doc['name']+'\nUse file to update database? y: keep file; N: keep database'):
                 self.db.updateDoc({'content':fileRaw},item['id']) #Keep file
@@ -447,7 +448,7 @@ class JamDB:
         return True
 
       # method compare
-      elif method=='compare':
+      if  method=='compare':
         filesInZip = zipFile.namelist()
         print('  Number of documents in file:',len(filesInZip))
         differenceFound, comparedFiles = False, 0
@@ -472,7 +473,7 @@ class JamDB:
 
       # method restore: loop through all files in zip and save to database
       #  - skip design and dataDictionary
-      elif method=='restore':
+      if method=='restore':
         beforeLength = len(self.db.db)
         for fileName in zipFile.namelist():
           if not ( fileName.startswith('_') or fileName.startswith('-') ):
@@ -703,7 +704,7 @@ class JamDB:
     #simple editor style: only this document, no tree
     if self.eargs['style']=='simple':
       doc = self.db.getDoc(self.hierStack[-1])
-      return ', '.join([tag for tag in doc['tags']])+' '+doc['comment']
+      return ', '.join(doc['tags'])+' '+doc['comment']
     #complicated style: this document and all its children and grandchildren...
     return self.outputHierarchy(True,True,'tags')
 
