@@ -12,7 +12,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import PIL
 from pygit2 import Repository
-from datalad import api as datalad
+import datalad.api as datalad
+import datalad.support.annexrepo as git_annex
 from database import Database
 from commonTools import commonTools as cT
 from miscTools import bcolors, createDirName, LoggerWriter
@@ -61,7 +62,8 @@ class JamDB:
     if headName!='master' and not configName.startswith('develop'):
       print("**ERROR**: Do not use non-master git-branch on other than develop directory")
       exit(1)
-    if not confirm(None,'VERIFY git-branch and configName: '+headName+' | '+configName): exit(1)
+    if confirm is not None:
+      if not confirm(None,'VERIFY git-branch and configName: '+headName+' | '+configName): exit(1)
     # start logging
     logging.basicConfig(filename=self.softwarePath+os.sep+'jamDB.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -232,19 +234,23 @@ class JamDB:
       #project, step, task
       path = doc['branch'][0]['path']
       if doc['type']==['text','project']:
-        # datalad.create(path,description=doc['objective'], cfg_proc='text2git')
-        cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
-        output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        logging.debug('addData created new dataset in directory '+doc['_id']+' path:'+path)
+        # datalad api version
+        datalad.create(path,description=doc['objective'], cfg_proc='text2git')
+        # shell command
+        # cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
+        # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        # logging.debug('addData created new dataset in directory '+doc['_id']+' path:'+path)
       else:
         os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
-        datalad = False
       with open(self.basePath+path+os.sep+'.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(doc))
       projectPath = path.split(os.sep)[0]
-      cmd = ['datalad','save','-m','Added new subfolder with .id_jamDB.json', '-d', self.basePath+projectPath ,self.basePath+path+os.sep+'.id_jamDB.json']
-      # print("cmd",cmd)
-      output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      # datalad api version
+      dataset = datalad.Dataset(self.basePath+projectPath)
+      dataset.save(path=self.basePath+path+os.sep+'.id_jamDB.json', message='Added new subfolder with .id_jamDB.json')
+      # shell command
+      # cmd = ['datalad','save','-m','Added new subfolder with .id_jamDB.json', '-d', self.basePath+projectPath ,self.basePath+path+os.sep+'.id_jamDB.json']
+      # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       # print("datalad save",output.stdout.decode('utf-8'))
     self.currentID = doc['_id']
     logging.debug('addData ending doc '+doc['_id']+' '+doc['type'][0])
@@ -312,14 +318,22 @@ class JamDB:
     #   also, git-annex status is empty if nothing has to be done
     #   git-annex output is nice to parse
     for iteration in range(2):  #iterate twice: first time data, second time _jamDB.jpg etc are added to datalad
-      cmd = ['git-annex','status']
-      output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-      for textLine in output.stdout.decode('utf-8').split('\n'):
-        fileName = textLine[2:].strip()
-        if fileName=='': continue   #empty line after the last \n
-        logging.info('scanTree file not in database.'+fileName)
+      ## datalad api version
+      fileList = git_annex.AnnexRepo('.').status()
+      ## shell command
+      # cmd = ['git-annex','status']
+      # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      # for textLine in output.stdout.decode('utf-8').split('\n'):
+      #   fileName = textLine[2:].strip()
+      #   if fileName=='': continue   #empty line after the last \n
+      for posixPath in fileList:
+        if fileList[posixPath]['state']=='clean':
+          continue
+        fileName = os.path.relpath(str(posixPath), self.basePath+self.cwd)
+        logging.info('scanTree file not in database: '+fileName)
         #add to database
-        if iteration==0:
+        if not (fileName.endswith('_jamDB.jpg') or
+                fileName.endswith('_jamDB.svg')):
           filePath = self.cwd+fileName
           dir, _ = os.path.split(filePath)
           newDoc    = {'name':filePath}
@@ -337,9 +351,13 @@ class JamDB:
           hierStack = parentDoc['branch'][0]['stack']+[parentID]
           success = self.addData('measurement', newDoc, hierStack, callback=callback)
           if not success:  raise ValueError
-        #add to datalad
-        cmd = ['datalad','save','-m','Added document', '-d', self.basePath+self.cwd,fileName]
-        output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        ### Add to datalad
+        # python api version
+        dataset = datalad.Dataset(self.basePath+self.cwd)
+        dataset.save(path=fileName, message='Added document')
+        # shell command version
+        # cmd = ['datalad','save','-m','Added document', '-d', self.basePath+self.cwd,fileName]
+        # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return
 
 

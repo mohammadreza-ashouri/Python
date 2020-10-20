@@ -4,6 +4,7 @@ COMMAND LINE INTERFACE
 """
 import copy, json, os, sys, re, warnings
 import subprocess, tempfile, base64, io, traceback
+import asyncio
 from pprint import pprint
 import numpy as np
 from PIL import Image
@@ -88,6 +89,7 @@ def curate(doc):
       procedures = be.output("Procedures",printID=True).split("\n")[2:-1]
       procedures = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in procedures]
       itemJ['choices'] = ['--']+procedures
+  asyncio.set_event_loop(asyncio.new_event_loop())
   answerJ = prompt(questions)
   #clean open windows
   viewer.terminate()
@@ -220,6 +222,7 @@ while be.alive:
   #####################
   ### ask question  ###
   #####################
+  asyncio.set_event_loop(asyncio.new_event_loop())
   answer = prompt(question)
   #####################
   ### handle answer ###
