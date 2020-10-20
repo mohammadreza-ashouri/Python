@@ -136,7 +136,8 @@ disable=print-statement,
         bare-except,
         logging-not-lazy,
         unused-argument,
-        too-few-public-methods
+        too-few-public-methods,
+        useless-return
 
 #Reasons:
 # looks better: len-as-condition, multiple-statements, bad-whitespace, multiple-imports
@@ -484,7 +485,7 @@ valid-metaclass-classmethod-first-arg=mcs
 [DESIGN]
 
 # Maximum number of arguments for function / method
-max-args=5
+max-args=7  #Steffen's change
 
 # Maximum number of attributes for a class (see R0902).
 max-attributes=25
