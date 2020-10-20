@@ -22,6 +22,8 @@ class TestStringMethods(unittest.TestCase):
       curDirectory = os.path.curdir
       os.chdir(self.dirName)
       for iDir in os.listdir('.'):
+        if not os.path.isdir(iDir):
+          continue
         os.chdir(iDir)
         output = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         os.chdir('..')
