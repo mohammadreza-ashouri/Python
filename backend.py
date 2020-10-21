@@ -334,7 +334,7 @@ class JamDB:
         fileName = os.path.relpath(str(posixPath), self.basePath+self.cwd)
         logging.info('scanTree file not in database: '+fileName)
         if fileName.endswith('.id_jamDB.json'):
-          print("**WARNING: should not occur",fileName.endswith('.id_jamDB.json'))
+          print("**WARNING: should not occur in scanTree",fileName)
         #add to database
         if not (fileName.endswith('_jamDB.jpg') or
                 fileName.endswith('_jamDB.svg') or
@@ -361,13 +361,13 @@ class JamDB:
             print(newDoc)
             raise ValueError
         ### Add to datalad
-        # python api version
-        dataset = datalad.Dataset(self.basePath+self.cwd)
-        dataset.save(path=fileName, message='Added document')
-        try:     #git-annex handled files can be unlocked
-          dataset.unlock(path=fileName)  #all files are by default unlocked
-        except:  #git handled files cannot be unlocked
-          print("**Warning**: file could not be unlocked",fileName)
+        # # python api version
+        # dataset = datalad.Dataset(self.basePath+self.cwd)
+        # dataset.save(path=fileName, message='Added document')
+        # try:     #git-annex handled files can be unlocked
+        #   dataset.unlock(path=fileName)  #all files are by default unlocked
+        # except:  #git handled files cannot be unlocked
+        #   print("**Warning**: file could not be unlocked",fileName)
         ## shell command version
         # cmd = ['datalad','save','-m','Added document', '-d', self.basePath+self.cwd,fileName]
         # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -506,7 +506,18 @@ class JamDB:
     if '://' in filePath:
       absFilePath = filePath
       outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_jamDB'
+      dataset = datalad.Dataset(self.basePath+self.cwd)
     else:
+      parentPath = filePath.split(os.sep)[0]
+      dataset = datalad.Dataset(self.basePath+parentPath)
+      dataset.save(path=self.basePath+filePath, message='Added document')
+      try:     #git-annex handled files can be unlocked
+        dataset.unlock(path=self.basePath+filePath)  #all files are by default unlocked
+        # after unlocking, save that change
+        # Locking is a change, status not clean
+        dataset.save(path=self.basePath+filePath, message='unlocked document')
+      except:  #git handled files cannot be unlocked
+        print("**Warning**: file could not be unlocked",filePath)
       absFilePath = self.basePath + filePath
       outFile = absFilePath.replace('.','_')+'_jamDB'
     pyFile = 'jamDB_'+extension+'.py'
@@ -521,15 +532,13 @@ class JamDB:
         else:
           plt.show()
       # depending on imgType: produce image
+      outFileFull = None
       if imgType == 'svg':  #no scaling
         figfile = StringIO()
         plt.savefig(figfile, format='svg')
         image = figfile.getvalue()
         # 'data:image/svg+xml;utf8,<svg' + figfile.getvalue().split('<svg')[1]
-        if self.cwd is not None:
-          with open(outFile+'.svg','w') as f:
-            figfile.seek(0)
-            shutil.copyfileobj(figfile, f)
+        outFileFull = outFile+'.svg'
       elif imgType == 'jpg':
         ratio = maxSize / image.size[np.argmax(image.size)]
         image = image.resize((np.array(image.size)*ratio).astype(np.int)).convert('RGB')
@@ -537,10 +546,7 @@ class JamDB:
         image.save(figfile, format='JPEG')
         imageData = base64.b64encode(figfile.getvalue()).decode()
         image = 'data:image/jpg;base64,' + imageData
-        if self.cwd is not None:
-          with open(outFile+'.jpg','wb') as f:
-            figfile.seek(0)
-            shutil.copyfileobj(figfile, f)
+        outFileFull = outFile+'.jpg'
       elif imgType == 'png':
         ratio = maxSize / image.size[np.argmax(image.size)]
         image = image.resize((np.array(image.size)*ratio).astype(np.int))
@@ -548,14 +554,28 @@ class JamDB:
         image.save(figfile, format='PNG')
         imageData = base64.b64encode(figfile.getvalue()).decode()
         image = 'data:image/png;base64,' + imageData
-        if self.cwd is not None:
-          with open(outFile+'.png','wb') as f:
-            figfile.seek(0)
-            shutil.copyfileobj(figfile, f)
-      else:
+        outFileFull = outFile+'.png'
+      if outFileFull is None:
         image = ''
         meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
         logging.debug('getMeasurement should not read data; returned data void '+str(imgType))
+      else:
+        if self.cwd is not None:
+          if outFileFull.endswith('svg'):
+            fileType = 'w'
+          else:
+            fileType = 'wb'
+          with open(outFileFull,fileType) as f:
+            figfile.seek(0)
+            shutil.copyfileobj(figfile, f)
+          dataset.save(path=outFileFull, message='Added document')
+          try:     #git-annex handled files can be unlocked
+            dataset.unlock(path=outFileFull)  #all files are by default unlocked
+            # after unlocking, save that change
+            # Locking is a change, status not clean
+            dataset.save(path=outFileFull, message='unlocked document')
+          except:  #git handled files cannot be unlocked
+            print("**Warning**: file could not be unlocked",outFileFull)
     else:
       image = ''
       meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
@@ -602,15 +622,38 @@ class JamDB:
     return
 
 
-  def checkDB(self,  mode=None, **kwargs):
+  def checkDB(self,  mode=None, verbose=True, **kwargs):
     """
     Wrapper of check database for consistencies by iterating through all documents
 
     Args:
         mode: mode for checking database, e.g. delete revisions
+        verbose: [True, False] print more or only issues
         kwargs: additional parameter, i.e. callback
     """
-    return self.db.checkDB(self.basePath, mode, **kwargs)
+    # check database
+    output = self.db.checkDB(mode=mode, verbose=verbose, **kwargs)
+    # check if datalad status is clean for all projects
+    if verbose:
+      output += "--- DataLad status ---\n"
+    view   = self.db.getView('viewProjects/viewProjects')
+    curDirectory = os.path.abspath(os.path.curdir)
+    clean = True
+    for item in view:
+      doc = self.db.getDoc(item['id'])
+      dirName =doc['branch'][0]['path']
+      os.chdir(self.basePath+dirName)
+      statusList = datalad.status()
+      for fileItem in statusList:
+        if fileItem['state'] != 'clean':
+          output += fileItem['state']+' '+fileItem['type']+' '+fileItem['path']+'\n'
+          clean = False
+    if clean:
+      output += "** Datalad tree CLEAN **\n"
+    else:
+      output += "** Datalad tree NOT clean **\n"
+    os.chdir(curDirectory)
+    return output
 
 
   ######################################################

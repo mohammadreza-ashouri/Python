@@ -35,6 +35,8 @@ class TestStringMethods(unittest.TestCase):
 
       ### add external data
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/320px-Google_2015_logo.svg.png', 'comment': 'small'}, localCopy=True)
+      print("====== STATE * ====")
+      print(self.be.checkDB(verbose=False))
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/640px-Google_2015_logo.svg.png', 'comment': 'large'})
       projDirName = self.be.basePath+self.be.cwd
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
@@ -44,7 +46,7 @@ class TestStringMethods(unittest.TestCase):
 
       ### check consistency of database and replicate to global server
       print('\n*** Check this database ***')
-      output = self.be.checkDB()
+      output = self.be.checkDB(verbose=False)
       print(output)
       self.assertTrue(output.count('**UNSURE')==0,'UNSURE string in output')
       self.assertTrue(output.count('**WARNING')==0,'WARNING string in output')

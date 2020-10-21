@@ -290,7 +290,7 @@ class Database:
     return
 
 
-  def checkDB(self,basepath=None, mode=None, **kwargs):
+  def checkDB(self, mode=None, verbose=True, **kwargs):
     """
     Check database for consistencies by iterating through all documents
     - slow since no views used
@@ -299,24 +299,30 @@ class Database:
     - custom changes are possible with normal scan
     - no interaction with harddisk
 
-    Args:
-        basepath: basepath of database on local directory; None: ignore those checks
+    Args:  #TODO make sure pylint checks also all parameter documented
+        mode: [None, "delRevisions"], del-revisions removes all revisions in database
+        verbose: [True, False] print more or only issues
     """
-    outstring = f'{bcolors.UNDERLINE}**** LEGEND ****{bcolors.ENDC}\n'
-    outstring+= f'{bcolors.OKGREEN}Green: perfect and as intended{bcolors.ENDC}\n'
-    outstring+= f'{bcolors.OKBLUE}Blue: ok-ish, can happen: empty files for testing, strange path for measurements{bcolors.ENDC}\n'
-    outstring+= f'{bcolors.HEADER}Pink: unsure if bug or desired (e.g. move step to random path-name){bcolors.ENDC}\n'
-    outstring+= f'{bcolors.WARNING}Yellow: WARNING should not happen (e.g. procedures without project){bcolors.ENDC}\n'
-    outstring+= f'{bcolors.FAIL}Red: FAILURE and ERROR: NOT ALLOWED AT ANY TIME{bcolors.ENDC}\n'
-    outstring+= 'Normal text: not understood, did not appear initially\n'
-    outstring+= f'{bcolors.UNDERLINE}**** List all DOCUMENTS ****{bcolors.ENDC}\n'
+    if verbose:
+      outstring = f'{bcolors.UNDERLINE}**** LEGEND ****{bcolors.ENDC}\n'
+      outstring+= f'{bcolors.OKGREEN}Green: perfect and as intended{bcolors.ENDC}\n'
+      outstring+= f'{bcolors.OKBLUE}Blue: ok-ish, can happen: empty files for testing, strange path for measurements{bcolors.ENDC}\n'
+      outstring+= f'{bcolors.HEADER}Pink: unsure if bug or desired (e.g. move step to random path-name){bcolors.ENDC}\n'
+      outstring+= f'{bcolors.WARNING}Yellow: WARNING should not happen (e.g. procedures without project){bcolors.ENDC}\n'
+      outstring+= f'{bcolors.FAIL}Red: FAILURE and ERROR: NOT ALLOWED AT ANY TIME{bcolors.ENDC}\n'
+      outstring+= 'Normal text: not understood, did not appear initially\n'
+      outstring+= f'{bcolors.UNDERLINE}**** List all DOCUMENTS ****{bcolors.ENDC}\n'
+    else:
+      outstring = ''
     ## loop all documents
     for doc in self.db:
       if '_design' in doc['_id']:
-        outstring+= f'{bcolors.OKGREEN}..info: Design document '+doc['_id']+f'{bcolors.ENDC}\n'
+        if verbose:
+          outstring+= f'{bcolors.OKGREEN}..info: Design document '+doc['_id']+f'{bcolors.ENDC}\n'
         continue
       if doc['_id'] == '-dataDictionary-':
-        outstring+= f'{bcolors.OKGREEN}..info: Data dictionary exists{bcolors.ENDC}\n'
+        if verbose:
+          outstring+= f'{bcolors.OKGREEN}..info: Data dictionary exists{bcolors.ENDC}\n'
         continue
 
       # old revisions of document. Test
@@ -371,16 +377,19 @@ class Database:
               pass  #handled next lines
           if branch['path'] is None:
             if doc['type'][0] == 'procedure' or doc['type'][0] == 'sample':
-              outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'
+              if verbose:
+                outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'
             elif doc['type'][0] == 'measurement':
-              outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+f'{bcolors.ENDC}\n'
+              if verbose:
+                outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+f'{bcolors.ENDC}\n'
             else:
               outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
           else:                                                            #if sensible path
             if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):#check if length of path and stack coincide
               if '://' not in branch['path']:
                 if doc['type'][0] == 'procedure' or doc['type'][0] == 'measurement':
-                  outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths do not match for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
+                  if verbose:
+                    outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths do not match for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
                 else:
                   outstring+= f'{bcolors.HEADER}**UNSURE branch stack and path lengths do not match '+doc['_id']+f'{bcolors.ENDC}\n'
             if branch['child'] != 9999:
@@ -422,12 +431,14 @@ class Database:
         # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
 
     ##TEST views
-    outstring+= f'{bcolors.UNDERLINE}**** List problematic VIEWS ****{bcolors.ENDC}\n'
+    if verbose:
+      outstring+= f'{bcolors.UNDERLINE}**** List problematic VIEWS ****{bcolors.ENDC}\n'
     view = self.getView('viewMD5/viewMD5')
     md5keys = []
     for item in view:
       if item['key']=='':
-        outstring+= f'{bcolors.OKBLUE}**warning: measurement without md5sum: '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
+        if verbose:
+          outstring+= f'{bcolors.OKBLUE}**warning: measurement without md5sum: '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
       else:
         if item['key'] in md5keys:
           outstring+= f'{bcolors.FAIL}**ERROR: md5sum twice in view: '+item['key']+' '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
