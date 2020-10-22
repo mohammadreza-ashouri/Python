@@ -11,7 +11,7 @@ import difflib
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
-from pygit2 import Repository
+from git import Repo
 import datalad.api as datalad
 import datalad.support.annexrepo as git_annex
 from database import Database
@@ -57,8 +57,8 @@ class JamDB:
       sys.exit(1)
     sys.path.append(self.softwarePath+os.sep+'extractors')  #allow extractors
     # ensure that development git-branch does not interfere with master
-    gitRepository = Repository(self.softwarePath)
-    headName=gitRepository.head.name.split('/')[-1]
+    gitRepository = Repo(self.softwarePath)
+    headName=gitRepository.head.ref.name
     if headName!='master' and not configName.startswith('develop'):
       print("**ERROR**: Do not use non-master git-branch on other than develop directory")
       sys.exit(1)
@@ -334,7 +334,7 @@ class JamDB:
         fileName = os.path.relpath(str(posixPath), self.basePath+self.cwd)
         logging.info('scanTree file not in database: '+fileName)
         if fileName.endswith('.id_jamDB.json'):
-          print("**WARNING: should not occur in scanTree",fileName)
+          print("**WARNING: User moved something around manually",fileName)
         #add to database
         if not (fileName.endswith('_jamDB.jpg') or
                 fileName.endswith('_jamDB.svg') or
@@ -506,18 +506,12 @@ class JamDB:
     if '://' in filePath:
       absFilePath = filePath
       outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_jamDB'
-      dataset = datalad.Dataset(self.basePath+self.cwd)
+      projectDB = self.cwd.split(os.sep)[0]
+      dataset = datalad.Dataset(self.basePath+projectDB)
     else:
       parentPath = filePath.split(os.sep)[0]
       dataset = datalad.Dataset(self.basePath+parentPath)
-      dataset.save(path=self.basePath+filePath, message='Added document')
-      try:     #git-annex handled files can be unlocked
-        dataset.unlock(path=self.basePath+filePath)  #all files are by default unlocked
-        # after unlocking, save that change
-        # Locking is a change, status not clean
-        dataset.save(path=self.basePath+filePath, message='unlocked document')
-      except:  #git handled files cannot be unlocked
-        print("**Warning**: file could not be unlocked",filePath)
+      dataset.save(path=self.basePath+filePath, message='Added locked document')
       absFilePath = self.basePath + filePath
       outFile = absFilePath.replace('.','_')+'_jamDB'
     pyFile = 'jamDB_'+extension+'.py'
@@ -565,17 +559,18 @@ class JamDB:
             fileType = 'w'
           else:
             fileType = 'wb'
+          appendix = ''
+          if os.path.exists(outFileFull):
+             #all files are by default locked in git-annex
+             #  - unlock them
+             #  - change them
+             #  - save locks them automatically
+            dataset.unlock(path=outFileFull)
+            appendix = '(was unlocked before)'
           with open(outFileFull,fileType) as f:
             figfile.seek(0)
             shutil.copyfileobj(figfile, f)
-          dataset.save(path=outFileFull, message='Added document')
-          try:     #git-annex handled files can be unlocked
-            dataset.unlock(path=outFileFull)  #all files are by default unlocked
-            # after unlocking, save that change
-            # Locking is a change, status not clean
-            dataset.save(path=outFileFull, message='unlocked document')
-          except:  #git handled files cannot be unlocked
-            print("**Warning**: file could not be unlocked",outFileFull)
+          dataset.save(path=outFileFull, message='Added document '+appendix)
     else:
       image = ''
       meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
@@ -778,7 +773,8 @@ class JamDB:
     hierLevel = None
     children  = [0]
     path      = None
-    for doc in docList:
+    repo      = Repo(self.basePath+self.cwd.split(os.sep)[0])
+    for doc in docList:  #iterate through all entries
       # identify docType
       levelID     = doc['type']
       doc['type'] = ['text',self.hierList[levelID]]
@@ -788,31 +784,31 @@ class JamDB:
         edit = doc['type'][-1]
       del doc['edit']
       # change directories: downward
-      if hierLevel is None:   #first run through
+      if hierLevel is None:   #first run-through
         docDB = self.db.getDoc(doc['_id'])
         doc['childNum'] = docDB['branch'][0]['child']
       else:                   #after first entry
-        if levelID<hierLevel:
+        if levelID<hierLevel:                               #UNCLE, aka SIBLING OF PARENT
           children.pop()
           self.changeHierarchy(None)                        #'cd ..'
-          self.changeHierarchy(None)                        #'cd ..'
+          self.changeHierarchy(None)                        #'cd ..', change into directory later, once it's name is known
           children[-1] += 1
-        elif levelID>hierLevel:
+        elif levelID>hierLevel:                             #CHILD
           children.append(0)
-        else:
-          self.changeHierarchy(None)                        #'cd ..'
+        else:                                               #SIBLING
+          self.changeHierarchy(None)                        #'cd ..', change into directory later, once it's name is known
           children[-1] += 1
         #check if directory exists on disk
         #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
         dirName = createDirName(doc['name'],doc['type'][0],children[-1])
-        if not os.path.exists(dirName):                     #after move, deletion or because new
-          if doc['_id']=='':                                #because new data
+        if not os.path.exists(dirName):                     #if move, deletion or because new
+          if doc['_id']=='':                                #if new data
             os.makedirs(dirName)
             edit = doc['type'][-1]
-          else:                                             #after move
+          else:                                             #if move
             docDB = self.db.getDoc(doc['_id'])
             path = docDB['branch'][0]['path']
-            if not os.path.exists(self.basePath+path):        #parent was moved: get 'path' from knowledge of parent
+            if not os.path.exists(self.basePath+path):      #parent was moved: get 'path' from knowledge of parent
               parentID = docDB['branch'][0]['stack'][-1]
               pathParent = self.db.getDoc(parentID)['branch'][0]['path']
               path = pathParent+os.sep+path.split(os.sep)[-1]
@@ -820,8 +816,9 @@ class JamDB:
               print("**ERROR** doc path was not found and parent path was not found\nReturn")
               return
             if self.confirm is None or self.confirm(None,"Move directory "+path+" -> "+self.cwd+dirName):
-              shutil.move(self.basePath+path, dirName)
-            logging.info('setEditSting cwd '+self.cwd+'| non-existant directory '+dirName+'. Moved old one to here')
+              repo.index.move([self.basePath+path, self.basePath+self.cwd+dirName])
+              repo.index.commit("SetEditString move directory "+self.basePath+path+' -> '+self.basePath+self.cwd+dirName)
+              logging.info("used git mv "+self.basePath+path+' -> '+self.basePath+self.cwd+dirName)
         if edit=='-edit-':
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
           if path is not None:
