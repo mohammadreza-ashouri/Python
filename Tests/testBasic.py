@@ -149,7 +149,6 @@ class TestStringMethods(unittest.TestCase):
       shutil.move(origin, target)
       self.be.scanTree()
       print(" ====== STATE 9 ====\n",self.be.checkDB(verbose=False))
-      return
 
       ### Move data, copy data into different project
       print('*** TEST MEASUREMENTS AND SCANNING 3 ***')
@@ -162,6 +161,12 @@ class TestStringMethods(unittest.TestCase):
       shutil.copy(projDirName+'/Zeiss.tif',projDirName1+'/Zeiss.tif')
       shutil.move(projDirName+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteel0000LC.txt')
       self.be.scanTree()
+      # A file was removed from previous project, go there, scan, return
+      self.be.changeHierarchy(None)
+      self.be.changeHierarchy(projID) #change into existant path
+      self.be.scanTree()
+      self.be.changeHierarchy(None)
+      self.be.changeHierarchy(projID1) #change into existant path
       print(" ====== STATE 10 ====\n",self.be.checkDB(verbose=False))
 
       ### Remove data: adopt branch in document
@@ -181,10 +186,11 @@ class TestStringMethods(unittest.TestCase):
       print(" ====== STATE 12 ====\n",self.be.checkDB(verbose=False))
 
       ### Output all the measurements and changes until now
-      # output MD5-sum
+      # output SHA-sum
       print('*** TEST MEASUREMENTS AND SCANNING 3 ***')
       print(self.be.output('Measurements'))
-      print(self.be.outputMD5())
+      print(self.be.outputSHAsum())
+
 
       ### Output including data: change back into folder that has content
       print('*** FINAL HIERARCHY ***')

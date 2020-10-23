@@ -2,7 +2,8 @@
 """
 Misc methods and diffinitions for json, colors
 """
-import json, re, base64, io
+import json, re, base64, io, os, stat
+from hashlib import sha1
 import numpy as np
 from PIL import Image
 import js2py
@@ -37,6 +38,49 @@ def createDirName(name,docType,thisChildNumber):
     thisChildNumber = int(thisChildNumber)
   return ('{:03d}'.format(thisChildNumber))+'_'+cT.camelCase(name)
 
+
+
+def generic_hash(path):
+  """
+  Hash an object based on its mode.
+
+  https://github.com/chris3torek/scripts/blob/master/githash.py
+
+  Example implementation:
+      result = generic_hash(sys.argv[1])
+      print('%s: hash = %s' % (sys.argv[1], result))
+
+  """
+  if os.path.isdir(path):
+    raise ValueError('This seems to be a directory '+fullpath)
+  if os.path.islink(path):  #if link, dereference
+    path = os.path.realpath(path)
+  size = os.path.getsize(path)
+  with open(path, 'rb') as stream:
+    hasher = blob_hash(stream, size)
+  shasum = hasher.hexdigest()
+  # print("SHA CHECK",path,shasum,size)
+  return shasum
+
+def blob_hash(stream, size):
+  """
+  Return (as hash instance) the hash of a blob,
+  as read from the given stream.
+  """
+  hasher = sha1()
+  hasher.update(('blob %u\0' % size).encode('ascii'))
+  nread = 0
+  while True:
+    # We read just 64K at a time to be kind to
+    # runtime storage requirements.
+    data = stream.read(65536)
+    if data == b'':
+      break
+    nread += len(data)
+    hasher.update(data)
+  if nread != size:
+    raise ValueError('%s: expected %u bytes, found %u bytes' % (stream.name, size, nread))
+  return hasher
 
 
 

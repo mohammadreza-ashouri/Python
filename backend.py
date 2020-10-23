@@ -16,7 +16,7 @@ import datalad.api as datalad
 import datalad.support.annexrepo as git_annex
 from database import Database
 from commonTools import commonTools as cT
-from miscTools import bcolors, createDirName
+from miscTools import bcolors, createDirName, generic_hash
 
 class JamDB:
   """
@@ -164,6 +164,11 @@ class JamDB:
 
     # find path name on local file system; name can be anything
     if self.cwd is not None and 'name' in doc:
+      if (doc['name'].endswith('_jamDB.jpg') or
+          doc['name'].endswith('_jamDB.svg') or
+          doc['name'].endswith('.id_jamDB.json') ):
+        print("**WARNING** DO NOT ADD _jamDB. files to database")
+        return False
       if doc['type'][0] == 'text':
         #project, step, task
         if doc['type'][0]=='project': childNum = 0
@@ -176,7 +181,7 @@ class JamDB:
         operation = 'u'
       else:
         #measurement, sample, procedure
-        md5sum = ''
+        shasum = ''
         if '://' in doc['name']:                                 #make up name
           if localCopy:
             baseName, extension = os.path.splitext(os.path.basename(doc['name']))
@@ -186,7 +191,8 @@ class JamDB:
           else:
             path = doc['name']
             try:
-              md5sum  = hashlib.md5(request.urlopen(doc['name']).read()).hexdigest()
+              shasum  = '000' #TODO ! hashlib.md5(request.urlopen(doc['name']).read()).hexdigest()
+              print("fix shasum  = 000")
             except:
               print('addData: fetch remote content failed. Data not added')
               return False
@@ -196,15 +202,14 @@ class JamDB:
         elif os.path.exists(self.basePath+self.cwd+doc['name']): #file exists
           path = self.cwd+doc['name']
         else:                                                     #make up name
-          md5sum  = None
-        if md5sum is not None and doc['type'][0]=='measurement':         #samples, procedures not added to md5 database, getMeasurement not sensible
-          if md5sum == '':
-            with open(self.basePath+path,'rb') as fIn:
-              md5sum = hashlib.md5(fIn.read()).hexdigest()
-          view = self.db.getView('viewMD5/viewMD5',md5sum)
+          shasum  = None
+        if shasum is not None and doc['type'][0]=='measurement':         #samples, procedures not added to shasum database, getMeasurement not sensible
+          if shasum == '':
+            shasum = generic_hash(self.basePath+path)
+          view = self.db.getView('viewSHAsum/viewSHAsum',shasum)
           if len(view)==0 or forceNewImage:  #measurement not in database: create doc
             while True:
-              self.getMeasurement(path,md5sum,doc)
+              self.getMeasurement(path,shasum,doc)
               if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
                 doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: extractor does not exit
                 return False
@@ -213,8 +218,9 @@ class JamDB:
                   return False
                 break
           if len(view)==1:
+            self.getMeasurement(path,shasum,doc,exitAfterDataLad=True)
             doc['_id'] = view[0]['id']
-            doc['md5sum'] = md5sum
+            doc['shasum'] = shasum
             edit = True
         elif doc['type'][0]=='procedure' and path is not None:
           with open(self.basePath+path,'r') as fIn:
@@ -299,7 +305,7 @@ class JamDB:
     """ Scan directory tree recursively from project/...
     - find changes on file system and move those changes to DB
     - use .id_jamDB.json to track changes of directories, aka projects/steps/tasks
-    - use MD5sum to track changes of measurements etc. (one file=one md5sum=one entry in DB)
+    - use shasum to track changes of measurements etc. (one file=one shasum=one entry in DB)
     - create database entries for measurements in directory
     - move/copy/delete allowed as the doc['path'] = list of all copies
       doc['path'] is adopted once changes are observed
@@ -319,58 +325,75 @@ class JamDB:
     #   datalad and git give the directories, if untracked/random
     #   also, git-annex status is empty if nothing has to be done
     #   git-annex output is nice to parse
-    for _ in range(2):  #iterate twice: first time data, second time _jamDB.jpg etc are added to datalad
-      ## datalad api version
-      fileList = git_annex.AnnexRepo('.').status()
-      ## shell command
-      # cmd = ['git-annex','status']
-      # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-      # for textLine in output.stdout.decode('utf-8').split('\n'):
-      #   fileName = textLine[2:].strip()
-      #   if fileName=='': continue   #empty line after the last \n
-      for posixPath in fileList:
-        if fileList[posixPath]['state']=='clean':
-          continue
-        fileName = os.path.relpath(str(posixPath), self.basePath+self.cwd)
-        logging.info('scanTree file not in database: '+fileName)
-        if fileName.endswith('.id_jamDB.json'):
-          print("**WARNING: User moved something around manually",fileName)
-        #add to database
-        if not (fileName.endswith('_jamDB.jpg') or
-                fileName.endswith('_jamDB.svg') or
-                fileName.endswith('.id_jamDB.json')  #TODO remove this line, should not be necessary
-                ):
-          filePath = self.cwd+fileName
-          directory, _ = os.path.split(filePath)
-          newDoc    = {'name':filePath}
-          parentID = None
-          while parentID is None:
-            if len(directory)==0:
-              print("**ERROR** dir is too short")
-              break
-            view = self.db.getView('viewHierarchy/viewPaths', key=directory)
-            for item in view:
-              if item['key']==directory:
-                parentID = item['id']
-            directory = os.sep.join(directory.split(os.sep)[:-1])
-          parentDoc = self.db.getDoc(parentID)
-          hierStack = parentDoc['branch'][0]['stack']+[parentID]
-          success = self.addData('measurement', newDoc, hierStack, callback=callback)
-          if not success:
-            print("**Error could not add measurement to database")
-            print(newDoc)
-            raise ValueError
-        ### Add to datalad
-        # # python api version
-        # dataset = datalad.Dataset(self.basePath+self.cwd)
-        # dataset.save(path=fileName, message='Added document')
-        # try:     #git-annex handled files can be unlocked
-        #   dataset.unlock(path=fileName)  #all files are by default unlocked
-        # except:  #git handled files cannot be unlocked
-        #   print("**Warning**: file could not be unlocked",fileName)
-        ## shell command version
-        # cmd = ['datalad','save','-m','Added document', '-d', self.basePath+self.cwd,fileName]
-        # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    fileList = git_annex.AnnexRepo('.').status()
+    dlDataset = datalad.Dataset('.')
+    #create dictionary that has shasum as key and [origin and target] as value
+    shasumDict = {}   #clean ones are omitted
+    for posixPath in fileList:
+      fileName = os.path.relpath(str(posixPath), self.basePath+self.cwd)
+      if fileList[posixPath]['state']=='untracked':
+        shasum = generic_hash(fileName)
+        if shasum in shasumDict:
+          shasumDict[shasum] = [shasumDict[shasum][0],fileName]
+        else:
+          shasumDict[shasum] = ['',fileName]
+      if fileList[posixPath]['state']=='deleted':
+        shasum = fileList[posixPath]['prev_gitshasum']
+        if shasum in shasumDict:
+          shasumDict[shasum] = [fileName, shasumDict[shasum][1]]
+        else:
+          shasumDict[shasum] = [fileName, '']
+
+    # loop all entries and separate into moved,new,deleted
+    for shasum in shasumDict:
+      origin, target = shasumDict[shasum]
+      originDir, _ = os.path.split(self.cwd+origin)
+      targetDir, _ = os.path.split(self.cwd+target)
+      # find hierStack and parentID of new TARGET location: for new and move
+      if target != '':
+        parentID = None
+        itemTarget = -1
+        while parentID is None:
+          view = self.db.getView('viewHierarchy/viewPaths', key=targetDir)
+          for item in view:
+            if item['key']==targetDir:
+              parentID = item['id']
+              itemTarget = item
+          targetDir = os.sep.join(targetDir.split(os.sep)[:-1])
+        parentDoc = self.db.getDoc(parentID)
+        hierStack = parentDoc['branch'][0]['stack']+[parentID]
+      ### separate into two cases
+      # newly created file
+      if origin == '':
+        logging.info('scanTree file not in database: '+target)
+        newDoc    = {'name':self.cwd+target}
+        success = self.addData('measurement', newDoc, hierStack, callback=callback)  #saved to datalad in here
+        if not success:
+          print("**Error could not add measurement to database",newDoc)
+          raise ValueError
+      # move or delete file
+      else:
+        #get docID
+        view = self.db.getView('viewSHAsum/viewSHAsum',shasum)
+        if len(view)==1:
+          docID = view[0]['id']
+          doc = self.db.getDoc(docID)
+          if target == '':       #delete
+            doc = self.db.updateDoc( {'branch':{'path':originDir, 'oldpath':originDir,\
+                                              'stack':[],\
+                                              'child':-1,\
+                                              'op':'d'}}, docID)
+          else:                  #update
+            doc = self.db.updateDoc( {'branch':{'path':targetDir, 'oldpath':originDir,\
+                                              'stack':hierStack,\
+                                              'child':itemTarget['value'][2],\
+                                              'op':'u'}}, docID)
+        #update to datalad
+        if target == '':
+          dlDataset.save(path=origin, message='Removed file')
+        else:
+          dlDataset.save(path=origin, message='Moved file from here to '+self.cwd+target   )
+          dlDataset.save(path=target, message='Moved file from '+self.cwd+origin+' to here')
     return
 
 
@@ -485,14 +508,14 @@ class JamDB:
     return False
 
 
-  def getMeasurement(self, filePath, md5sum, doc, **kwargs):
+  def getMeasurement(self, filePath, shasum, doc, **kwargs):
     """
     get measurements from datafile: central distribution point
     - max image size defined here
 
     Args:
         filePath: path to file
-        md5sum: md5sum to store in database (not used here)
+        shasum: shasum (git-style hash) to store in database (not used here)
         doc: pass known data/measurement type, can be used to create image; This doc is altered
         kwargs: additional parameter, i.e. maxSize, show
 
@@ -502,6 +525,7 @@ class JamDB:
     logging.debug('getMeasurement started for path '+filePath)
     maxSize = kwargs.get('maxSize', 600)
     show    = kwargs.get('show', False)
+    exitAfterDataLad = kwargs.get('exitAfterDataLad',False)
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = filePath
@@ -512,6 +536,8 @@ class JamDB:
       parentPath = filePath.split(os.sep)[0]
       dataset = datalad.Dataset(self.basePath+parentPath)
       dataset.save(path=self.basePath+filePath, message='Added locked document')
+      if exitAfterDataLad:
+        return
       absFilePath = self.basePath + filePath
       outFile = absFilePath.replace('.','_')+'_jamDB'
     pyFile = 'jamDB_'+extension+'.py'
@@ -580,7 +606,7 @@ class JamDB:
     metaVendor      = meta['metaVendor']
     metaUser        = meta['metaUser']
     document = {'image': image, 'type': ['measurement']+measurementType,
-                'metaUser':metaUser, 'metaVendor':metaVendor, 'md5sum':md5sum}
+                'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
     logging.debug('getMeasurement: finished')
     doc.update(document)
     if show:
@@ -637,6 +663,7 @@ class JamDB:
     for item in view:
       doc = self.db.getDoc(item['id'])
       dirName =doc['branch'][0]['path']
+      #output += '- '+dirName+' -\n'
       os.chdir(self.basePath+dirName)
       statusList = datalad.status()
       for fileItem in statusList:
@@ -873,12 +900,12 @@ class JamDB:
     return outString
 
 
-  def outputMD5(self):
+  def outputSHAsum(self):
     """
-    output list of measurement md5-sums of files
+    output list of measurement SHA-sums of files
     """
-    outString = '{0: <32}|{1: <40}|{2: <25}'.format('MD5 sum', 'Name', 'ID')+'\n'
+    outString = '{0: <32}|{1: <40}|{2: <25}'.format('SHAsum', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
-    for item in self.db.getView('viewMD5/viewMD5'):
+    for item in self.db.getView('viewSHAsum/viewSHAsum'):
       outString += '{0: <32}|{1: <40}|{2: <25}'.format(item['key'], item['value'][-40:], item['id'])+'\n'
     return outString

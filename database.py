@@ -77,13 +77,13 @@ class Database:
       '''
       jsPath = '''
         if ('branch' in doc && !('current_rev' in doc)){
-          if ('md5sum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,doc.md5sum]);}});}
+          if ('shasum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,doc.shasum]);}});}
           else                {doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,''        ]);}});}
         }
       '''
       self.saveView('viewHierarchy','.',{'viewHierarchy':jsHierarchy,'viewPaths':jsPath})
-    if '_design/viewMD5' not in self.db:
-      self.saveView('viewMD5','viewMD5',"if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.md5sum, doc.name);}")
+    if '_design/viewSHAsum' not in self.db:
+      self.saveView('viewSHAsum','viewSHAsum',"if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.shasum, doc.name);}")
     if '_design/viewQR' not in self.db:
       jsString = "if (doc.qrCode.length > 0 && !('current_rev' in doc))"
       jsString+=   '{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}'
@@ -406,8 +406,8 @@ class Database:
           if 'qrCode' not in doc:
             outstring+= f'{bcolors.FAIL}**ERROR qrCode not in sample '+doc['_id']+f'{bcolors.ENDC}\n'
         elif doc['type'][0] == 'measurement':
-          if 'md5sum' not in doc:
-            outstring+= f'{bcolors.FAIL}**ERROR md5sum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
+          if 'shasum' not in doc:
+            outstring+= f'{bcolors.FAIL}**ERROR shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
         elif doc['type'][0] == 'procedure':
           pass
         elif doc['type'][0] == 'text':
@@ -433,14 +433,14 @@ class Database:
     ##TEST views
     if verbose:
       outstring+= f'{bcolors.UNDERLINE}**** List problematic VIEWS ****{bcolors.ENDC}\n'
-    view = self.getView('viewMD5/viewMD5')
-    md5keys = []
+    view = self.getView('viewSHAsum/viewSHAsum')
+    shasumKeys = []
     for item in view:
       if item['key']=='':
         if verbose:
-          outstring+= f'{bcolors.OKBLUE}**warning: measurement without md5sum: '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
+          outstring+= f'{bcolors.OKBLUE}**warning: measurement without shasum: '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
       else:
-        if item['key'] in md5keys:
-          outstring+= f'{bcolors.FAIL}**ERROR: md5sum twice in view: '+item['key']+' '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
-        md5keys.append(item['key'])
+        if item['key'] in shasumKeys:
+          outstring+= f'{bcolors.FAIL}**ERROR: shasum twice in view: '+item['key']+' '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
+        shasumKeys.append(item['key'])
     return outstring
