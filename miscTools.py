@@ -2,7 +2,8 @@
 """
 Misc methods and diffinitions for json, colors
 """
-import json, re, base64, io, os, stat
+import json, re, base64, io, os
+from urllib import request
 from hashlib import sha1
 import numpy as np
 from PIL import Image
@@ -55,10 +56,17 @@ def generic_hash(path):
     raise ValueError('This seems to be a directory '+fullpath)
   if os.path.islink(path):  #if link, dereference
     path = os.path.realpath(path)
-  size = os.path.getsize(path)
-  with open(path, 'rb') as stream:
-    hasher = blob_hash(stream, size)
-  shasum = hasher.hexdigest()
+  if os.path.isfile(path):
+    size = os.path.getsize(path)
+    with open(path, 'rb') as stream:
+      hasher = blob_hash(stream, size)
+    shasum = hasher.hexdigest()
+  else:
+    site = request.urlopen(path)
+    meta = site.headers
+    size = int(meta.get_all('Content-Length')[0])
+    hasher = blob_hash(site, size)
+    shasum = hasher.hexdigest()
   # print("SHA CHECK",path,shasum,size)
   return shasum
 

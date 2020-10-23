@@ -191,7 +191,7 @@ class JamDB:
           else:
             path = doc['name']
             try:
-              shasum  = '000' #TODO ! hashlib.md5(request.urlopen(doc['name']).read()).hexdigest()
+              shasum  = generic_hash(doc['name'])
               print("fix shasum  = 000")
             except:
               print('addData: fetch remote content failed. Data not added')
