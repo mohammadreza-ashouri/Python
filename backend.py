@@ -192,7 +192,6 @@ class JamDB:
             path = doc['name']
             try:
               shasum  = generic_hash(doc['name'])
-              print("fix shasum  = 000")
             except:
               print('addData: fetch remote content failed. Data not added')
               return False
