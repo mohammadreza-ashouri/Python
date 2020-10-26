@@ -10,9 +10,8 @@ from urllib import request
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
-from git import Repo
 import datalad.api as datalad
-import datalad.support.annexrepo as git_annex
+from datalad.support import gitrepo, annexrepo
 from database import Database
 from commonTools import commonTools as cT
 from miscTools import bcolors, createDirName, generic_hash
@@ -56,8 +55,7 @@ class JamDB:
       sys.exit(1)
     sys.path.append(self.softwarePath+os.sep+'extractors')  #allow extractors
     # ensure that development git-branch does not interfere with master
-    gitRepository = Repo(self.softwarePath)
-    headName=gitRepository.head.ref.name
+    headName = gitrepo.GitRepo(self.softwarePath).get_active_branch()
     if headName!='master' and not configName.startswith('develop'):
       print("**ERROR**: Do not use non-master git-branch on other than develop directory")
       sys.exit(1)
@@ -329,7 +327,7 @@ class JamDB:
     #   datalad and git give the directories, if untracked/random
     #   also, git-annex status is empty if nothing has to be done
     #   git-annex output is nice to parse
-    fileList = git_annex.AnnexRepo('.').status()
+    fileList = annexrepo.AnnexRepo('.').status()
     dlDataset = datalad.Dataset('.')
     #create dictionary that has shasum as key and [origin and target] as value
     shasumDict = {}   #clean ones are omitted
@@ -764,6 +762,7 @@ class JamDB:
     # write backup
     with open(tempfile.gettempdir()+os.sep+'tempSetEditString.txt','w') as fOut:
       fOut.write(text)
+    dlDataset = datalad.Dataset(self.basePath+self.cwd.split(os.sep)[0])
     # add the prefix to org-mode structure lines
     prefix = '*'*len(self.hierStack)
     startLine = r'^\*+\ '
@@ -779,7 +778,6 @@ class JamDB:
     hierLevel = None
     children  = [0]
     path      = None
-    repo      = Repo(self.basePath+self.cwd.split(os.sep)[0])
     for doc in docList:  #iterate through all entries
       # identify docType
       levelID     = doc['type']
@@ -822,9 +820,10 @@ class JamDB:
               print("**ERROR** doc path was not found and parent path was not found\nReturn")
               return
             if self.confirm is None or self.confirm(None,"Move directory "+path+" -> "+self.cwd+dirName):
-              repo.index.move([self.basePath+path, self.basePath+self.cwd+dirName])
-              repo.index.commit("SetEditString move directory "+self.basePath+path+' -> '+self.basePath+self.cwd+dirName)
-              logging.info("used git mv "+self.basePath+path+' -> '+self.basePath+self.cwd+dirName)
+              shutil.move(self.basePath+path, self.basePath+self.cwd+dirName)
+              dlDataset.save(path=self.basePath+path, message='SetEditString move directory: origin')
+              dlDataset.save(path=self.basePath+self.cwd+dirName, message='SetEditString move directory: target')
+              logging.info("moved folder "+self.basePath+path+' -> '+self.basePath+self.cwd+dirName)
         if edit=='-edit-':
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
           if path is not None:
