@@ -299,7 +299,7 @@ class Database:
     - custom changes are possible with normal scan
     - no interaction with harddisk
 
-    Args:  #TODO make sure pylint checks also all parameter documented
+    Args:
         mode: [None, "delRevisions"], del-revisions removes all revisions in database
         verbose: [True, False] print more or only issues
     """
@@ -365,7 +365,8 @@ class Database:
         for branch in doc['branch']:
           if len(branch['stack'])==0 and doc['type']!=['text','project']: #if no inheritance
             if doc['type'][0] == 'procedure' or  doc['type'][0] == 'sample':
-              outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
+              if verbose:
+                outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
             else:
               outstring+= f'{bcolors.WARNING}**WARNING branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
           if doc['type'][0]=='text':

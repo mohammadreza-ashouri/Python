@@ -153,7 +153,7 @@ class TestStringMethods(unittest.TestCase):
       ### Move data, copy data into different project
       print('*** TEST MEASUREMENTS AND SCANNING 3 ***')
       projID1  = [i['id'] for i in viewProj][1]
-      print('Change into non-existant path')
+      print('Try to change into non-existant path')
       self.be.changeHierarchy(projID1) #change into non-existant path; try to confuse software
       self.be.changeHierarchy(None)
       self.be.changeHierarchy(projID1) #change into existant path
@@ -250,6 +250,7 @@ class TestStringMethods(unittest.TestCase):
 
   def fileVerify(self,number, text, onlyHierarchy=True):
     """
+    old method for testing and plotting things on the screen. Over time much of the functionality has been moved to checkDB
     use diff-file to compare hierarchies, directory tree
     """
     with open(self.be.softwarePath+'/Tests/verify'+str(number)+'.org','w') as f:

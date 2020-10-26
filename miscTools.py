@@ -45,6 +45,7 @@ def generic_hash(path):
   """
   Hash an object based on its mode.
 
+  inspired by:
   https://github.com/chris3torek/scripts/blob/master/githash.py
 
   Example implementation:
@@ -56,12 +57,12 @@ def generic_hash(path):
     raise ValueError('This seems to be a directory '+fullpath)
   if os.path.islink(path):  #if link, dereference
     path = os.path.realpath(path)
-  if os.path.isfile(path):
+  if os.path.isfile(path):  #Local file
     size = os.path.getsize(path)
     with open(path, 'rb') as stream:
       hasher = blob_hash(stream, size)
     shasum = hasher.hexdigest()
-  else:
+  else:                     #Remote file
     site = request.urlopen(path)
     meta = site.headers
     size = int(meta.get_all('Content-Length')[0])
@@ -79,9 +80,7 @@ def blob_hash(stream, size):
   hasher.update(('blob %u\0' % size).encode('ascii'))
   nread = 0
   while True:
-    # We read just 64K at a time to be kind to
-    # runtime storage requirements.
-    data = stream.read(65536)
+    data = stream.read(65536)     # read 64K at a time for storage requirements
     if data == b'':
       break
     nread += len(data)

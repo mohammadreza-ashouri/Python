@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 """ Python Backend
 """
-import os, json, base64, hashlib, shutil, re, sys
+import os, json, base64, shutil, re, sys
 import logging
 from io import StringIO, BytesIO
 import importlib, tempfile
 from zipfile import ZipFile, ZIP_DEFLATED
 from urllib import request
-import difflib
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
@@ -394,43 +393,6 @@ class JamDB:
           dlDataset.save(path=origin, message='Moved file from here to '+self.cwd+target   )
           dlDataset.save(path=target, message='Moved file from '+self.cwd+origin+' to here')
     return
-
-
-  def compareProcedures(self, **kwargs):
-    """
-    compare procedures on filesystem to those on database and find updates
-
-    Args:
-      kwargs: additional parameter, i.e. callback
-    """
-    #TODO when used??
-    logging.info('compareProcedures started')
-    view = self.db.getView('viewProcedures/viewProcedures')
-    for item in view:
-      doc = self.getDoc(item['id'])
-      if 'branch' in doc:
-        path= doc['branch'][0]['path']
-        if os.path.exists(self.basePath+path):
-          with open(self.basePath+path,'r+') as f:
-            fileRaw     = f.read()
-            contentFile = [i+'\n' for i in fileRaw.split('\n') ]
-            contentDB   = [i+'\n' for i in doc['content'].split('\n') ]
-            output = ''
-            for line in difflib.unified_diff(contentFile, contentDB, fromfile='file', tofile='database'):
-              output = ''.join([output,line])
-            if len(output)>2:
-              if self.confirm(output,doc['name']+'\nUse file to update database? y: keep file; N: keep database'):
-                self.db.updateDoc({'content':fileRaw},item['id']) #Keep file
-              else:
-                f.seek(0)  #keep database
-                f.write(doc['content'])
-                f.truncate()
-        else:
-          print("**ERROR** procedure was removed from "+path)
-      else:
-        print("**ERROR** procedure does not have branch "+item['id'])
-    return
-
 
 
   def backup(self, method='backup', zipFileName=None, **kwargs):
@@ -878,7 +840,10 @@ class JamDB:
     Get children from this parent using outputHierarchy
 
     Args:
-       docID: id parent document
+        docID: id parent document
+
+    Returns:
+        list: list of names, list of document-ids
     """
     hierTree = self.outputHierarchy(True,True,False)
     if hierTree is None:
