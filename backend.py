@@ -27,8 +27,8 @@ class JamDB:
     open server and define database
 
     Args:
-        configName: name of configuration used; if not given, use the one defined by '-defaultLocal' in config file
-        confirm: confirm changes to database and file-tree
+        configName (string): name of configuration used; if not given, use the one defined by '-defaultLocal' in config file
+        confirm (function): confirm changes to database and file-tree
     """
     # open configuration file
     self.debug = True
@@ -92,8 +92,8 @@ class JamDB:
     Shutting down things
 
     Args:
-      deleteDB: remove database
-      kwargs: additional parameter
+      deleteDB (bool): remove database
+      kwargs (dict): additional parameter
     """
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
@@ -111,12 +111,15 @@ class JamDB:
     Save doc to database, also after edit
 
     Args:
-        docType: docType to be stored
-        doc: to be stored
-        hierStack: hierStack from external functions
-        localCopy: copy a remote file to local version
-        forceNewImage: create new image in any case
-        kwargs: additional parameter, i.e. callback for curation
+        docType (string): docType to be stored
+        doc (dict): to be stored
+        hierStack (list): hierStack from external functions
+        localCopy (bool): copy a remote file to local version
+        kwargs (dict): additional parameter, i.e. callback for curation
+            forceNewImage (bool): create new image in any case
+
+    Returns:
+        bool: success
     """
     if hierStack is None: hierStack=[]
     logging.debug('addData beginning doc: '+docType+' | hierStack'+str(hierStack))
@@ -272,9 +275,9 @@ class JamDB:
     change hierarchyStack, change directory, change stored cwd
 
     Args:
-        docID: information on how to change
-        dirName: use this name to change into
-        kwargs: additional parameter
+        docID (string): information on how to change
+        dirName (string): use this name to change into
+        kwargs (dict): additional parameter
     """
     if docID is None or docID in self.hierList:  # none, 'project', 'step', 'task' are given: close
       self.hierStack.pop()
@@ -309,7 +312,10 @@ class JamDB:
       doc['path'] is adopted once changes are observed
 
     Args:
-      kwargs: additional parameter, i.e. callback
+      kwargs (dict): additional parameter, i.e. callback
+
+    Raises:
+      ValueError: could not add new measurement to database
     """
     logging.info('scanTree started')
     if len(self.hierStack) == 0:
@@ -375,17 +381,16 @@ class JamDB:
         view = self.db.getView('viewSHAsum/viewSHAsum',shasum)
         if len(view)==1:
           docID = view[0]['id']
-          doc = self.db.getDoc(docID)
           if target == '':       #delete
-            doc = self.db.updateDoc( {'branch':{'path':originDir, 'oldpath':originDir,\
-                                              'stack':[],\
-                                              'child':-1,\
-                                              'op':'d'}}, docID)
+            self.db.updateDoc( {'branch':{'path':originDir, 'oldpath':originDir,\
+                                          'stack':[],\
+                                          'child':-1,\
+                                          'op':'d'}}, docID)
           else:                  #update
-            doc = self.db.updateDoc( {'branch':{'path':targetDir, 'oldpath':originDir,\
-                                              'stack':hierStack,\
-                                              'child':itemTarget['value'][2],\
-                                              'op':'u'}}, docID)
+            self.db.updateDoc( {'branch':{'path':targetDir, 'oldpath':originDir,\
+                                          'stack':hierStack,\
+                                          'child':itemTarget['value'][2],\
+                                          'op':'u'}}, docID)
         #update to datalad
         if target == '':
           dlDataset.save(path=origin, message='Removed file')
@@ -402,11 +407,12 @@ class JamDB:
     - all data is saved to one zip file
 
     Args:
-      method: backup, restore, compare
-      zipFileName: specific unique name of zip-file
-      kwargs: additional parameter, i.e. callback
+      method (string): backup, restore, compare
+      zipFileName (string): specific unique name of zip-file
+      kwargs (dict): additional parameter, i.e. callback
 
-    Returns: True / False depending on success
+    Returns:
+        bool: success
     """
     if zipFileName is None and self.cwd is None:
       print("Specify zip file name")
@@ -475,13 +481,10 @@ class JamDB:
     - max image size defined here
 
     Args:
-        filePath: path to file
-        shasum: shasum (git-style hash) to store in database (not used here)
-        doc: pass known data/measurement type, can be used to create image; This doc is altered
-        kwargs: additional parameter, i.e. maxSize, show
-
-    Return:
-        void
+        filePath (string): path to file
+        shasum (string): shasum (git-style hash) to store in database (not used here)
+        doc (dict): pass known data/measurement type, can be used to create image; This doc is altered
+        kwargs (dict): additional parameter, i.e. maxSize, show
     """
     logging.debug('getMeasurement started for path '+filePath)
     maxSize = kwargs.get('maxSize', 600)
@@ -584,7 +587,10 @@ class JamDB:
     Wrapper for getting data from database
 
     Args:
-        docID: document id
+        docID (string): document id
+
+    Returns:
+        dict: json of document
     """
     return self.db.getDoc(docID)
 
@@ -594,9 +600,9 @@ class JamDB:
     Replicate local database to remote database
 
     Args:
-        remoteDB: if given, use this name for external db
-        removeAtStart: remove remote DB before starting new
-        kwargs: additional parameter
+        remoteDB (string): if given, use this name for external db
+        removeAtStart (bool): remove remote DB before starting new
+        kwargs (dict): additional parameter
     """
     if remoteDB is not None:
       self.remoteDB['database'] = remoteDB
@@ -609,9 +615,12 @@ class JamDB:
     Wrapper of check database for consistencies by iterating through all documents
 
     Args:
-        mode: mode for checking database, e.g. delete revisions
-        verbose: [True, False] print more or only issues
-        kwargs: additional parameter, i.e. callback
+        mode (string): mode for checking database, e.g. delete revisions
+        verbose (bool): print more or only issues
+        kwargs (dict): additional parameter, i.e. callback
+
+    Returns:
+        string: output incl. \n
     """
     # check database
     output = self.db.checkDB(mode=mode, verbose=verbose, **kwargs)
@@ -648,9 +657,12 @@ class JamDB:
     - length of output 110 character
 
     Args:
-      docLabel: document label to output
-      printID:  include docID in output string
-      kwargs: additional parameter
+      docLabel (string): document label to output
+      printID (bool):  include docID in output string
+      kwargs (dict): additional parameter
+
+    Returns:
+        string: output incl. \n
     """
     view = 'view'+docLabel
     outString = []
@@ -695,10 +707,13 @@ class JamDB:
     - ignore key since it is always the same
 
     Args:
-       onlyHierarchy: only print project,steps,tasks or print all (incl. measurements...)[default print all]
-       addID: add docID to output
-       addTags: add tags, comments, objective to output
-       kwargs: additional parameter, i.e. callback
+       onlyHierarchy (bool): only print project,steps,tasks or print all (incl. measurements...)[default print all]
+       addID (bool): add docID to output
+       addTags (bool): add tags, comments, objective to output
+       kwargs (dict): additional parameter, i.e. callback
+
+    Returns:
+        string: output incl. \n
     """
     if len(self.hierStack) == 0:
       logging.warning('jams.outputHierarchy No project selected')
@@ -726,6 +741,9 @@ class JamDB:
   def getEditString(self):
     """
     Return Markdown string of hierarchy tree
+
+    Returns:
+        string: output incl. \n
     """
     #simple editor style: only this document, no tree
     if self.eargs['style']=='simple':
@@ -740,8 +758,8 @@ class JamDB:
     Using Org-Mode string, replay the steps to update the database
 
     Args:
-       text: org-mode structured text
-       callback: function to verify database change
+       text (string): org-mode structured text
+       callback (function): function to verify database change
     """
     # write backup
     with open(tempfile.gettempdir()+os.sep+'tempSetEditString.txt','w') as fOut:
@@ -840,7 +858,7 @@ class JamDB:
     Get children from this parent using outputHierarchy
 
     Args:
-        docID: id parent document
+        docID (string): id parent document
 
     Returns:
         list: list of names, list of document-ids
@@ -856,6 +874,9 @@ class JamDB:
   def outputQR(self):
     """
     output list of sample qr-codes
+
+    Returns:
+        string: output incl. \n
     """
     outString = '{0: <36}|{1: <36}|{2: <36}'.format('QR', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
@@ -867,6 +888,9 @@ class JamDB:
   def outputSHAsum(self):
     """
     output list of measurement SHA-sums of files
+
+    Returns:
+        string: output incl. \n
     """
     outString = '{0: <32}|{1: <40}|{2: <25}'.format('SHAsum', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'

@@ -25,8 +25,11 @@ def confirm(doc=None, header=None):
     required for initialization
 
   Args:
-     doc: this is the content to be written
-     header: some arbitrary information used as header
+     doc (string): this is the content to be written
+     header (string): some arbitrary information used as header
+
+  Returns:
+      bool: confirmation
   """
   print()
   if header is not None:
@@ -55,8 +58,10 @@ def curate(doc):
     requires global variable menuOutline
 
   Args:
-     doc: document found. Image attribute used for display
-     menuOutline: outline of the menu of questions, userInterfaceCLI.json
+     doc (dict): document found. Image attribute used for display
+
+  Returns:
+    bool: success of curation
   """
   print(f'\n{bcolors.BOLD}=> Curate measurement:'+doc['name']+f' <={bcolors.ENDC}')
   #show image

@@ -16,11 +16,11 @@ class Database:
   def __init__(self, user, password, databaseName, confirm, softwarePath=''):
     """
     Args:
-        user: user name to local database
-        password: password to local database
-        databaseName: local database name
-        confirm: confirm changes to database and file-tree
-        softwarePath: path to software and default dataDictionary.json
+        user (string): user name to local database
+        password (string): password to local database
+        databaseName (string): local database name
+        confirm (function): confirm changes to database and file-tree
+        softwarePath (string): path to software and default dataDictionary.json
     """
     self.confirm = confirm
     try:
@@ -96,7 +96,7 @@ class Database:
     Shutting down things
 
     Args:
-      deleteDB: remove database
+      deleteDB (bool): remove database
     """
     if deleteDB:
       self.db.client.delete_database(self.databaseName)
@@ -110,7 +110,10 @@ class Database:
     Wrapper for get from database function
 
     Args:
-        docID: document id
+        docID (dict): document id
+
+    Returns:
+        string: json representation of document
     """
     return self.db[docID]
 
@@ -120,7 +123,10 @@ class Database:
     Wrapper for save to database function
 
     Args:
-        doc: document to save
+        doc (dict): document to save
+
+    Returns:
+        dict: json representation of submitted document
     """
     tracebackString = traceback.format_stack()
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
@@ -145,10 +151,13 @@ class Database:
     - Bonus: save '_rev' from newDoc to oldDoc in order to track that updates cannot happen by accident
 
     Args:
-        change: dictionary of item to update
+        change (dict): item to update
                 'path' = list: new path list is appended to existing list
                 'path' = str : remove this path from path list
-        docID:  id of document to change
+        docID (string):  id of document to change
+
+    Returns:
+        dict: json representation of updated document
     """
     tracebackString = traceback.format_stack()
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
@@ -229,8 +238,11 @@ class Database:
     Wrapper for getting view function
 
     Args:
-        thePath: path to view
-        key: if given, use to filter output
+        thePath (string): path to view
+        key (string): if given, use to filter output
+
+    Returns:
+        list: list of documents in this view
     """
     thePath = thePath.split('/')
     designDoc = self.db.get_design_document(thePath[0])
@@ -247,9 +259,9 @@ class Database:
     Adopt the view by defining a new jsCode
 
     Args:
-        designName: name of the design
-        viewName: name of the view (ignored if jsCode==dictionary)
-        jsCode: new code (string or dict of multiple)
+        designName (string): name of the design
+        viewName (string): name of the view (ignored if jsCode==dictionary)
+        jsCode (string): new code (string or dict of multiple)
     """
     designDoc = DesignDocument(self.db, designName)
     if isinstance(jsCode, str):
@@ -271,8 +283,8 @@ class Database:
     Replication to another instance
 
     Args:
-        dbInfo: info on the remote database
-        removeAtStart: remove remote DB before starting new
+        dbInfo (dict): info on the remote database
+        removeAtStart (bool): remove remote DB before starting new
     """
     try:
       rep = Replicator(self.client)
@@ -300,8 +312,12 @@ class Database:
     - no interaction with harddisk
 
     Args:
-        mode: [None, "delRevisions"], del-revisions removes all revisions in database
-        verbose: [True, False] print more or only issues
+        mode (string): [None, "delRevisions"], del-revisions removes all revisions in database
+        verbose (bool): print more or only issues
+        kwargs (dict): additional parameter
+
+    Returns:
+        bool: success of check
     """
     if verbose:
       outstring = f'{bcolors.UNDERLINE}**** LEGEND ****{bcolors.ENDC}\n'
