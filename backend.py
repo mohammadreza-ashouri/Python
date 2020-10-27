@@ -349,19 +349,17 @@ class JamDB:
     shasumDict = {}   #clean ones are omitted
     for posixPath in fileList:
       fileName = os.path.relpath(str(posixPath), self.basePath+self.cwd)
-      if fileList[posixPath]['state']=='clean': #for debugging
-        shasum = generic_hash(fileName)
-        print(shasum,fileList[posixPath]['prev_gitshasum'],fileList[posixPath]['gitshasum'],fileName)
+      # if fileList[posixPath]['state']=='clean': #for debugging
+      #   shasum = generic_hash(fileName)
+      #   print(shasum,fileList[posixPath]['prev_gitshasum'],fileList[posixPath]['gitshasum'],fileName)
       if fileList[posixPath]['state']=='untracked':
         shasum = generic_hash(fileName)
-        print(shasum,fileName)
         if shasum in shasumDict:
           shasumDict[shasum] = [shasumDict[shasum][0],fileName]
         else:
           shasumDict[shasum] = ['',fileName]
       if fileList[posixPath]['state']=='deleted':
         shasum = fileList[posixPath]['prev_gitshasum']
-        print(shasum,fileName)
         if shasum in shasumDict:
           shasumDict[shasum] = [fileName, shasumDict[shasum][1]]
         else:
@@ -374,6 +372,16 @@ class JamDB:
       targetDir, _ = os.path.split(self.cwd+target)
       # find hierStack and parentID of new TARGET location: for new and move
       if target != '':
+        if not os.path.exists(target): #if dead link
+          linkTarget = os.readlink(target)
+          for dirI in os.listdir(self.basePath):
+            if os.path.isdir(self.basePath+dirI):
+              path = self.basePath+dirI+os.sep+linkTarget
+              if os.path.exists(path):
+                os.unlink(target)
+                shutil.copy(path,target)
+                print("Repaired broken link",path,target)
+                break
         parentID = None
         itemTarget = -1
         while parentID is None:

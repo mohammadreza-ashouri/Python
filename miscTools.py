@@ -51,13 +51,15 @@ def generic_hash(path):
   Example implementation:
       result = generic_hash(sys.argv[1])
       print('%s: hash = %s' % (sys.argv[1], result))
-
+  #TODO ALL args correct here?
+  Args:
+    path (string): path
   """
   if os.path.isdir(path):
     raise ValueError('This seems to be a directory '+fullpath)
-  if os.path.islink(path):  #if link, dereference
-    path = os.path.realpath(path)
-  if os.path.isfile(path):  #Local file
+  if os.path.islink(path):    #if link, hash the link
+    shasum = symlink_hash(path).hexdigest()
+  elif os.path.isfile(path):  #Local file
     size = os.path.getsize(path)
     with open(path, 'rb') as stream:
       hasher = blob_hash(stream, size)
@@ -68,8 +70,24 @@ def generic_hash(path):
     size = int(meta.get_all('Content-Length')[0])
     hasher = blob_hash(site, size)
     shasum = hasher.hexdigest()
-  # print("SHA CHECK",path,shasum,size)
   return shasum
+
+
+def symlink_hash(path):
+    """
+    Return (as hash instance) the hash of a symlink.
+    Caller must use hexdigest() or digest() as needed on
+    the result.
+
+    Args:
+      path (string): path to symlink
+    """
+    hasher = sha1()
+    data = os.readlink(path).encode('utf8', 'surrogateescape')
+    hasher.update(('blob %u\0' % len(data)).encode('ascii'))
+    hasher.update(data)
+    return hasher
+
 
 def blob_hash(stream, size):
   """
