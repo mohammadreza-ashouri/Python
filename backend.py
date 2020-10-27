@@ -2,7 +2,7 @@
 """ Python Backend
 """
 import os, json, base64, shutil, re, sys
-import logging
+import logging, time, subprocess
 from io import StringIO, BytesIO
 import importlib, tempfile
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -93,8 +93,17 @@ class JamDB:
       deleteDB (bool): remove database
       kwargs (dict): additional parameter
     """
+    if deleteDB:
+      #uninit / delete everything of git-annex and datalad
+      for item in self.db.getView('viewProjects/viewProjects'):
+        path = self.db.getDoc(item['key'])['branch'][0]['path']
+        path = self.basePath+path
+        if os.path.exists(path):
+          os.chdir(path)
+          output = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
+    time.sleep(2)
     self.alive     = False
     logging.info('\nEND JAMS')
     logging.shutdown()
@@ -243,6 +252,13 @@ class JamDB:
         if doc['type']==['text','project']:
           # datalad api version
           datalad.create(path,description=doc['objective'], cfg_proc='text2git')
+          gitattributeString = '\n* annex.backend=SHA1\n**/.git* annex.largefiles=nothing\n*.md annex.largefiles=nothing\n'
+          gitattributeString+= '*.rst annex.largefiles=nothing\n*.org annex.largefiles=nothing\n'
+          gitattributeString+= '*.json annex.largefiles=nothing\n'
+          with open(path+os.sep+'.gitattributes','w') as fOut:
+            fOut.write(gitattributeString)
+          dlDataset = datalad.Dataset(path)
+          dlDataset.save(path='.',message='changed gitattributes')
           ## shell command
           # cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
           # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -333,14 +349,19 @@ class JamDB:
     shasumDict = {}   #clean ones are omitted
     for posixPath in fileList:
       fileName = os.path.relpath(str(posixPath), self.basePath+self.cwd)
+      if fileList[posixPath]['state']=='clean': #for debugging
+        shasum = generic_hash(fileName)
+        print(shasum,fileList[posixPath]['prev_gitshasum'],fileList[posixPath]['gitshasum'],fileName)
       if fileList[posixPath]['state']=='untracked':
         shasum = generic_hash(fileName)
+        print(shasum,fileName)
         if shasum in shasumDict:
           shasumDict[shasum] = [shasumDict[shasum][0],fileName]
         else:
           shasumDict[shasum] = ['',fileName]
       if fileList[posixPath]['state']=='deleted':
         shasum = fileList[posixPath]['prev_gitshasum']
+        print(shasum,fileName)
         if shasum in shasumDict:
           shasumDict[shasum] = [fileName, shasumDict[shasum][1]]
         else:

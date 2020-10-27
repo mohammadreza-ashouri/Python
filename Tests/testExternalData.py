@@ -42,7 +42,7 @@ class TestStringMethods(unittest.TestCase):
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
       self.be.scanTree()
       print(self.be.output('Measurements'))
-      print(self.be.outputMD5())
+      print(self.be.outputSHAsum())
 
       ### check consistency of database and replicate to global server
       print('\n*** Check this database ***')
@@ -63,19 +63,7 @@ class TestStringMethods(unittest.TestCase):
     except:
       pass
     time.sleep(2)
-    if os.path.exists(self.dirName):
-      #uninit / delete everything of git-annex and datalad
-      curDirectory = os.path.curdir
-      os.chdir(self.dirName)
-      for iDir in os.listdir('.'):
-        if not os.path.isdir(iDir):
-          continue
-        os.chdir(iDir)
-        output = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        os.chdir('..')
-      os.chdir(curDirectory)
-      #remove directory
-      shutil.rmtree(self.dirName)
+    shutil.rmtree(self.dirName)
     return
 
 if __name__ == '__main__':
