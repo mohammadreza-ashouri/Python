@@ -100,7 +100,7 @@ class JamDB:
         path = self.basePath+path
         if os.path.exists(path):
           os.chdir(path)
-          output = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+          _ = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
     time.sleep(2)
@@ -213,7 +213,7 @@ class JamDB:
           shasum  = None
         if shasum is not None and doc['type'][0]=='measurement':         #samples, procedures not added to shasum database, getMeasurement not sensible
           if shasum == '':
-            shasum = generic_hash(self.basePath+path)
+            shasum = generic_hash(self.basePath+path, forceFile=True)
           view = self.db.getView('viewSHAsum/viewSHAsum',shasum)
           if len(view)==0 or forceNewImage:  #measurement not in database: create doc
             while True:
@@ -405,8 +405,9 @@ class JamDB:
       # move or delete file
       else:
         #get docID
-        view = self.db.getView('viewSHAsum/viewSHAsum',shasum)
-        if len(view)==1:
+        if not origin.endswith('.id_jamDB.json') and not '_jamDB.' in origin:
+          fullPath = originDir+os.sep+os.path.split(origin)[1]
+          view = self.db.getView('viewHierarchy/viewPaths', fullPath )
           docID = view[0]['id']
           if target == '':       #delete
             self.db.updateDoc( {'branch':{'path':originDir, 'oldpath':originDir,\
@@ -649,15 +650,17 @@ class JamDB:
     Returns:
         string: output incl. \n
     """
-    # check database
+    ### check database itself for consistency
     output = self.db.checkDB(mode=mode, verbose=verbose, **kwargs)
-    # check if datalad status is clean for all projects
+    ### check if datalad status is clean for all projects
     if verbose:
       output += "--- DataLad status ---\n"
-    view   = self.db.getView('viewProjects/viewProjects')
+    viewProjects   = self.db.getView('viewProjects/viewProjects')
+    viewPaths       = self.db.getView('viewHierarchy/viewPaths')
+    listPaths = [item['key'] for item in viewPaths]
     curDirectory = os.path.abspath(os.path.curdir)
     clean = True
-    for item in view:
+    for item in viewProjects:
       doc = self.db.getDoc(item['id'])
       dirName =doc['branch'][0]['path']
       #output += '- '+dirName+' -\n'
@@ -667,6 +670,19 @@ class JamDB:
         if fileItem['state'] != 'clean':
           output += fileItem['state']+' '+fileItem['type']+' '+fileItem['path']+'\n'
           clean = False
+        #test if file exists
+        relPath = os.path.relpath(fileItem['path'],self.basePath)
+        if relPath.endswith('.id_jamDB.json'): #if project,step,task
+          relPath, _ = os.path.split(relPath)
+        if relPath in listPaths:
+          listPaths.remove(relPath)
+          continue
+        if '_jamDB.' in relPath or '/.datalad/' in relPath or \
+           relPath.endswith('.gitattributes') or os.path.isdir(self.basePath+relPath):
+          continue
+        output += relPath+' not in database\n'
+    if len(listPaths)>0:
+      output += "These files of database not on filesystem "+str(listPaths)+'\n'
     if clean:
       output += "** Datalad tree CLEAN **\n"
     else:

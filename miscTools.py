@@ -27,9 +27,12 @@ def createDirName(name,docType,thisChildNumber):
   """ create directory-name by using camelCase and a prefix
 
   Args:
-      name: name with spaces etc.
-      docType: document type used for prefix
-      thisChildNumber: number of myself
+      name (string): name with spaces etc.
+      docType (string): document type used for prefix
+      thisChildNumber (int): number of myself
+
+  Returns:
+    string: directory name with leading number
   """
   from commonTools import commonTools as cT  #not globally imported since confuses translation
   if docType == 'project':
@@ -41,7 +44,7 @@ def createDirName(name,docType,thisChildNumber):
 
 
 
-def generic_hash(path):
+def generic_hash(path, forceFile=False):
   """
   Hash an object based on its mode.
 
@@ -51,48 +54,70 @@ def generic_hash(path):
   Example implementation:
       result = generic_hash(sys.argv[1])
       print('%s: hash = %s' % (sys.argv[1], result))
-  #TODO ALL args correct here?
+
   Args:
     path (string): path
+    forceFile (bool): force to get shasum of file and not of link (False for gitshasum)
+
+  Returns:
+    string: shasum
+
+  Raises:
+    ValueError: shasum of directory not supported
   """
   if os.path.isdir(path):
-    raise ValueError('This seems to be a directory '+fullpath)
+    raise ValueError('This seems to be a directory '+path)
+  if forceFile:
+    path = os.path.realpath(path)
   if os.path.islink(path):    #if link, hash the link
-    shasum = symlink_hash(path).hexdigest()
+    shasum = symlink_hash(path)
   elif os.path.isfile(path):  #Local file
     size = os.path.getsize(path)
     with open(path, 'rb') as stream:
-      hasher = blob_hash(stream, size)
-    shasum = hasher.hexdigest()
+      shasum = blob_hash(stream, size)
+    print("FILE SHASUM of ",size,path)
   else:                     #Remote file
     site = request.urlopen(path)
     meta = site.headers
     size = int(meta.get_all('Content-Length')[0])
-    hasher = blob_hash(site, size)
-    shasum = hasher.hexdigest()
+    shasum = blob_hash(site, size)
   return shasum
 
 
 def symlink_hash(path):
-    """
-    Return (as hash instance) the hash of a symlink.
-    Caller must use hexdigest() or digest() as needed on
-    the result.
+  """
+  Return (as hash instance) the hash of a symlink.
+  Caller must use hexdigest() or digest() as needed on
+  the result.
 
-    Args:
-      path (string): path to symlink
-    """
-    hasher = sha1()
-    data = os.readlink(path).encode('utf8', 'surrogateescape')
-    hasher.update(('blob %u\0' % len(data)).encode('ascii'))
-    hasher.update(data)
-    return hasher
+  Args:
+    path (string): path to symlink
+
+  Returns:
+    string: shasum of link, aka short string
+  """
+  hasher = sha1()
+  data = os.readlink(path).encode('utf8', 'surrogateescape')
+  hasher.update(('blob %u\0' % len(data)).encode('ascii'))
+  hasher.update(data)
+  print("LINK SHASUM of ",len(data),path)
+  return hasher.hexdigest()
 
 
 def blob_hash(stream, size):
   """
   Return (as hash instance) the hash of a blob,
   as read from the given stream.
+
+  Args:
+    stream (string): content to be hashed
+    size (int): size of the content
+
+  Returns:
+    string: shasum
+
+  Raises:
+    ValueError: size given is not the size of the stream
   """
   hasher = sha1()
   hasher.update(('blob %u\0' % size).encode('ascii'))
@@ -105,7 +130,7 @@ def blob_hash(stream, size):
     hasher.update(data)
   if nread != size:
     raise ValueError('%s: expected %u bytes, found %u bytes' % (stream.name, size, nread))
-  return hasher
+  return hasher.hexdigest()
 
 
 
@@ -113,8 +138,12 @@ def jsonValidator(data):
   """
   for debugging, test if valid json object
   - not really used
-   Args:
-     data: string to test
+
+  Args:
+     data (string): string to test
+
+  Returns:
+    bool: is valid json string
   """
   try:
     json.loads(json.dumps(data))
@@ -135,7 +164,10 @@ def imageToString(url):
   https://stackoverflow.com/questions/16065694/is-it-possible-to-create-encoded-base64-url-from-image-object
 
   Args:
-      url: path to image
+      url (string): path to image
+
+  Returns:
+    string: image as string
   """
   encoded = base64.b64encode(open(url, 'rb').read())
   aString = encoded.decode()
@@ -149,8 +181,11 @@ def stringToImage(aString, show=True):
   - not really used
 
   Args:
-    aString: 64byte string of image
-    show: show image
+    aString (string): 64byte string of image
+    show (bool): show image
+
+  Returns:
+    Image: image of string
   """
   imgdata = base64.b64decode(aString)
   image = Image.open(io.BytesIO(imgdata))

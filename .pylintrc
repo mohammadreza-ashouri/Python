@@ -128,7 +128,7 @@ disable=print-statement,
         dict-items-not-iterating,
         dict-keys-not-iterating,
         dict-values-not-iterating,
-        # Steffen's improvements
+        # Steffen's "improvements"
         len-as-condition,
         multiple-statements,
         bad-whitespace,
@@ -139,7 +139,6 @@ disable=print-statement,
         unused-argument,
         too-few-public-methods,
         useless-return,
-        fixme,
         no-member,
         import-outside-toplevel
 
