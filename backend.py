@@ -10,6 +10,7 @@ from urllib import request
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
+import datalad.ui as datalad_ui
 import datalad.api as datalad
 from datalad.support import gitrepo, annexrepo
 from database import Database
@@ -251,6 +252,7 @@ class JamDB:
       if not edit:
         if doc['type']==['text','project']:
           # datalad api version
+          #datalad_ui.ui.set_backend("no-progress") #does not work
           datalad.create(path,description=doc['objective'], cfg_proc='text2git')
           gitattributeString = '\n* annex.backend=SHA1\n**/.git* annex.largefiles=nothing\n*.md annex.largefiles=nothing\n'
           gitattributeString+= '*.rst annex.largefiles=nothing\n*.org annex.largefiles=nothing\n'
@@ -368,7 +370,7 @@ class JamDB:
     # loop all entries and separate into moved,new,deleted
     for shasum in shasumDict:
       origin, target = shasumDict[shasum]
-      originDir, _ = os.path.split(self.cwd+origin)
+      # originDir, _ = os.path.split(self.cwd+origin)
       targetDir, _ = os.path.split(self.cwd+target)
       # find hierStack and parentID of new TARGET location: for new and move
       if target != '':
@@ -404,27 +406,32 @@ class JamDB:
           raise ValueError
       # move or delete file
       else:
-        #get docID
-        if not origin.endswith('.id_jamDB.json') and not '_jamDB.' in origin:
-          fullPath = originDir+os.sep+os.path.split(origin)[1]
-          view = self.db.getView('viewHierarchy/viewPaths', fullPath )
-          docID = view[0]['id']
-          if target == '':       #delete
-            self.db.updateDoc( {'branch':{'path':originDir, 'oldpath':originDir,\
-                                          'stack':[],\
-                                          'child':-1,\
-                                          'op':'d'}}, docID)
-          else:                  #update
-            self.db.updateDoc( {'branch':{'path':targetDir, 'oldpath':originDir,\
-                                          'stack':hierStack,\
-                                          'child':itemTarget['value'][2],\
-                                          'op':'u'}}, docID)
         #update to datalad
         if target == '':
           dlDataset.save(path=origin, message='Removed file')
         else:
           dlDataset.save(path=origin, message='Moved file from here to '+self.cwd+target   )
           dlDataset.save(path=target, message='Moved file from '+self.cwd+origin+' to here')
+        #get docID
+        if origin.endswith('.id_jamDB.json'):
+          origin = os.path.split(origin)[0]
+        if target.endswith('.id_jamDB.json'):
+          target = os.path.split(target)[0]
+        view = self.db.getView('viewHierarchy/viewPaths', self.cwd+origin )
+        if len(view)==1:
+          docID = view[0]['id']
+          if target == '':       #delete
+            self.db.updateDoc( {'branch':{'path':self.cwd+origin, 'oldpath':self.cwd+origin,\
+                                          'stack':[],\
+                                          'child':-1,\
+                                          'op':'d'}}, docID)
+          else:                  #update
+            self.db.updateDoc( {'branch':{'path':self.cwd+target, 'oldpath':self.cwd+origin,\
+                                          'stack':hierStack,\
+                                          'child':itemTarget['value'][2],\
+                                          'op':'u'}}, docID)
+        else:
+          print("file not in database",self.cwd+origin)
     return
 
 
@@ -681,8 +688,9 @@ class JamDB:
            relPath.endswith('.gitattributes') or os.path.isdir(self.basePath+relPath):
           continue
         output += relPath+' not in database\n'
+    listPaths = [i for i in listPaths if not ("://" in i) ]
     if len(listPaths)>0:
-      output += "These files of database not on filesystem "+str(listPaths)+'\n'
+      output += "These files of database not on filesystem: "+str(listPaths)+'\n'
     if clean:
       output += "** Datalad tree CLEAN **\n"
     else:
