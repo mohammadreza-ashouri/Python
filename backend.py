@@ -10,7 +10,7 @@ from urllib import request
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
-import datalad.ui as datalad_ui
+#import datalad.ui as datalad_ui
 import datalad.api as datalad
 from datalad.support import gitrepo, annexrepo
 from database import Database
@@ -431,7 +431,7 @@ class JamDB:
                                           'child':itemTarget['value'][2],\
                                           'op':'u'}}, docID)
         else:
-          if not os.path.isdir(self.cwd+origin) and not '_jamDB.' in origin:  #TODO still needed?
+          if not '_jamDB.' in origin:
             print("file not in database",self.cwd+origin)
     return
 
@@ -689,7 +689,7 @@ class JamDB:
            relPath.endswith('.gitattributes') or os.path.isdir(self.basePath+relPath):
           continue
         output += relPath+' not in database\n'
-    listPaths = [i for i in listPaths if not ("://" in i) ]
+    listPaths = [i for i in listPaths if not "://" in i ]
     if len(listPaths)>0:
       output += "These files of database not on filesystem: "+str(listPaths)+'\n'
     if clean:
