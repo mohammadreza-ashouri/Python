@@ -67,6 +67,7 @@ class JamDB:
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)
     logging.getLogger('asyncio').setLevel(logging.WARNING)
+    logging.getLogger('datalad').setLevel(logging.WARNING)
     logging.getLogger('PIL').setLevel(logging.WARNING)
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
     logging.info('\nSTART JAMS '+configName)
@@ -251,10 +252,10 @@ class JamDB:
       if not edit:
         if doc['type']==['text','project']:
           ## shell command
-          cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
-          _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+          # cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
+          # _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
           # datalad api version: produces undesired output
-          # datalad.create(path,description=doc['objective'], cfg_proc='text2git')
+          datalad.create(path,description=doc['objective'], cfg_proc='text2git')
           gitattributeString = '\n* annex.backend=SHA1\n**/.git* annex.largefiles=nothing\n*.md annex.largefiles=nothing\n'
           gitattributeString+= '*.rst annex.largefiles=nothing\n*.org annex.largefiles=nothing\n'
           gitattributeString+= '*.json annex.largefiles=nothing\n'
@@ -339,7 +340,7 @@ class JamDB:
       self.changeHierarchy(None)
 
     #git-annex lists all the files at once
-    #   datalad and git give the directories, if untracked/random
+    #   datalad and git give the directories, if untracked/random; and datalad status produces output
     #   also, git-annex status is empty if nothing has to be done
     #   git-annex output is nice to parse
     fileList = annexrepo.AnnexRepo('.').status()
