@@ -10,7 +10,6 @@ from urllib import request
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
-#import datalad.ui as datalad_ui
 import datalad.api as datalad
 from datalad.support import gitrepo, annexrepo
 from database import Database
@@ -251,9 +250,11 @@ class JamDB:
       path = doc['branch'][0]['path']
       if not edit:
         if doc['type']==['text','project']:
-          # datalad api version
-          #datalad_ui.ui.set_backend("no-progress") #does not work
-          datalad.create(path,description=doc['objective'], cfg_proc='text2git')
+          ## shell command
+          cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
+          output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+          # datalad api version: produces undesired output
+          # datalad.create(path,description=doc['objective'], cfg_proc='text2git')
           gitattributeString = '\n* annex.backend=SHA1\n**/.git* annex.largefiles=nothing\n*.md annex.largefiles=nothing\n'
           gitattributeString+= '*.rst annex.largefiles=nothing\n*.org annex.largefiles=nothing\n'
           gitattributeString+= '*.json annex.largefiles=nothing\n'
@@ -261,10 +262,6 @@ class JamDB:
             fOut.write(gitattributeString)
           dlDataset = datalad.Dataset(path)
           dlDataset.save(path='.',message='changed gitattributes')
-          ## shell command
-          # cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
-          # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-          # logging.debug('addData created new dataset in directory '+doc['_id']+' path:'+path)
         else:
           os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
       with open(self.basePath+path+os.sep+'.id_jamDB.json','w') as f:  #local path, update in any case
@@ -673,13 +670,13 @@ class JamDB:
       dirName =doc['branch'][0]['path']
       #output += '- '+dirName+' -\n'
       os.chdir(self.basePath+dirName)
-      statusList = datalad.status()
-      for fileItem in statusList:
-        if fileItem['state'] != 'clean':
-          output += fileItem['state']+' '+fileItem['type']+' '+fileItem['path']+'\n'
+      fileList = annexrepo.AnnexRepo('.').status()
+      for posixPath in fileList:
+        if fileList[posixPath]['state'] != 'clean':
+          output += fileList[posixPath]['state']+' '+fileList[posixPath]['type']+' '+str(posixPath)+'\n'
           clean = False
         #test if file exists
-        relPath = os.path.relpath(fileItem['path'],self.basePath)
+        relPath = os.path.relpath(str(posixPath),self.basePath)
         if relPath.endswith('.id_jamDB.json'): #if project,step,task
           relPath, _ = os.path.split(relPath)
         if relPath in listPaths:
