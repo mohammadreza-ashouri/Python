@@ -252,7 +252,7 @@ class JamDB:
         if doc['type']==['text','project']:
           ## shell command
           cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
-          output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+          _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
           # datalad api version: produces undesired output
           # datalad.create(path,description=doc['objective'], cfg_proc='text2git')
           gitattributeString = '\n* annex.backend=SHA1\n**/.git* annex.largefiles=nothing\n*.md annex.largefiles=nothing\n'
