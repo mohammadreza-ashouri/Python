@@ -54,6 +54,7 @@ class TestStringMethods(unittest.TestCase):
       print('\n*** DONE WITH VERIFY ***')
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
+      self.assertTrue(False,'Exception occurred')
     return
 
 

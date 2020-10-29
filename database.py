@@ -166,7 +166,7 @@ class Database:
     oldDoc = {}              #this is an older revision of the document
     nothingChanged = True
     # handle branch
-    if 'branch' in change and len(change['branch']['stack'])>0 and change['branch']['path'] is not None:
+    if 'branch' in change and len(change['branch']['stack'])>0 and change['branch']['path'] is not None:  #TODO can be simplified?
       op = change['branch']['op']
       del change['branch']['op']
       if not change['branch'] in newDoc['branch']:       #skip if new path already in path
@@ -219,7 +219,6 @@ class Database:
         newDoc[item] = change[item]
     if nothingChanged:
       logging.info('database:updateDoc no change of content: '+newDoc['name'])
-      print('database:updateDoc no change of content: '+newDoc['name'])
       return newDoc
     #produce _id of revDoc
     oldDoc['_id'] = docID+'-'+str( newDoc['nextRevision'] )
@@ -233,13 +232,14 @@ class Database:
     return newDoc
 
 
-  def getView(self, thePath, key=None):
+  def getView(self, thePath, startKey=None, preciseKey=None):
     """
     Wrapper for getting view function
 
     Args:
         thePath (string): path to view
-        key (string): if given, use to filter output
+        startKey (string): if given, use to filter output, everything that starts with this key
+        preciseKey (string): if given, use to filter output. Match precisely
 
     Returns:
         list: list of documents in this view
@@ -247,10 +247,12 @@ class Database:
     thePath = thePath.split('/')
     designDoc = self.db.get_design_document(thePath[0])
     v = View(designDoc, thePath[1])
-    if key is None:
+    if startKey is not None:
+      res = v(startkey=startKey, endkey=startKey+'zzz')['rows']
+    elif preciseKey is not None:
+      res = v(key=preciseKey)['rows']
+    else:
       res = list(v.result)
-      return res
-    res = v(startkey=key, endkey=key+'zzz')['rows']
     return res
 
 
@@ -403,12 +405,8 @@ class Database:
               outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
           else:                                                            #if sensible path
             if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):#check if length of path and stack coincide
-              if '://' not in branch['path']:
-                if doc['type'][0] == 'procedure' or doc['type'][0] == 'measurement':
-                  if verbose:
-                    outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths do not match for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
-                else:
-                  outstring+= f'{bcolors.HEADER}**UNSURE branch stack and path lengths do not match '+doc['_id']+f'{bcolors.ENDC}\n'
+              if verbose:
+                outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths do not match for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
             if branch['child'] != 9999:
               for parentID in branch['stack']:                              #check if all parents in doc have a corresponding path
                 parentDocBranches = self.getDoc(parentID)['branch']

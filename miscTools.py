@@ -75,7 +75,6 @@ def generic_hash(path, forceFile=False):
     size = os.path.getsize(path)
     with open(path, 'rb') as stream:
       shasum = blob_hash(stream, size)
-    print("FILE SHASUM of ",size,path)
   else:                     #Remote file
     site = request.urlopen(path)
     meta = site.headers
@@ -100,7 +99,6 @@ def symlink_hash(path):
   data = os.readlink(path).encode('utf8', 'surrogateescape')
   hasher.update(('blob %u\0' % len(data)).encode('ascii'))
   hasher.update(data)
-  print("LINK SHASUM of ",len(data),path)
   return hasher.hexdigest()
 
 

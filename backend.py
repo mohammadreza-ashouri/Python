@@ -164,7 +164,7 @@ class JamDB:
       else:
         #should not have childnumber in other cases
         thisStack = ' '.join(self.hierStack)
-        view = self.db.getView('viewHierarchy/viewHierarchy', key=thisStack) #not faster with cT.getChildren
+        view = self.db.getView('viewHierarchy/viewHierarchy', startKey=thisStack) #not faster with cT.getChildren
         childNum = 0
         for item in view:
           if item['value'][1]=='project': continue
@@ -382,12 +382,12 @@ class JamDB:
               if os.path.exists(path):
                 os.unlink(target)
                 shutil.copy(path,target)
-                print("Repaired broken link",path,target)
+                logging.info("Repaired broken link "+path+' -> '+target)
                 break
         parentID = None
         itemTarget = -1
         while parentID is None:
-          view = self.db.getView('viewHierarchy/viewPaths', key=targetDir)
+          view = self.db.getView('viewHierarchy/viewPaths', startKey=targetDir)
           for item in view:
             if item['key']==targetDir:
               parentID = item['id']
@@ -417,12 +417,12 @@ class JamDB:
           origin = os.path.split(origin)[0]
         if target.endswith('.id_jamDB.json'):
           target = os.path.split(target)[0]
-        view = self.db.getView('viewHierarchy/viewPaths', self.cwd+origin )
+        view = self.db.getView('viewHierarchy/viewPaths', preciseKey=self.cwd+origin )
         if len(view)==1:
           docID = view[0]['id']
           if target == '':       #delete
             self.db.updateDoc( {'branch':{'path':self.cwd+origin, 'oldpath':self.cwd+origin,\
-                                          'stack':[],\
+                                          'stack':[None],\
                                           'child':-1,\
                                           'op':'d'}}, docID)
           else:                  #update
@@ -431,7 +431,8 @@ class JamDB:
                                           'child':itemTarget['value'][2],\
                                           'op':'u'}}, docID)
         else:
-          print("file not in database",self.cwd+origin)
+          if not os.path.isdir(self.cwd+origin) and not '_jamDB.' in origin:  #TODO still needed?
+            print("file not in database",self.cwd+origin)
     return
 
 
@@ -770,7 +771,7 @@ class JamDB:
       logging.warning('jams.outputHierarchy No project selected')
       return 'Warning: jams.outputHierarchy No project selected'
     hierString = ' '.join(self.hierStack)
-    view = self.db.getView('viewHierarchy/viewHierarchy', key=hierString)
+    view = self.db.getView('viewHierarchy/viewHierarchy', startKey=hierString)
     nativeView = {}
     for item in view:
       if onlyHierarchy and not item['id'].startswith('t-'):
@@ -881,7 +882,7 @@ class JamDB:
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
           if path is not None:
             #adopt measurements, samples, etc: change / update path by supplying old path
-            view = self.db.getView('viewHierarchy/viewPaths', key=path)
+            view = self.db.getView('viewHierarchy/viewPaths', startKey=path)
             for item in view:
               if item['value'][1][0]=='text': continue  #skip since moved by itself
               self.db.updateDoc( {'branch':{'path':self.cwd, 'oldpath':path+os.sep,\

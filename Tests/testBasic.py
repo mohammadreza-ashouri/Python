@@ -48,7 +48,8 @@ class TestStringMethods(unittest.TestCase):
       # add also some empty measurements
       print('*** TEST PROJECT HIERARCHY: no output ***')
       viewProj = self.be.db.getView('viewProjects/viewProjects')
-      projID  = [i['id'] for i in viewProj][0]
+      projID  = [i['id'] for i in viewProj if 'Test project1'==i['value'][0]][0]
+      projID1 = [i['id'] for i in viewProj if 'Test project2'==i['value'][0]][0]
       self.be.changeHierarchy(projID)
       projDirName = self.be.basePath+self.be.cwd
       self.be.addData('step',    {'comment': 'More random text', 'name': 'Test step one'})
@@ -152,7 +153,6 @@ class TestStringMethods(unittest.TestCase):
 
       ### Move data, copy data into different project
       print('*** TEST MOVE DATA INTO DIFFERENT PROJECT ***')
-      projID1  = [i['id'] for i in viewProj][1]
       print('Try to change into non-existant path')
       self.be.changeHierarchy(projID1) #change into non-existant path; try to confuse software
       self.be.changeHierarchy(None)
@@ -212,6 +212,7 @@ class TestStringMethods(unittest.TestCase):
       self.backup()
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
+      self.assertTrue(False,'Exception occurred')
     return
 
 
