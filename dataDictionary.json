@@ -4,7 +4,7 @@
   "-names-":{
     "main":["name","tags","comments"],
     "database":["_id","_rev","type","hierarchy","user","client","revisions"],
-    "special":["image","metaUser","metaVendor","md5sum","qrCode"]
+    "special":["image","metaUser","metaVendor","shasum","qrCode"]
   },
 
 

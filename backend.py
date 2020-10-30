@@ -665,7 +665,7 @@ class JamDB:
     viewPaths       = self.db.getView('viewHierarchy/viewPaths')
     listPaths = [item['key'] for item in viewPaths]
     curDirectory = os.path.abspath(os.path.curdir)
-    clean = True
+    clean, count = True, 0
     for item in viewProjects:
       doc = self.db.getDoc(item['id'])
       dirName =doc['branch'][0]['path']
@@ -686,8 +686,11 @@ class JamDB:
         if '_jamDB.' in relPath or '/.datalad/' in relPath or \
            relPath.endswith('.gitattributes') or os.path.isdir(self.basePath+relPath):
           continue
-        output += relPath+' not in database\n'
+        #logging.info(relPath+' not in database')
+        count += 1
+    output += 'Number of files on disk that are not in database '+str(count)+'\n'
     listPaths = [i for i in listPaths if not "://" in i ]
+    listPaths = [i for i in listPaths if not os.path.exists(self.basePath+i)]
     if len(listPaths)>0:
       output += "These files of database not on filesystem: "+str(listPaths)+'\n'
     if clean:
