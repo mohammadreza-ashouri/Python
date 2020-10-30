@@ -1,20 +1,20 @@
 #!/usr/bin/python3
 """ Python Backend
 """
-import os, json, base64, hashlib, shutil, re, sys
-import logging
+import os, json, base64, shutil, re, sys
+import logging, time, subprocess
 from io import StringIO, BytesIO
 import importlib, tempfile
 from zipfile import ZipFile, ZIP_DEFLATED
 from urllib import request
-import difflib
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
-from pygit2 import Repository
+import datalad.api as datalad
+from datalad.support import gitrepo, annexrepo
 from database import Database
 from commonTools import commonTools as cT
-from miscTools import bcolors, createDirName
+from miscTools import bcolors, createDirName, generic_hash
 
 class JamDB:
   """
@@ -26,8 +26,8 @@ class JamDB:
     open server and define database
 
     Args:
-        configName: name of configuration used; if not given, use the one defined by '-defaultLocal' in config file
-        confirm: confirm changes to database and file-tree
+        configName (string): name of configuration used; if not given, use the one defined by '-defaultLocal' in config file
+        confirm (function): confirm changes to database and file-tree
     """
     # open configuration file
     self.debug = True
@@ -52,20 +52,22 @@ class JamDB:
       os.chdir(self.basePath)
     else:
       print('**ERROR**: Base folder did not exist:'+self.basePath)
-      exit(1)
+      sys.exit(1)
     sys.path.append(self.softwarePath+os.sep+'extractors')  #allow extractors
     # ensure that development git-branch does not interfere with master
-    gitRepository = Repository(self.softwarePath)
-    headName=gitRepository.head.name.split('/')[-1]
+    headName = gitrepo.GitRepo(self.softwarePath).get_active_branch()
     if headName!='master' and not configName.startswith('develop'):
       print("**ERROR**: Do not use non-master git-branch on other than develop directory")
-      exit(1)
-    if not confirm(None,'VERIFY git-branch and configName: '+headName+' | '+configName): exit(1)
+      sys.exit(1)
+    if confirm is not None:
+      if not confirm(None,'VERIFY git-branch and configName: '+headName+' | '+configName):
+        sys.exit(1)
     # start logging
     logging.basicConfig(filename=self.softwarePath+os.sep+'jamDB.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)
     logging.getLogger('asyncio').setLevel(logging.WARNING)
+    logging.getLogger('datalad').setLevel(logging.WARNING)
     logging.getLogger('PIL').setLevel(logging.WARNING)
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
     logging.info('\nSTART JAMS '+configName)
@@ -89,11 +91,20 @@ class JamDB:
     Shutting down things
 
     Args:
-      deleteDB: remove database
-      kwargs: additional parameter
+      deleteDB (bool): remove database
+      kwargs (dict): additional parameter
     """
+    if deleteDB:
+      #uninit / delete everything of git-annex and datalad
+      for item in self.db.getView('viewProjects/viewProjects'):
+        path = self.db.getDoc(item['key'])['branch'][0]['path']
+        path = self.basePath+path
+        if os.path.exists(path):
+          os.chdir(path)
+          _ = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
+    time.sleep(2)
     self.alive     = False
     logging.info('\nEND JAMS')
     logging.shutdown()
@@ -108,12 +119,15 @@ class JamDB:
     Save doc to database, also after edit
 
     Args:
-        docType: docType to be stored
-        doc: to be stored
-        hierStack: hierStack from external functions
-        localCopy: copy a remote file to local version
-        forceNewImage: create new image in any case
-        kwargs: additional parameter, i.e. callback for curation
+        docType (string): docType to be stored
+        doc (dict): to be stored
+        hierStack (list): hierStack from external functions
+        localCopy (bool): copy a remote file to local version
+        kwargs (dict): additional parameter, i.e. callback for curation
+            forceNewImage (bool): create new image in any case
+
+    Returns:
+        bool: success
     """
     if hierStack is None: hierStack=[]
     logging.debug('addData beginning doc: '+docType+' | hierStack'+str(hierStack))
@@ -150,7 +164,7 @@ class JamDB:
       else:
         #should not have childnumber in other cases
         thisStack = ' '.join(self.hierStack)
-        view = self.db.getView('viewHierarchy/viewHierarchy', key=thisStack) #not faster with cT.getChildren
+        view = self.db.getView('viewHierarchy/viewHierarchy', startKey=thisStack) #not faster with cT.getChildren
         childNum = 0
         for item in view:
           if item['value'][1]=='project': continue
@@ -160,6 +174,11 @@ class JamDB:
 
     # find path name on local file system; name can be anything
     if self.cwd is not None and 'name' in doc:
+      if (doc['name'].endswith('_jamDB.jpg') or
+          doc['name'].endswith('_jamDB.svg') or
+          doc['name'].endswith('.id_jamDB.json') ):
+        print("**WARNING** DO NOT ADD _jamDB. files to database")
+        return False
       if doc['type'][0] == 'text':
         #project, step, task
         if doc['type'][0]=='project': childNum = 0
@@ -172,7 +191,7 @@ class JamDB:
         operation = 'u'
       else:
         #measurement, sample, procedure
-        md5sum = ''
+        shasum = ''
         if '://' in doc['name']:                                 #make up name
           if localCopy:
             baseName, extension = os.path.splitext(os.path.basename(doc['name']))
@@ -182,7 +201,7 @@ class JamDB:
           else:
             path = doc['name']
             try:
-              md5sum  = hashlib.md5(request.urlopen(doc['name']).read()).hexdigest()
+              shasum  = generic_hash(doc['name'])
             except:
               print('addData: fetch remote content failed. Data not added')
               return False
@@ -192,15 +211,14 @@ class JamDB:
         elif os.path.exists(self.basePath+self.cwd+doc['name']): #file exists
           path = self.cwd+doc['name']
         else:                                                     #make up name
-          md5sum  = None
-        if md5sum is not None and doc['type'][0]=='measurement':         #samples, procedures not added to md5 database, getMeasurement not sensible
-          if md5sum == '':
-            with open(self.basePath+path,'rb') as fIn:
-              md5sum = hashlib.md5(fIn.read()).hexdigest()
-          view = self.db.getView('viewMD5/viewMD5',md5sum)
+          shasum  = None
+        if shasum is not None and doc['type'][0]=='measurement':         #samples, procedures not added to shasum database, getMeasurement not sensible
+          if shasum == '':
+            shasum = generic_hash(self.basePath+path, forceFile=True)
+          view = self.db.getView('viewSHAsum/viewSHAsum',shasum)
           if len(view)==0 or forceNewImage:  #measurement not in database: create doc
             while True:
-              self.getMeasurement(path,md5sum,doc)
+              self.getMeasurement(path,shasum,doc)
               if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
                 doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: extractor does not exit
                 return False
@@ -209,8 +227,9 @@ class JamDB:
                   return False
                 break
           if len(view)==1:
+            self.getMeasurement(path,shasum,doc,exitAfterDataLad=True)
             doc['_id'] = view[0]['id']
-            doc['md5sum'] = md5sum
+            doc['shasum'] = shasum
             edit = True
         elif doc['type'][0]=='procedure' and path is not None:
           with open(self.basePath+path,'r') as fIn:
@@ -230,9 +249,32 @@ class JamDB:
     if self.cwd is not None and doc['type'][0]=='text':
       #project, step, task
       path = doc['branch'][0]['path']
-      os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
-      with open(self.basePath+path+'/.id_jamDB.json','w') as f:  #local path, update in any case
+      if not edit:
+        if doc['type']==['text','project']:
+          ## shell command
+          # cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
+          # _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+          # datalad api version: produces undesired output
+          datalad.create(path,description=doc['objective'], cfg_proc='text2git')
+          gitattributeString = '\n* annex.backend=SHA1\n**/.git* annex.largefiles=nothing\n*.md annex.largefiles=nothing\n'
+          gitattributeString+= '*.rst annex.largefiles=nothing\n*.org annex.largefiles=nothing\n'
+          gitattributeString+= '*.json annex.largefiles=nothing\n'
+          with open(path+os.sep+'.gitattributes','w') as fOut:
+            fOut.write(gitattributeString)
+          dlDataset = datalad.Dataset(path)
+          dlDataset.save(path='.',message='changed gitattributes')
+        else:
+          os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
+      with open(self.basePath+path+os.sep+'.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(doc))
+      projectPath = path.split(os.sep)[0]
+      # datalad api version
+      dataset = datalad.Dataset(self.basePath+projectPath)
+      dataset.save(path=self.basePath+path+os.sep+'.id_jamDB.json', message='Added new subfolder with .id_jamDB.json')
+      ## shell command
+      # cmd = ['datalad','save','-m','Added new subfolder with .id_jamDB.json', '-d', self.basePath+projectPath ,self.basePath+path+os.sep+'.id_jamDB.json']
+      # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      # print("datalad save",output.stdout.decode('utf-8'))
     self.currentID = doc['_id']
     logging.debug('addData ending doc '+doc['_id']+' '+doc['type'][0])
     return True
@@ -247,9 +289,9 @@ class JamDB:
     change hierarchyStack, change directory, change stored cwd
 
     Args:
-        docID: information on how to change
-        dirName: use this name to change into
-        kwargs: additional parameter
+        docID (string): information on how to change
+        dirName (string): use this name to change into
+        kwargs (dict): additional parameter
     """
     if docID is None or docID in self.hierList:  # none, 'project', 'step', 'task' are given: close
       self.hierStack.pop()
@@ -274,180 +316,122 @@ class JamDB:
     return
 
 
-  def scanTree(self, produceImages=False, **kwargs):
+  def scanTree(self, **kwargs):
     """ Scan directory tree recursively from project/...
     - find changes on file system and move those changes to DB
     - use .id_jamDB.json to track changes of directories, aka projects/steps/tasks
-    - use MD5sum to track changes of measurements etc. (one file=one md5sum=one entry in DB)
+    - use shasum to track changes of measurements etc. (one file=one shasum=one entry in DB)
     - create database entries for measurements in directory
     - move/copy/delete allowed as the doc['path'] = list of all copies
       doc['path'] is adopted once changes are observed
 
     Args:
-      produceImages: copy images from database into corresponting directory tree
-      kwargs: additional parameter, i.e. callback
+      kwargs (dict): additional parameter, i.e. callback
+
+    Raises:
+      ValueError: could not add new measurement to database
     """
     logging.info('scanTree started')
     if len(self.hierStack) == 0:
       print(f'{bcolors.FAIL}Warning - scan directory: No project selected{bcolors.ENDC}')
       return
     callback = kwargs.get('callback', None)
+    while len(self.hierStack)>1:
+      self.changeHierarchy(None)
 
-    # get information from database
-    if logging.root.level<15 and self.cwd[-1]!=os.sep:  #check if debug mode
-      logging.error("scanTree cwd does not end with /")
-      print("scanTree cwd does not end with /")
-    view = self.db.getView('viewHierarchy/viewPaths', key=self.cwd[:-1]) #remove trailing /; assuming that it is there
-    database = {} #path as key for lookup, required later
-    for item in view:
-      database[item['key']] = [item['id'], item['value'][1], item['value'][2],item['value'][3]]
+    #git-annex lists all the files at once
+    #   datalad and git give the directories, if untracked/random; and datalad status produces output
+    #   also, git-annex status is empty if nothing has to be done
+    #   git-annex output is nice to parse
+    fileList = annexrepo.AnnexRepo('.').status()
+    dlDataset = datalad.Dataset('.')
+    #create dictionary that has shasum as key and [origin and target] as value
+    shasumDict = {}   #clean ones are omitted
+    for posixPath in fileList:
+      fileName = os.path.relpath(str(posixPath), self.basePath+self.cwd)
+      # if fileList[posixPath]['state']=='clean': #for debugging
+      #   shasum = generic_hash(fileName)
+      #   print(shasum,fileList[posixPath]['prev_gitshasum'],fileList[posixPath]['gitshasum'],fileName)
+      if fileList[posixPath]['state']=='untracked':
+        shasum = generic_hash(fileName)
+        if shasum in shasumDict:
+          shasumDict[shasum] = [shasumDict[shasum][0],fileName]
+        else:
+          shasumDict[shasum] = ['',fileName]
+      if fileList[posixPath]['state']=='deleted':
+        shasum = fileList[posixPath]['prev_gitshasum']
+        if shasum in shasumDict:
+          shasumDict[shasum] = [fileName, shasumDict[shasum][1]]
+        else:
+          shasumDict[shasum] = [fileName, '']
 
-    # iterate directory-tree and compare
-    parentID = None
-    toDelete = []
-    for path, dirs, files in os.walk('.'):
-      #compare path: project/step/task
-      path = os.path.normpath(self.cwd+path)
-      if path in database:
-        parentID = database[path][0]
-        #database and directory agree regarding project/step/task
-        #check id-file
-        try:
-          with open(self.basePath+path+'/.id_jamDB.json', 'r') as fIn:
-            idFile  = json.load(fIn)
-          if idFile['branch'][0]['path']==path and idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
-            logging.debug(path+' id-test successful on project/step/task')
-          else:
-            if idFile['_id']==database[path][0] and idFile['type']==database[path][1]:
-              logging.warning('produce new .id_jamDB.json after move of directory '+path)
-              doc = self.db.getDoc(database[path][0])
-              with open(self.basePath+path+'/.id_jamDB.json','w') as f:
-                f.write(json.dumps(doc))
-            else:
-              logging.error(path+' id-test NOT successful on project/step/task')
-              logging.error(idFile['branch'][0]['path']+' | '+idFile['_id']+' | '+idFile['type'])
-              logging.error(path+' | '+str(database[path]))
-        except:
-          logging.error('scanTree: .id_jamDB.json file deleted from '+path)
+    # loop all entries and separate into moved,new,deleted
+    for shasum in shasumDict:
+      origin, target = shasumDict[shasum]
+      # originDir, _ = os.path.split(self.cwd+origin)
+      targetDir, _ = os.path.split(self.cwd+target)
+      # find hierStack and parentID of new TARGET location: for new and move
+      if target != '':
+        if not os.path.exists(target): #if dead link
+          linkTarget = os.readlink(target)
+          for dirI in os.listdir(self.basePath):
+            if os.path.isdir(self.basePath+dirI):
+              path = self.basePath+dirI+os.sep+linkTarget
+              if os.path.exists(path):
+                os.unlink(target)
+                shutil.copy(path,target)
+                logging.info("Repaired broken link "+path+' -> '+target)
+                break
+        parentID = None
+        itemTarget = -1
+        while parentID is None:
+          view = self.db.getView('viewHierarchy/viewPaths', startKey=targetDir)
+          for item in view:
+            if item['key']==targetDir:
+              parentID = item['id']
+              itemTarget = item
+          targetDir = os.sep.join(targetDir.split(os.sep)[:-1])
+        parentDoc = self.db.getDoc(parentID)
+        hierStack = parentDoc['branch'][0]['stack']+[parentID]
+      ### separate into two cases
+      # newly created file
+      if origin == '':
+        logging.info('scanTree file not in database: '+target)
+        newDoc    = {'name':self.cwd+target}
+        success = self.addData('measurement', newDoc, hierStack, callback=callback)  #saved to datalad in here
+        if not success:
+          print("**Error could not add measurement to database",newDoc)
+          raise ValueError
+      # move or delete file
       else:
-        if os.path.exists(self.basePath+path+'/.id_jamDB.json'):
-          #update .id_jamDB.json file and database with new path information
-          with open(self.basePath+path+'/.id_jamDB.json') as fIn:
-            idFile  = json.load(fIn)
-          onDB = self.getDoc(idFile['_id'])
-          onRecordPath = onDB['branch'][0]['path']
-          if os.path.exists(self.basePath+onRecordPath):
-            logging.info('Remove path in directory '+self.basePath+path)
-            toDelete.append(self.basePath+path)
-          else:
-            logging.info('Updated path in directory and database '+idFile['branch'][0]['path']+' to '+path)
-            doc = self.db.updateDoc( {'branch':{'path':path,\
-                                                'stack':idFile['branch'][0]['stack'],\
-                                                'child':idFile['branch'][0]['child'],\
-                                                'op':'u'}}, idFile['_id'])
-            with open(self.basePath+path+'/.id_jamDB.json','w') as f:
-              f.write(json.dumps(doc))
+        #update to datalad
+        if target == '':
+          dlDataset.save(path=origin, message='Removed file')
         else:
-          if os.path.exists(self.basePath+path+os.sep+"exclude_scan.txt"):
-            dirs[:] = []
-            logging.warning(path+' directory (project/step/task) not in database: Exclude it')
-            continue
-          else:
-            logging.warning(path+' directory (project/step/task) not in database: did user create misc. directory')
-      # FILES
-      # compare data=files in each path (in each project, step, ..)
-      for file in files:
-        if '_jamDB.' in file: continue
-        fileName = path+os.sep+file
-        jsonFileName = fileName.replace('.','_')+'_jamDB.json'
-        if fileName in database:
-          #test if MD5 value did not change
-          with open(self.basePath+fileName,'rb') as fIn:
-            md5File = hashlib.md5(fIn.read()).hexdigest()
-          if md5File==database[fileName][3]:
-            logging.debug(fileName+' md5-test successful on measurement/etc.')
-          else:
-            logging.error(fileName+' md5-test NOT successful on measurement/etc. '+md5File+' '+database[fileName][3])
-          if produceImages:
-            #if you have to produce
-            doc = self.db.getDoc(database[fileName][0])
-            if doc['image'].startswith('data:image/jpg'):  #jpg and png
-              image = base64.b64decode( doc['image'][22:].encode() )
-              ending= doc['image'][11:14]
-              with open(self.basePath+jsonFileName[:-4]+ending,'wb') as fOut:
-                fOut.write(image)
-            else:                                           #svg
-              with open(self.basePath+jsonFileName[:-4]+'svg','w') as fOut:
-                fOut.write(doc['image'])
-          del database[fileName]
+          dlDataset.save(path=origin, message='Moved file from here to '+self.cwd+target   )
+          dlDataset.save(path=target, message='Moved file from '+self.cwd+origin+' to here')
+        #get docID
+        if origin.endswith('.id_jamDB.json'):
+          origin = os.path.split(origin)[0]
+        if target.endswith('.id_jamDB.json'):
+          target = os.path.split(target)[0]
+        view = self.db.getView('viewHierarchy/viewPaths', preciseKey=self.cwd+origin )
+        if len(view)==1:
+          docID = view[0]['id']
+          if target == '':       #delete
+            self.db.updateDoc( {'branch':{'path':self.cwd+origin, 'oldpath':self.cwd+origin,\
+                                          'stack':[None],\
+                                          'child':-1,\
+                                          'op':'d'}}, docID)
+          else:                  #update
+            self.db.updateDoc( {'branch':{'path':self.cwd+target, 'oldpath':self.cwd+origin,\
+                                          'stack':hierStack,\
+                                          'child':itemTarget['value'][2],\
+                                          'op':'u'}}, docID)
         else:
-          #not in database, create database entry: if it already exists, self.addData takes care of it
-          logging.info(file+' file not in database. Create/Update in database')
-          newDoc    = {'name':path+os.sep+file}
-          parentDoc = self.db.getDoc(parentID)
-          hierStack = parentDoc['branch'][0]['stack']+[parentID]
-          success = self.addData('measurement', newDoc, hierStack, callback=callback)
-          if not success:  raise ValueError
-      if path in database:
-        del database[path]
-
-    ## if path remains, delete it
-    for item in toDelete:
-      if os.path.exists(item):
-        if self.confirm is None or self.confirm(item,"Delete this directory?"):
-          shutil.rmtree(item)
-    for key in database:
-      if self.confirm is None or self.confirm(key,"Yes: Remove directory from database; No: Add directory to file-tree"):
-        logging.warning('Remove branch from database '+key)
-        doc = {'_id':database[key][0], 'type':database[key][1]}
-        doc['branch'] = {'path':key, 'op':'d', 'stack':[None]}
-        doc = self.db.updateDoc(doc, doc['_id'])
-      else:
-        if database[key][1][0] == "text":  #create directory
-          os.makedirs(self.basePath+key)
-          with open(self.basePath+key+'/.id_jamDB.json','w') as f:  #local path, update in any case
-            f.write(json.dumps(self.getDoc( database[key][0] )))
-        else:
-          print("**ERROR** should not be here ",database[key][1])
-          return
-    logging.info('scanTree finished')
+          if not '_jamDB.' in origin:
+            print("file not in database",self.cwd+origin)
     return
-
-
-  def compareProcedures(self, **kwargs):
-    """
-    compare procedures on filesystem to those on database and find updates
-
-    Args:
-      kwargs: additional parameter, i.e. callback
-    """
-    logging.info('compareProcedures started')
-    view = self.db.getView('viewProcedures/viewProcedures')
-    for item in view:
-      doc = self.getDoc(item['id'])
-      if 'branch' in doc:
-        path= doc['branch'][0]['path']
-        if os.path.exists(self.basePath+path):
-          with open(self.basePath+path,'r+') as f:
-            fileRaw     = f.read()
-            contentFile = [i+'\n' for i in fileRaw.split('\n') ]
-            contentDB   = [i+'\n' for i in doc['content'].split('\n') ]
-            output = ''
-            for line in difflib.unified_diff(contentFile, contentDB, fromfile='file', tofile='database'):
-              output+= line
-            if len(output)>2:
-              if self.confirm(output,doc['name']+'\nUse file to update database? y: keep file; N: keep database'):
-                self.db.updateDoc({'content':fileRaw},item['id']) #Keep file
-              else:
-                f.seek(0)  #keep database
-                f.write(doc['content'])
-                f.truncate()
-        else:
-          print("**ERROR** procedure was removed from "+path)
-      else:
-        print("**ERROR** procedure does not have branch "+item['id'])
-    return
-
 
 
   def backup(self, method='backup', zipFileName=None, **kwargs):
@@ -457,11 +441,12 @@ class JamDB:
     - all data is saved to one zip file
 
     Args:
-      method: backup, restore, compare
-      zipFileName: specific unique name of zip-file
-      kwargs: additional parameter, i.e. callback
+      method (string): backup, restore, compare
+      zipFileName (string): specific unique name of zip-file
+      kwargs (dict): additional parameter, i.e. callback
 
-    Returns: True / False depending on success
+    Returns:
+        bool: success
     """
     if zipFileName is None and self.cwd is None:
       print("Specify zip file name")
@@ -487,7 +472,7 @@ class JamDB:
         return True
 
       # method compare
-      elif method=='compare':
+      if  method=='compare':
         filesInZip = zipFile.namelist()
         print('  Number of documents in file:',len(filesInZip))
         differenceFound, comparedFiles = False, 0
@@ -512,7 +497,7 @@ class JamDB:
 
       # method restore: loop through all files in zip and save to database
       #  - skip design and dataDictionary
-      elif method=='restore':
+      if method=='restore':
         beforeLength = len(self.db.db)
         for fileName in zipFile.namelist():
           if not ( fileName.startswith('_') or fileName.startswith('-') ):
@@ -524,28 +509,33 @@ class JamDB:
     return False
 
 
-  def getMeasurement(self, filePath, md5sum, doc, **kwargs):
+  def getMeasurement(self, filePath, shasum, doc, **kwargs):
     """
     get measurements from datafile: central distribution point
     - max image size defined here
 
     Args:
-        filePath: path to file
-        md5sum: md5sum to store in database (not used here)
-        doc: pass known data/measurement type, can be used to create image; This doc is altered
-        kwargs: additional parameter, i.e. maxSize, show
-
-    Return:
-        void
+        filePath (string): path to file
+        shasum (string): shasum (git-style hash) to store in database (not used here)
+        doc (dict): pass known data/measurement type, can be used to create image; This doc is altered
+        kwargs (dict): additional parameter, i.e. maxSize, show
     """
     logging.debug('getMeasurement started for path '+filePath)
     maxSize = kwargs.get('maxSize', 600)
     show    = kwargs.get('show', False)
+    exitAfterDataLad = kwargs.get('exitAfterDataLad',False)
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = filePath
       outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_jamDB'
+      projectDB = self.cwd.split(os.sep)[0]
+      dataset = datalad.Dataset(self.basePath+projectDB)
     else:
+      parentPath = filePath.split(os.sep)[0]
+      dataset = datalad.Dataset(self.basePath+parentPath)
+      dataset.save(path=self.basePath+filePath, message='Added locked document')
+      if exitAfterDataLad:
+        return
       absFilePath = self.basePath + filePath
       outFile = absFilePath.replace('.','_')+'_jamDB'
     pyFile = 'jamDB_'+extension+'.py'
@@ -560,15 +550,13 @@ class JamDB:
         else:
           plt.show()
       # depending on imgType: produce image
+      outFileFull = None
       if imgType == 'svg':  #no scaling
         figfile = StringIO()
         plt.savefig(figfile, format='svg')
         image = figfile.getvalue()
         # 'data:image/svg+xml;utf8,<svg' + figfile.getvalue().split('<svg')[1]
-        if self.cwd is not None:
-          with open(outFile+'.svg','w') as f:
-            figfile.seek(0)
-            shutil.copyfileobj(figfile, f)
+        outFileFull = outFile+'.svg'
       elif imgType == 'jpg':
         ratio = maxSize / image.size[np.argmax(image.size)]
         image = image.resize((np.array(image.size)*ratio).astype(np.int)).convert('RGB')
@@ -576,10 +564,7 @@ class JamDB:
         image.save(figfile, format='JPEG')
         imageData = base64.b64encode(figfile.getvalue()).decode()
         image = 'data:image/jpg;base64,' + imageData
-        if self.cwd is not None:
-          with open(outFile+'.jpg','wb') as f:
-            figfile.seek(0)
-            shutil.copyfileobj(figfile, f)
+        outFileFull = outFile+'.jpg'
       elif imgType == 'png':
         ratio = maxSize / image.size[np.argmax(image.size)]
         image = image.resize((np.array(image.size)*ratio).astype(np.int))
@@ -587,14 +572,29 @@ class JamDB:
         image.save(figfile, format='PNG')
         imageData = base64.b64encode(figfile.getvalue()).decode()
         image = 'data:image/png;base64,' + imageData
-        if self.cwd is not None:
-          with open(outFile+'.png','wb') as f:
-            figfile.seek(0)
-            shutil.copyfileobj(figfile, f)
-      else:
+        outFileFull = outFile+'.png'
+      if outFileFull is None:
         image = ''
         meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
         logging.debug('getMeasurement should not read data; returned data void '+str(imgType))
+      else:
+        if self.cwd is not None:
+          if outFileFull.endswith('svg'):
+            fileType = 'w'
+          else:
+            fileType = 'wb'
+          appendix = ''
+          if os.path.exists(outFileFull):
+             #all files are by default locked in git-annex
+             #  - unlock them
+             #  - change them
+             #  - save locks them automatically
+            dataset.unlock(path=outFileFull)
+            appendix = '(was unlocked before)'
+          with open(outFileFull,fileType) as f:
+            figfile.seek(0)
+            shutil.copyfileobj(figfile, f)
+          dataset.save(path=outFileFull, message='Added document '+appendix)
     else:
       image = ''
       meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
@@ -604,7 +604,7 @@ class JamDB:
     metaVendor      = meta['metaVendor']
     metaUser        = meta['metaUser']
     document = {'image': image, 'type': ['measurement']+measurementType,
-                'metaUser':metaUser, 'metaVendor':metaVendor, 'md5sum':md5sum}
+                'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
     logging.debug('getMeasurement: finished')
     doc.update(document)
     if show:
@@ -621,7 +621,10 @@ class JamDB:
     Wrapper for getting data from database
 
     Args:
-        docID: document id
+        docID (string): document id
+
+    Returns:
+        dict: json of document
     """
     return self.db.getDoc(docID)
 
@@ -631,9 +634,9 @@ class JamDB:
     Replicate local database to remote database
 
     Args:
-        remoteDB: if given, use this name for external db
-        removeAtStart: remove remote DB before starting new
-        kwargs: additional parameter
+        remoteDB (string): if given, use this name for external db
+        removeAtStart (bool): remove remote DB before starting new
+        kwargs (dict): additional parameter
     """
     if remoteDB is not None:
       self.remoteDB['database'] = remoteDB
@@ -641,15 +644,58 @@ class JamDB:
     return
 
 
-  def checkDB(self,  mode=None, **kwargs):
+  def checkDB(self,  mode=None, verbose=True, **kwargs):
     """
     Wrapper of check database for consistencies by iterating through all documents
 
     Args:
-        mode: mode for checking database, e.g. delete revisions
-        kwargs: additional parameter, i.e. callback
+        mode (string): mode for checking database, e.g. delete revisions
+        verbose (bool): print more or only issues
+        kwargs (dict): additional parameter, i.e. callback
+
+    Returns:
+        string: output incl. \n
     """
-    return self.db.checkDB(self.basePath, mode, **kwargs)
+    ### check database itself for consistency
+    output = self.db.checkDB(mode=mode, verbose=verbose, **kwargs)
+    ### check if datalad status is clean for all projects
+    if verbose:
+      output += "--- DataLad status ---\n"
+    viewProjects   = self.db.getView('viewProjects/viewProjects')
+    viewPaths       = self.db.getView('viewHierarchy/viewPaths')
+    listPaths = [item['key'] for item in viewPaths]
+    curDirectory = os.path.abspath(os.path.curdir)
+    clean = True
+    for item in viewProjects:
+      doc = self.db.getDoc(item['id'])
+      dirName =doc['branch'][0]['path']
+      #output += '- '+dirName+' -\n'
+      os.chdir(self.basePath+dirName)
+      fileList = annexrepo.AnnexRepo('.').status()
+      for posixPath in fileList:
+        if fileList[posixPath]['state'] != 'clean':
+          output += fileList[posixPath]['state']+' '+fileList[posixPath]['type']+' '+str(posixPath)+'\n'
+          clean = False
+        #test if file exists
+        relPath = os.path.relpath(str(posixPath),self.basePath)
+        if relPath.endswith('.id_jamDB.json'): #if project,step,task
+          relPath, _ = os.path.split(relPath)
+        if relPath in listPaths:
+          listPaths.remove(relPath)
+          continue
+        if '_jamDB.' in relPath or '/.datalad/' in relPath or \
+           relPath.endswith('.gitattributes') or os.path.isdir(self.basePath+relPath):
+          continue
+        output += relPath+' not in database\n'
+    listPaths = [i for i in listPaths if not "://" in i ]
+    if len(listPaths)>0:
+      output += "These files of database not on filesystem: "+str(listPaths)+'\n'
+    if clean:
+      output += "** Datalad tree CLEAN **\n"
+    else:
+      output += "** Datalad tree NOT clean **\n"
+    os.chdir(curDirectory)
+    return output
 
 
   ######################################################
@@ -661,9 +707,12 @@ class JamDB:
     - length of output 110 character
 
     Args:
-      docLabel: document label to output
-      printID:  include docID in output string
-      kwargs: additional parameter
+      docLabel (string): document label to output
+      printID (bool):  include docID in output string
+      kwargs (dict): additional parameter
+
+    Returns:
+        string: output incl. \n
     """
     view = 'view'+docLabel
     outString = []
@@ -708,16 +757,19 @@ class JamDB:
     - ignore key since it is always the same
 
     Args:
-       onlyHierarchy: only print project,steps,tasks or print all (incl. measurements...)[default print all]
-       addID: add docID to output
-       addTags: add tags, comments, objective to output
-       kwargs: additional parameter, i.e. callback
+       onlyHierarchy (bool): only print project,steps,tasks or print all (incl. measurements...)[default print all]
+       addID (bool): add docID to output
+       addTags (bool): add tags, comments, objective to output
+       kwargs (dict): additional parameter, i.e. callback
+
+    Returns:
+        string: output incl. \n
     """
     if len(self.hierStack) == 0:
       logging.warning('jams.outputHierarchy No project selected')
       return 'Warning: jams.outputHierarchy No project selected'
     hierString = ' '.join(self.hierStack)
-    view = self.db.getView('viewHierarchy/viewHierarchy', key=hierString)
+    view = self.db.getView('viewHierarchy/viewHierarchy', startKey=hierString)
     nativeView = {}
     for item in view:
       if onlyHierarchy and not item['id'].startswith('t-'):
@@ -739,11 +791,14 @@ class JamDB:
   def getEditString(self):
     """
     Return Markdown string of hierarchy tree
+
+    Returns:
+        string: output incl. \n
     """
     #simple editor style: only this document, no tree
     if self.eargs['style']=='simple':
       doc = self.db.getDoc(self.hierStack[-1])
-      return ', '.join([tag for tag in doc['tags']])+' '+doc['comment']
+      return ', '.join(doc['tags'])+' '+doc['comment']
     #complicated style: this document and all its children and grandchildren...
     return self.outputHierarchy(True,True,'tags')
 
@@ -753,12 +808,13 @@ class JamDB:
     Using Org-Mode string, replay the steps to update the database
 
     Args:
-       text: org-mode structured text
-       callback: function to verify database change
+       text (string): org-mode structured text
+       callback (function): function to verify database change
     """
     # write backup
     with open(tempfile.gettempdir()+os.sep+'tempSetEditString.txt','w') as fOut:
       fOut.write(text)
+    dlDataset = datalad.Dataset(self.basePath+self.cwd.split(os.sep)[0])
     # add the prefix to org-mode structure lines
     prefix = '*'*len(self.hierStack)
     startLine = r'^\*+\ '
@@ -774,7 +830,7 @@ class JamDB:
     hierLevel = None
     children  = [0]
     path      = None
-    for doc in docList:
+    for doc in docList:  #iterate through all entries
       # identify docType
       levelID     = doc['type']
       doc['type'] = ['text',self.hierList[levelID]]
@@ -784,31 +840,31 @@ class JamDB:
         edit = doc['type'][-1]
       del doc['edit']
       # change directories: downward
-      if hierLevel is None:   #first run through
+      if hierLevel is None:   #first run-through
         docDB = self.db.getDoc(doc['_id'])
         doc['childNum'] = docDB['branch'][0]['child']
       else:                   #after first entry
-        if levelID<hierLevel:
+        if levelID<hierLevel:                               #UNCLE, aka SIBLING OF PARENT
           children.pop()
           self.changeHierarchy(None)                        #'cd ..'
-          self.changeHierarchy(None)                        #'cd ..'
+          self.changeHierarchy(None)                        #'cd ..', change into directory later, once it's name is known
           children[-1] += 1
-        elif levelID>hierLevel:
+        elif levelID>hierLevel:                             #CHILD
           children.append(0)
-        else:
-          self.changeHierarchy(None)                        #'cd ..'
+        else:                                               #SIBLING
+          self.changeHierarchy(None)                        #'cd ..', change into directory later, once it's name is known
           children[-1] += 1
         #check if directory exists on disk
         #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
         dirName = createDirName(doc['name'],doc['type'][0],children[-1])
-        if not os.path.exists(dirName):                     #after move, deletion or because new
-          if doc['_id']=='':                                #because new data
+        if not os.path.exists(dirName):                     #if move, deletion or because new
+          if doc['_id']=='':                                #if new data
             os.makedirs(dirName)
             edit = doc['type'][-1]
-          else:                                             #after move
+          else:                                             #if move
             docDB = self.db.getDoc(doc['_id'])
             path = docDB['branch'][0]['path']
-            if not os.path.exists(self.basePath+path):        #parent was moved: get 'path' from knowledge of parent
+            if not os.path.exists(self.basePath+path):      #parent was moved: get 'path' from knowledge of parent
               parentID = docDB['branch'][0]['stack'][-1]
               pathParent = self.db.getDoc(parentID)['branch'][0]['path']
               path = pathParent+os.sep+path.split(os.sep)[-1]
@@ -816,13 +872,15 @@ class JamDB:
               print("**ERROR** doc path was not found and parent path was not found\nReturn")
               return
             if self.confirm is None or self.confirm(None,"Move directory "+path+" -> "+self.cwd+dirName):
-              shutil.move(self.basePath+path, dirName)
-            logging.info('setEditSting cwd '+self.cwd+'| non-existant directory '+dirName+'. Moved old one to here')
+              shutil.move(self.basePath+path, self.basePath+self.cwd+dirName)
+              dlDataset.save(path=self.basePath+path, message='SetEditString move directory: origin')
+              dlDataset.save(path=self.basePath+self.cwd+dirName, message='SetEditString move directory: target')
+              logging.info("moved folder "+self.basePath+path+' -> '+self.basePath+self.cwd+dirName)
         if edit=='-edit-':
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
           if path is not None:
             #adopt measurements, samples, etc: change / update path by supplying old path
-            view = self.db.getView('viewHierarchy/viewPaths', key=path)
+            view = self.db.getView('viewHierarchy/viewPaths', startKey=path)
             for item in view:
               if item['value'][1][0]=='text': continue  #skip since moved by itself
               self.db.updateDoc( {'branch':{'path':self.cwd, 'oldpath':path+os.sep,\
@@ -851,7 +909,10 @@ class JamDB:
     Get children from this parent using outputHierarchy
 
     Args:
-       docID: id parent document
+        docID (string): id parent document
+
+    Returns:
+        list: list of names, list of document-ids
     """
     hierTree = self.outputHierarchy(True,True,False)
     if hierTree is None:
@@ -864,6 +925,9 @@ class JamDB:
   def outputQR(self):
     """
     output list of sample qr-codes
+
+    Returns:
+        string: output incl. \n
     """
     outString = '{0: <36}|{1: <36}|{2: <36}'.format('QR', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
@@ -872,12 +936,15 @@ class JamDB:
     return outString
 
 
-  def outputMD5(self):
+  def outputSHAsum(self):
     """
-    output list of measurement md5-sums of files
+    output list of measurement SHA-sums of files
+
+    Returns:
+        string: output incl. \n
     """
-    outString = '{0: <32}|{1: <40}|{2: <25}'.format('MD5 sum', 'Name', 'ID')+'\n'
+    outString = '{0: <32}|{1: <40}|{2: <25}'.format('SHAsum', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
-    for item in self.db.getView('viewMD5/viewMD5'):
+    for item in self.db.getView('viewSHAsum/viewSHAsum'):
       outString += '{0: <32}|{1: <40}|{2: <25}'.format(item['key'], item['value'][-40:], item['id'])+'\n'
     return outString

@@ -3,7 +3,7 @@
 TEST IF EXTERNAL DATA CAN BE READ,...
 """
 import os, shutil, traceback, time
-import warnings
+import warnings, subprocess
 import unittest
 from backend import JamDB
 
@@ -17,13 +17,14 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ImportWarning)
     warnings.filterwarnings('ignore', module='js2py')
 
-    databaseName = 'temporary_test0'
-    self.dirName      = os.path.expanduser('~')+os.sep+databaseName
+    configName = 'develop_test0'
+    dirName    = 'temporary_test0'
+    self.dirName      = os.path.expanduser('~')+os.sep+dirName
     if os.path.exists(self.dirName): shutil.rmtree(self.dirName)
     os.makedirs(self.dirName)
-    self.be = JamDB(databaseName)
+    self.be = JamDB(configName)
     self.be.exit(deleteDB=True)
-    self.be = JamDB(databaseName)
+    self.be = JamDB(configName)
 
     try:
       ### create some project and move into it
@@ -34,16 +35,18 @@ class TestStringMethods(unittest.TestCase):
 
       ### add external data
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/320px-Google_2015_logo.svg.png', 'comment': 'small'}, localCopy=True)
+      print("====== STATE * ====")
+      print(self.be.checkDB(verbose=False))
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/640px-Google_2015_logo.svg.png', 'comment': 'large'})
       projDirName = self.be.basePath+self.be.cwd
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
       self.be.scanTree()
       print(self.be.output('Measurements'))
-      print(self.be.outputMD5())
+      print(self.be.outputSHAsum())
 
       ### check consistency of database and replicate to global server
       print('\n*** Check this database ***')
-      output = self.be.checkDB()
+      output = self.be.checkDB(verbose=False)
       print(output)
       self.assertTrue(output.count('**UNSURE')==0,'UNSURE string in output')
       self.assertTrue(output.count('**WARNING')==0,'WARNING string in output')
@@ -51,6 +54,7 @@ class TestStringMethods(unittest.TestCase):
       print('\n*** DONE WITH VERIFY ***')
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
+      self.assertTrue(False,'Exception occurred')
     return
 
 
@@ -60,7 +64,7 @@ class TestStringMethods(unittest.TestCase):
     except:
       pass
     time.sleep(2)
-    if os.path.exists(self.dirName): shutil.rmtree(self.dirName)
+    shutil.rmtree(self.dirName)
     return
 
 if __name__ == '__main__':

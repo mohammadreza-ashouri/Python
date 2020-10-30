@@ -5,8 +5,11 @@ import logging
 def getMeasurement(fileName, doc):
   """
   Args:
-     fileName: full path file name
-     doc: supplied to guide image creation doc['type']
+     fileName (string): full path file name
+     doc (dict): supplied to guide image creation doc['type']
+
+  Returns:
+    list: image, ('png','jpg','svg'), dictionary of metadata
   """
   #pandas export (top-left cell is empty): do nothing
   with open(fileName,'r') as inFile:

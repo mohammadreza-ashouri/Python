@@ -8,8 +8,11 @@ from PIL import Image
 def getMeasurement(fileName, doc):
   """
   Args:
-     fileName: full path file name
-     doc: supplied to guide image creation doc['type']
+     fileName (string): full path file name
+     doc (dict): supplied to guide image creation doc['type']
+
+  Returns:
+    list: image, ('png','jpg','svg'), dictionary of metadata
   """
   try:
     if "://" in fileName:
@@ -19,11 +22,10 @@ def getMeasurement(fileName, doc):
       image = Image.open(fileName)
     if 'Software' in image.info and 'matplotlib' in image.info['Software']:  #ignore python.matplotlib files since they are not measurements
       return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
-    else:
-      image = image.convert("P")
-      meta = {'measurementType':['unknown'],
-              'metaVendor':{},
-              'metaUser':{}}
+    image = image.convert("P")
+    meta = {'measurementType':['unknown'],
+            'metaVendor':{},
+            'metaUser':{}}
     return image, 'png', meta
   except:
     logging.error("image_PNG: PNG "+fileName)

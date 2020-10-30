@@ -1,6 +1,6 @@
 """Class for interaction with couchDB
 """
-import traceback, json, logging, os, warnings
+import traceback, json, logging, os, warnings, sys
 from cloudant.client import CouchDB, Cloudant
 from cloudant.view import View
 from cloudant.design_document import DesignDocument
@@ -16,11 +16,11 @@ class Database:
   def __init__(self, user, password, databaseName, confirm, softwarePath=''):
     """
     Args:
-        user: user name to local database
-        password: password to local database
-        databaseName: local database name
-        confirm: confirm changes to database and file-tree
-        softwarePath: path to software and default dataDictionary.json
+        user (string): user name to local database
+        password (string): password to local database
+        databaseName (string): local database name
+        confirm (function): confirm changes to database and file-tree
+        softwarePath (string): path to software and default dataDictionary.json
     """
     self.confirm = confirm
     try:
@@ -28,7 +28,7 @@ class Database:
     except:
       logging.error('database:init Something unexpected has happend\n'+traceback.format_exc())
       print('database:init Something unexpected has happend\n'+traceback.format_exc())
-      exit()
+      sys.exit()
     self.databaseName = databaseName
     if self.databaseName in self.client.all_dbs():
       self.db = self.client[self.databaseName]
@@ -77,13 +77,13 @@ class Database:
       '''
       jsPath = '''
         if ('branch' in doc && !('current_rev' in doc)){
-          if ('md5sum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,doc.md5sum]);}});}
+          if ('shasum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,doc.shasum]);}});}
           else                {doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,''        ]);}});}
         }
       '''
       self.saveView('viewHierarchy','.',{'viewHierarchy':jsHierarchy,'viewPaths':jsPath})
-    if '_design/viewMD5' not in self.db:
-      self.saveView('viewMD5','viewMD5',"if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.md5sum, doc.name);}")
+    if '_design/viewSHAsum' not in self.db:
+      self.saveView('viewSHAsum','viewSHAsum',"if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.shasum, doc.name);}")
     if '_design/viewQR' not in self.db:
       jsString = "if (doc.qrCode.length > 0 && !('current_rev' in doc))"
       jsString+=   '{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}'
@@ -96,7 +96,7 @@ class Database:
     Shutting down things
 
     Args:
-      deleteDB: remove database
+      deleteDB (bool): remove database
     """
     if deleteDB:
       self.db.client.delete_database(self.databaseName)
@@ -110,7 +110,10 @@ class Database:
     Wrapper for get from database function
 
     Args:
-        docID: document id
+        docID (dict): document id
+
+    Returns:
+        string: json representation of document
     """
     return self.db[docID]
 
@@ -120,7 +123,10 @@ class Database:
     Wrapper for save to database function
 
     Args:
-        doc: document to save
+        doc (dict): document to save
+
+    Returns:
+        dict: json representation of submitted document
     """
     tracebackString = traceback.format_stack()
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
@@ -145,10 +151,13 @@ class Database:
     - Bonus: save '_rev' from newDoc to oldDoc in order to track that updates cannot happen by accident
 
     Args:
-        change: dictionary of item to update
+        change (dict): item to update
                 'path' = list: new path list is appended to existing list
                 'path' = str : remove this path from path list
-        docID:  id of document to change
+        docID (string):  id of document to change
+
+    Returns:
+        dict: json representation of updated document
     """
     tracebackString = traceback.format_stack()
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
@@ -210,7 +219,6 @@ class Database:
         newDoc[item] = change[item]
     if nothingChanged:
       logging.info('database:updateDoc no change of content: '+newDoc['name'])
-      print('database:updateDoc no change of content: '+newDoc['name'])
       return newDoc
     #produce _id of revDoc
     oldDoc['_id'] = docID+'-'+str( newDoc['nextRevision'] )
@@ -224,21 +232,27 @@ class Database:
     return newDoc
 
 
-  def getView(self, thePath, key=None):
+  def getView(self, thePath, startKey=None, preciseKey=None):
     """
     Wrapper for getting view function
 
     Args:
-        thePath: path to view
-        key: if given, use to filter output
+        thePath (string): path to view
+        startKey (string): if given, use to filter output, everything that starts with this key
+        preciseKey (string): if given, use to filter output. Match precisely
+
+    Returns:
+        list: list of documents in this view
     """
     thePath = thePath.split('/')
     designDoc = self.db.get_design_document(thePath[0])
     v = View(designDoc, thePath[1])
-    if key is None:
+    if startKey is not None:
+      res = v(startkey=startKey, endkey=startKey+'zzz')['rows']
+    elif preciseKey is not None:
+      res = v(key=preciseKey)['rows']
+    else:
       res = list(v.result)
-      return res
-    res = v(startkey=key, endkey=key+'zzz')['rows']
     return res
 
 
@@ -247,9 +261,9 @@ class Database:
     Adopt the view by defining a new jsCode
 
     Args:
-        designName: name of the design
-        viewName: name of the view (ignored if jsCode==dictionary)
-        jsCode: new code (string or dict of multiple)
+        designName (string): name of the design
+        viewName (string): name of the view (ignored if jsCode==dictionary)
+        jsCode (string): new code (string or dict of multiple)
     """
     designDoc = DesignDocument(self.db, designName)
     if isinstance(jsCode, str):
@@ -271,8 +285,8 @@ class Database:
     Replication to another instance
 
     Args:
-        dbInfo: info on the remote database
-        removeAtStart: remove remote DB before starting new
+        dbInfo (dict): info on the remote database
+        removeAtStart (bool): remove remote DB before starting new
     """
     try:
       rep = Replicator(self.client)
@@ -290,7 +304,7 @@ class Database:
     return
 
 
-  def checkDB(self,basepath=None, mode=None, **kwargs):
+  def checkDB(self, mode=None, verbose=True, **kwargs):
     """
     Check database for consistencies by iterating through all documents
     - slow since no views used
@@ -300,23 +314,33 @@ class Database:
     - no interaction with harddisk
 
     Args:
-        basepath: basepath of database on local directory; None: ignore those checks
+        mode (string): [None, "delRevisions"], del-revisions removes all revisions in database
+        verbose (bool): print more or only issues
+        kwargs (dict): additional parameter
+
+    Returns:
+        bool: success of check
     """
-    outstring = f'{bcolors.UNDERLINE}**** LEGEND ****{bcolors.ENDC}\n'
-    outstring+= f'{bcolors.OKGREEN}Green: perfect and as intended{bcolors.ENDC}\n'
-    outstring+= f'{bcolors.OKBLUE}Blue: ok-ish, can happen: empty files for testing, strange path for measurements{bcolors.ENDC}\n'
-    outstring+= f'{bcolors.HEADER}Pink: unsure if bug or desired (e.g. move step to random path-name){bcolors.ENDC}\n'
-    outstring+= f'{bcolors.WARNING}Yellow: WARNING should not happen (e.g. procedures without project){bcolors.ENDC}\n'
-    outstring+= f'{bcolors.FAIL}Red: FAILURE and ERROR: NOT ALLOWED AT ANY TIME{bcolors.ENDC}\n'
-    outstring+= 'Normal text: not understood, did not appear initially\n'
-    outstring+= f'{bcolors.UNDERLINE}**** List all DOCUMENTS ****{bcolors.ENDC}\n'
+    if verbose:
+      outstring = f'{bcolors.UNDERLINE}**** LEGEND ****{bcolors.ENDC}\n'
+      outstring+= f'{bcolors.OKGREEN}Green: perfect and as intended{bcolors.ENDC}\n'
+      outstring+= f'{bcolors.OKBLUE}Blue: ok-ish, can happen: empty files for testing, strange path for measurements{bcolors.ENDC}\n'
+      outstring+= f'{bcolors.HEADER}Pink: unsure if bug or desired (e.g. move step to random path-name){bcolors.ENDC}\n'
+      outstring+= f'{bcolors.WARNING}Yellow: WARNING should not happen (e.g. procedures without project){bcolors.ENDC}\n'
+      outstring+= f'{bcolors.FAIL}Red: FAILURE and ERROR: NOT ALLOWED AT ANY TIME{bcolors.ENDC}\n'
+      outstring+= 'Normal text: not understood, did not appear initially\n'
+      outstring+= f'{bcolors.UNDERLINE}**** List all DOCUMENTS ****{bcolors.ENDC}\n'
+    else:
+      outstring = ''
     ## loop all documents
     for doc in self.db:
       if '_design' in doc['_id']:
-        outstring+= f'{bcolors.OKGREEN}..info: Design document '+doc['_id']+f'{bcolors.ENDC}\n'
+        if verbose:
+          outstring+= f'{bcolors.OKGREEN}..info: Design document '+doc['_id']+f'{bcolors.ENDC}\n'
         continue
       if doc['_id'] == '-dataDictionary-':
-        outstring+= f'{bcolors.OKGREEN}..info: Data dictionary exists{bcolors.ENDC}\n'
+        if verbose:
+          outstring+= f'{bcolors.OKGREEN}..info: Data dictionary exists{bcolors.ENDC}\n'
         continue
 
       # old revisions of document. Test
@@ -354,52 +378,51 @@ class Database:
         if 'branch' not in doc:
           outstring+= f'{bcolors.FAIL}**ERROR branch does not exist '+doc['_id']+f'{bcolors.ENDC}\n'
           continue
-        else:
-          if len(doc['branch'])>1 and doc['type'] =='text':                 #text elements only one branch
-            outstring+= f'{bcolors.FAIL}**ERROR branch length >1 for text'+doc['_id']+' '+str(doc['type'])+f'{bcolors.ENDC}\n'
-          for branch in doc['branch']:
-            if len(branch['stack'])==0 and doc['type']!=['text','project']: #if no inheritance
-              if doc['type'][0] == 'procedure' or  doc['type'][0] == 'sample':
+        if len(doc['branch'])>1 and doc['type'] =='text':                 #text elements only one branch
+          outstring+= f'{bcolors.FAIL}**ERROR branch length >1 for text'+doc['_id']+' '+str(doc['type'])+f'{bcolors.ENDC}\n'
+        for branch in doc['branch']:
+          if len(branch['stack'])==0 and doc['type']!=['text','project']: #if no inheritance
+            if doc['type'][0] == 'procedure' or  doc['type'][0] == 'sample':
+              if verbose:
                 outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
-              else:
-                outstring+= f'{bcolors.WARNING}**WARNING branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
-            if doc['type'][0]=='text':
-              try:
-                dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
-                if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
-                  outstring+= f'{bcolors.FAIL}**ERROR child-number and dirName dont match '+doc['_id']+f'{bcolors.ENDC}\n'
-              except:
-                pass  #handled next lines
-            if branch['path'] is None:
-              if doc['type'][0] == 'procedure' or doc['type'][0] == 'sample':
+            else:
+              outstring+= f'{bcolors.WARNING}**WARNING branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
+          if doc['type'][0]=='text':
+            try:
+              dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
+              if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
+                outstring+= f'{bcolors.FAIL}**ERROR child-number and dirName dont match '+doc['_id']+f'{bcolors.ENDC}\n'
+            except:
+              pass  #handled next lines
+          if branch['path'] is None:
+            if doc['type'][0] == 'procedure' or doc['type'][0] == 'sample':
+              if verbose:
                 outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'
-              elif doc['type'][0] == 'measurement':
+            elif doc['type'][0] == 'measurement':
+              if verbose:
                 outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+f'{bcolors.ENDC}\n'
-              else:
-                outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
-            else:                                                            #if sensible path
-              if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):#check if length of path and stack coincide
-                if '://' not in branch['path']:
-                  if doc['type'][0] == 'procedure' or doc['type'][0] == 'measurement':
-                    outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths do not match for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
-                  else:
-                    outstring+= f'{bcolors.HEADER}**UNSURE branch stack and path lengths do not match '+doc['_id']+f'{bcolors.ENDC}\n'
-              if branch['child'] != 9999:
-                for parentID in branch['stack']:                              #check if all parents in doc have a corresponding path
-                  parentDocBranches = self.getDoc(parentID)['branch']
-                  onePathFound = False
-                  for parentBranch in parentDocBranches:
-                    if parentBranch['path'] is not None and parentBranch['path'] in branch['path']:
-                      onePathFound = True
-                  if not onePathFound:
-                    outstring+= f'{bcolors.FAIL}**ERROR parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
+            else:
+              outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
+          else:                                                            #if sensible path
+            if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):#check if length of path and stack coincide
+              if verbose:
+                outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths do not match for procedure '+doc['_id']+f'{bcolors.ENDC}\n'
+            if branch['child'] != 9999:
+              for parentID in branch['stack']:                              #check if all parents in doc have a corresponding path
+                parentDocBranches = self.getDoc(parentID)['branch']
+                onePathFound = False
+                for parentBranch in parentDocBranches:
+                  if parentBranch['path'] is not None and parentBranch['path'] in branch['path']:
+                    onePathFound = True
+                if not onePathFound:
+                  outstring+= f'{bcolors.FAIL}**ERROR parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
         #doc-type specific tests
         if doc['type'][0] == 'sample':
           if 'qrCode' not in doc:
             outstring+= f'{bcolors.FAIL}**ERROR qrCode not in sample '+doc['_id']+f'{bcolors.ENDC}\n'
         elif doc['type'][0] == 'measurement':
-          if 'md5sum' not in doc:
-            outstring+= f'{bcolors.FAIL}**ERROR md5sum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
+          if 'shasum' not in doc:
+            outstring+= f'{bcolors.FAIL}**ERROR shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
         elif doc['type'][0] == 'procedure':
           pass
         elif doc['type'][0] == 'text':
@@ -423,14 +446,16 @@ class Database:
         # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
 
     ##TEST views
-    outstring+= f'{bcolors.UNDERLINE}**** List problematic VIEWS ****{bcolors.ENDC}\n'
-    view = self.getView('viewMD5/viewMD5')
-    md5keys = []
+    if verbose:
+      outstring+= f'{bcolors.UNDERLINE}**** List problematic VIEWS ****{bcolors.ENDC}\n'
+    view = self.getView('viewSHAsum/viewSHAsum')
+    shasumKeys = []
     for item in view:
       if item['key']=='':
-        outstring+= f'{bcolors.OKBLUE}**warning: measurement without md5sum: '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
+        if verbose:
+          outstring+= f'{bcolors.OKBLUE}**warning: measurement without shasum: '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
       else:
-        if item['key'] in md5keys:
-          outstring+= f'{bcolors.FAIL}**ERROR: md5sum twice in view: '+item['key']+' '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
-        md5keys.append(item['key'])
+        if item['key'] in shasumKeys:
+          outstring+= f'{bcolors.FAIL}**ERROR: shasum twice in view: '+item['key']+' '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
+        shasumKeys.append(item['key'])
     return outstring

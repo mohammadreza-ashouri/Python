@@ -4,6 +4,7 @@ COMMAND LINE INTERFACE
 """
 import copy, json, os, sys, re, warnings
 import subprocess, tempfile, base64, io, traceback
+import asyncio
 from pprint import pprint
 import numpy as np
 from PIL import Image
@@ -24,8 +25,11 @@ def confirm(doc=None, header=None):
     required for initialization
 
   Args:
-     doc: this is the content to be written
-     header: some arbitrary information used as header
+     doc (string): this is the content to be written
+     header (string): some arbitrary information used as header
+
+  Returns:
+      bool: confirmation
   """
   print()
   if header is not None:
@@ -42,7 +46,7 @@ def confirm(doc=None, header=None):
   elif isinstance(doc, str):
     print(doc)
   success = input("Is that ok? [Y/n] ")
-  if success=='n' or success=='N':
+  if success in ('n','N'):
     return False
   return True
 
@@ -54,8 +58,10 @@ def curate(doc):
     requires global variable menuOutline
 
   Args:
-     doc: document found. Image attribute used for display
-     menuOutline: outline of the menu of questions, userInterfaceCLI.json
+     doc (dict): document found. Image attribute used for display
+
+  Returns:
+    bool: success of curation
   """
   print(f'\n{bcolors.BOLD}=> Curate measurement:'+doc['name']+f' <={bcolors.ENDC}')
   #show image
@@ -88,6 +94,7 @@ def curate(doc):
       procedures = be.output("Procedures",printID=True).split("\n")[2:-1]
       procedures = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in procedures]
       itemJ['choices'] = ['--']+procedures
+  asyncio.set_event_loop(asyncio.new_event_loop())
   answerJ = prompt(questions)
   #clean open windows
   viewer.terminate()
@@ -211,7 +218,7 @@ while be.alive:
       itemList = line['list'] if 'list' in line else None
       name = line['name']
       questionString = line['long']
-      generate = True if len(questionString)==0 else False
+      generate = bool(len(questionString)==0)
       # encode outgoing json
       if generate:
         continue  # it is generated, no need to ask
@@ -224,6 +231,7 @@ while be.alive:
   #####################
   ### ask question  ###
   #####################
+  asyncio.set_event_loop(asyncio.new_event_loop())
   answer = prompt(question)
   #####################
   ### handle answer ###

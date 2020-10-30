@@ -15,9 +15,22 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', module='js2py')
 
     configName = 'develop_test'
-    dirName      = os.path.expanduser('~')+os.sep+configName
-    if os.path.exists(dirName): shutil.rmtree(dirName)
-    os.makedirs(dirName)
+    dirName    = 'temporary_test'
+    self.dirName      = os.path.expanduser('~')+os.sep+dirName
+    if os.path.exists(self.dirName):
+      #uninit / delete everything of git-annex and datalad
+      curDirectory = os.path.curdir
+      os.chdir(self.dirName)
+      for iDir in os.listdir('.'):
+        if not os.path.isdir(iDir):
+          continue
+        os.chdir(iDir)
+        output = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        os.chdir('..')
+      os.chdir(curDirectory)
+      #remove directory
+      shutil.rmtree(self.dirName)
+    os.makedirs(self.dirName)
     self.be = JamDB(configName)
     self.be.exit(deleteDB=True)
     self.be = JamDB(configName)
@@ -29,12 +42,14 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('project', {'name': 'Test project2', 'objective': 'Test objective2', 'status': 'passive', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
       self.be.addData('project', {'name': 'Test project3', 'objective': 'Test objective3', 'status': 'paused', 'comment': '#tag1 :field2:max: A random text'})
       print(self.be.output('Projects'))
+      print(" ====== STATE 1 ====\n"+self.be.checkDB(verbose=False))
 
       ### create some steps and tasks in the first (by id-number) project
       # add also some empty measurements
       print('*** TEST PROJECT HIERARCHY: no output ***')
       viewProj = self.be.db.getView('viewProjects/viewProjects')
-      projID  = [i['id'] for i in viewProj][0]
+      projID  = [i['id'] for i in viewProj if 'Test project1'==i['value'][0]][0]
+      projID1 = [i['id'] for i in viewProj if 'Test project2'==i['value'][0]][0]
       self.be.changeHierarchy(projID)
       projDirName = self.be.basePath+self.be.cwd
       self.be.addData('step',    {'comment': 'More random text', 'name': 'Test step one'})
@@ -49,22 +64,27 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/320px-Google_2015_logo.svg.png', 'comment': 'logo'})
       self.be.changeHierarchy(None)  #cd .. into step
       self.be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
+      print(" ====== STATE 2 ====\n"+self.be.checkDB(verbose=False))
 
       ### output of project
       print('\n*** TEST OUTPUT OF INITIAL STRUCTURE ***')
       self.be.changeHierarchy(None) #cd .. into a project
       print('Current directory:',self.be.cwd)
       print(self.be.outputHierarchy())
+      print(" ====== STATE 3 ====\n"+self.be.checkDB(verbose=False))
 
       ### edit project: easy and setEditString
       print('\n*** TEST EDIT PROJECT ***')
       self.be.addData('-edit-', {'comment': '#tag1 A random text plus edition\n'})
+      print(" ====== STATE 4 ====\n"+self.be.checkDB(verbose=False))
+      # second test
       myString = self.be.getEditString()
       myString = myString.replace('* Test step two||t-','** Test step two||t-')
       myString+= '\n* Test step four\nTags: #SomeBody\n- One line of list\n- Two lines of list\n  - One sublist\n'
       self.be.setEditString(myString)
       self.be.scanTree()  #nothing done: no harm
       print(self.be.outputHierarchy())
+      print(" ====== STATE 5 ====\n"+self.be.checkDB(verbose=False))
 
       ### Procedures
       print('\n*** TEST PROCEDURES ***')
@@ -99,6 +119,7 @@ class TestStringMethods(unittest.TestCase):
       stepDirName = self.be.basePath+self.be.db.getDoc(stepID)['branch'][0]['path']
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
       self.be.scanTree()
+      print(" ====== STATE 6 ====\n"+self.be.checkDB(verbose=False))
 
       ### edit project to test if path of sub-measurements are adopted
       print('\n*** TEST EDIT PROJECT AGAIN: back from previous version ***')
@@ -107,8 +128,10 @@ class TestStringMethods(unittest.TestCase):
       myString = myString.replace('** Test step two||t-','* Test step two||t-')
       self.be.setEditString(myString)
       self.fileVerify(2,'=========== After  ===========')  #use diff-file to compare hierarchies, directory tree
+      print(" ====== STATE 7 ====\n"+self.be.checkDB(verbose=False))
 
       ### Change plot-type
+      print('\n*** TEST CHANGE PLOT-TYPE ***')
       viewMeasurements = self.be.db.getView('viewMeasurements/viewMeasurements')
       for item in viewMeasurements:
         fileName = item['value'][0]
@@ -118,18 +141,19 @@ class TestStringMethods(unittest.TestCase):
           newType = doc['type']+['maximum Contrast']
           fullPath= doc['branch'][0]['path'] #here choose first branch, but other are possible
           self.be.addData('-edit-', {'type':newType, 'name':fullPath}, hierStack=hierStack, forceNewImage=True)
+      print(" ====== STATE 8 ====\n"+self.be.checkDB(verbose=False))
 
       ### Try to fool system: move directory that includes data to another random name
-      print('*** TEST MEASUREMENTS AND SCANNING 2 ***')
+      print('*** TEST MOVE DIRECTORY INTO RANDOM NAME ***')
       origin = self.be.basePath+self.be.db.getDoc(stepID)['branch'][0]['path']
       target = os.sep.join(origin.split(os.sep)[:-1])+os.sep+'RandomDir'
       shutil.move(origin, target)
       self.be.scanTree()
+      print(" ====== STATE 9 ====\n"+self.be.checkDB(verbose=False))
 
       ### Move data, copy data into different project
-      print('*** TEST MEASUREMENTS AND SCANNING 3 ***')
-      projID1  = [i['id'] for i in viewProj][1]
-      print('Change into non-existant path')
+      print('*** TEST MOVE DATA INTO DIFFERENT PROJECT ***')
+      print('Try to change into non-existant path')
       self.be.changeHierarchy(projID1) #change into non-existant path; try to confuse software
       self.be.changeHierarchy(None)
       self.be.changeHierarchy(projID1) #change into existant path
@@ -137,32 +161,43 @@ class TestStringMethods(unittest.TestCase):
       shutil.copy(projDirName+'/Zeiss.tif',projDirName1+'/Zeiss.tif')
       shutil.move(projDirName+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteel0000LC.txt')
       self.be.scanTree()
+      # A file was removed from previous project, go there, scan, return
+      self.be.changeHierarchy(None)
+      self.be.changeHierarchy(projID) #change into existant path
+      self.be.scanTree()
+      self.be.changeHierarchy(None)
+      self.be.changeHierarchy(projID1) #change into existant path
+      print(" ====== STATE 10 ====\n"+self.be.checkDB(verbose=False))
 
       ### Remove data: adopt branch in document
-      print('*** TEST MEASUREMENTS AND SCANNING 3.1 ***')
+      print('*** TEST DELETE DATA FILE ***')
       os.remove(projDirName1+'/Zeiss.tif')
       self.be.scanTree()
+      print(" ====== STATE 11 ====\n"+self.be.checkDB(verbose=False))
 
       ### Try to fool system: rename file
       # verify database and filesystem into fileVerify
       # produce database entries into filesystem
       # compare database entries to those in filesystem (allows to check for unforseen events)
       # clean all that database entries in the filesystem
-      print('*** TEST MEASUREMENTS AND SCANNING 4 ***')
+      print('*** TEST Rename a file locally ***')
       shutil.move(projDirName1+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteelLC.txt')
       self.be.scanTree()  #always scan before produceData: ensure that database correct
+      print(" ====== STATE 12 ====\n"+self.be.checkDB(verbose=False))
 
       ### Output all the measurements and changes until now
-      # output MD5-sum
-      print('*** TEST MEASUREMENTS AND SCANNING 3 ***')
+      # output SHA-sum
+      print('*** TEST OUTPUT MEASUREMENTS AND SHASUM ***')
       print(self.be.output('Measurements'))
-      print(self.be.outputMD5())
+      print(self.be.outputSHAsum())
+
 
       ### Output including data: change back into folder that has content
       print('*** FINAL HIERARCHY ***')
       self.be.changeHierarchy(None)
       self.be.changeHierarchy(projID)
       print(self.be.outputHierarchy(False))
+      print(" ====== STATE 13 END ====\n"+self.be.checkDB(verbose=False))
 
       ### check consistency of database and replicate to global server
       print('\n*** Check this database ***')
@@ -177,6 +212,7 @@ class TestStringMethods(unittest.TestCase):
       self.backup()
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
+      self.assertTrue(False,'Exception occurred')
     return
 
 
@@ -215,6 +251,7 @@ class TestStringMethods(unittest.TestCase):
 
   def fileVerify(self,number, text, onlyHierarchy=True):
     """
+    old method for testing and plotting things on the screen. Over time much of the functionality has been moved to checkDB
     use diff-file to compare hierarchies, directory tree
     """
     with open(self.be.softwarePath+'/Tests/verify'+str(number)+'.org','w') as f:
