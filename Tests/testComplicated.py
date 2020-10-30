@@ -14,8 +14,8 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ImportWarning)
     warnings.filterwarnings('ignore', module='js2py')
 
-    configName = 'develop_test'
-    dirName    = 'temporary_test'
+    configName = 'develop_test0'
+    dirName    = 'temporary_test0'
     self.dirName      = os.path.expanduser('~')+os.sep+dirName
     if os.path.exists(self.dirName):
       #uninit / delete everything of git-annex and datalad
@@ -210,6 +210,14 @@ class TestStringMethods(unittest.TestCase):
       self.be.replicateDB(configName,True)
       print('\n*** DONE WITH VERIFY ***')
       self.backup()
+      self.be.exit(deleteDB=True)
+      with open(self.be.softwarePath+'/jamDB.log','r') as fIn:
+        text = fIn.read()
+        self.assertFalse(text.count('**WARNING')==7,'WARNING string !=7 in log-file')
+        self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
+      time.sleep(2)
+      shutil.rmtree(self.dirName)
+      time.sleep(2)
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
       self.assertTrue(False,'Exception occurred')
@@ -238,14 +246,6 @@ class TestStringMethods(unittest.TestCase):
 
 
   def tearDown(self):
-    try:
-      self.be.exit()
-      with open(self.be.softwarePath+'/jamDB.log','r') as fIn:
-        text = fIn.read()
-        self.assertFalse(text.count('**WARNING')==7,'WARNING string !=7 in log-file')
-        self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
-    except:
-      pass
     return
 
 

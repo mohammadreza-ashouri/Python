@@ -52,6 +52,10 @@ class TestStringMethods(unittest.TestCase):
       self.assertTrue(output.count('**WARNING')==0,'WARNING string in output')
       self.assertTrue(output.count('**ERROR')==0,'ERROR string in output')
       print('\n*** DONE WITH VERIFY ***')
+      self.be.exit(deleteDB=True)
+      time.sleep(2)
+      shutil.rmtree(self.dirName)
+      time.sleep(2)
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
       self.assertTrue(False,'Exception occurred')
@@ -59,12 +63,6 @@ class TestStringMethods(unittest.TestCase):
 
 
   def tearDown(self):
-    try:
-      self.be.exit(deleteDB=True)
-    except:
-      pass
-    time.sleep(2)
-    shutil.rmtree(self.dirName)
     return
 
 if __name__ == '__main__':
