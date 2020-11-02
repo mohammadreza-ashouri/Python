@@ -29,6 +29,14 @@ class JamDB:
         configName (string): name of configuration used; if not given, use the one defined by '-defaultLocal' in config file
         confirm (function): confirm changes to database and file-tree
     """
+    ## CONFIGURATION FOR DATALAD and GIT: has to move to dictionary
+    self.vanillaGit = ['*.md','*.rst','*.org','*.tex','*.py','.id_jamDB.json'] #tracked but in git;
+    #   .id_jamDB.json has to be tracked by git (if ignored: they don't appear on git-status; they have to change by jamDB)
+    self.gitIgnore = ['*.log','.vscode/','*.xcf','*.css'] #misc
+    self.gitIgnore+= ['*.bcf','*.run.xml','*.synctex.gz','*.aux']#latex files
+    self.gitIgnore+= ['*.pdf','*.png','*.svg','*.jpg']           #result figures
+    self.gitIgnore+= ['*.hap','*.csv','*.mss','*.mit','*.mst']   #extractors do not exist yet
+
     # open configuration file
     self.debug = True
     self.confirm = confirm
@@ -59,9 +67,6 @@ class JamDB:
     if headName!='master' and not configName.startswith('develop'):
       print("**ERROR**: Do not use non-master git-branch on other than develop directory")
       sys.exit(1)
-    if confirm is not None:
-      if not confirm(None,'VERIFY git-branch and configName: '+headName+' | '+configName):
-        sys.exit(1)
     # start logging
     logging.basicConfig(filename=self.softwarePath+os.sep+'jamDB.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -256,16 +261,10 @@ class JamDB:
           # _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
           # datalad api version: produces undesired output
           datalad.create(path,description=doc['objective'], cfg_proc='text2git')
-          vanillaGit = ['*.md','*.rst','*.org','*.tex','*.py','.id_jamDB.json'] #tracked but in git;
-          #   .id_jamDB.json has to be tracked by git (if ignored: they don't appear on git-status; they have to change by jamDB)
-          gitIgnore = ['*.log','.vscode/','*.xcf','*.css'] #misc
-          gitIgnore+= ['*.bcf','*.run.xml','*.synctex.gz','*.aux']#latex files
-          gitIgnore+= ['*.pdf','*.png','*.svg','*.jpg']           #result figures
-          gitIgnore+= ['*.hap','*.csv','*.mss','*.mit','*.mst']   #extractors do not exist yet
           gitAttribute = '\n* annex.backend=SHA1\n**/.git* annex.largefiles=nothing\n'
-          for fileI in vanillaGit:
+          for fileI in self.vanillaGit:
             gitAttribute += fileI+' annex.largefiles=nothing\n'
-          gitIgnore = '\n'.join(gitIgnore)
+          gitIgnore = '\n'.join(self.gitIgnore)
           with open(path+os.sep+'.gitattributes','w') as fOut:
             fOut.write(gitAttribute)
           with open(path+os.sep+'.gitignore','w') as fOut:
@@ -693,9 +692,14 @@ class JamDB:
           listPaths.remove(relPath)
           continue
         if '_jamDB.' in relPath or '/.datalad/' in relPath or \
-           relPath.endswith('.gitattributes') or os.path.isdir(self.basePath+relPath):
+           relPath.endswith('.gitattributes') or os.path.isdir(self.basePath+relPath) or \
+           relPath.endswith('.gitignore'):
           continue
-        #logging.info(relPath+' not in database')
+        _, extension = os.path.splitext(relPath)
+        extension = '*'+extension.lower()
+        if extension in self.vanillaGit:
+          continue
+        logging.info(relPath+' not in database')
         count += 1
     output += 'Number of files on disk that are not in database '+str(count)+'\n'
     listPaths = [i for i in listPaths if not "://" in i ]
