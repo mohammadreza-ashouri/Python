@@ -256,11 +256,19 @@ class JamDB:
           # _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
           # datalad api version: produces undesired output
           datalad.create(path,description=doc['objective'], cfg_proc='text2git')
-          gitattributeString = '\n* annex.backend=SHA1\n**/.git* annex.largefiles=nothing\n*.md annex.largefiles=nothing\n'
-          gitattributeString+= '*.rst annex.largefiles=nothing\n*.org annex.largefiles=nothing\n'
-          gitattributeString+= '*.json annex.largefiles=nothing\n'
+          vanillaGit = ['*.md','*.rst','*.org','*.tex','*.py'] #tracked but in git
+          gitIgnore = ['*.log','.id_jamDB.json','.vscode/','*.xcf','*.css'] #misc
+          gitIgnore+= ['*.bcf','*.run.xml','*.synctex.gz','*.aux']#latex files
+          gitIgnore+= ['*.pdf','*.png','*.svg','*.jpg']           #result figures
+          gitIgnore+= ['*.hap','*.csv','*.mss','*.mit','*.mst']   #extractors do not exist yet
+          gitAttribute = '\n* annex.backend=SHA1\n**/.git* annex.largefiles=nothing\n'
+          for fileI in vanillaGit:
+            gitAttribute += fileI+' annex.largefiles=nothing\n'
+          gitIgnore = '\n'.join(gitIgnore)
           with open(path+os.sep+'.gitattributes','w') as fOut:
-            fOut.write(gitattributeString)
+            fOut.write(gitAttribute)
+          with open(path+os.sep+'.gitignore','w') as fOut:
+            fOut.write(gitIgnore)
           dlDataset = datalad.Dataset(path)
           dlDataset.save(path='.',message='changed gitattributes')
         else:
