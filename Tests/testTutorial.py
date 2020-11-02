@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import os, shutil, traceback, logging, subprocess
-import warnings
+import warnings, json
 import unittest
 from backend import JamDB
 
@@ -42,7 +42,6 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('project', {'name': 'Surface evolution in tribology', 'objective': 'Why does the surface get rough during tribology?', 'status': 'passive', 'comment': '#tribology The answer is obvious'})
       self.be.addData('project', {'name': 'Steel', 'objective': 'Test strength of steel', 'status': 'paused', 'comment': '#Fe Obvious example without answer'})
       print(self.be.output('Projects'))
-
 
       ### TEST PROJECT PLANING
       print('*** TEST PROJECT PLANING ***')
@@ -101,12 +100,13 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Misc_pollen.jpg'})
       self.assertTrue(os.path.exists(semDirName+'Misc_pollen_jamDB.jpg'),'Wikipedia jamDB not created')
 
-
       ### VERIFY DATABASE INTEGRITY
       print("\n*** VERIFY DATABASE INTEGRITY ***")
       print(self.be.checkDB(verbose=True))
 
       ### CHANGE THOSE FILES
+      # sed changing file content works
+      # shasum different in any case
       print("\n*** TRY TO CHANGE THOSE FILES ***")
       cmd = ['convert',semDirName+'Zeiss.tif','-fill','white','+opaque','black',semDirName+'Zeiss.tif']
       try:
@@ -117,19 +117,32 @@ class TestStringMethods(unittest.TestCase):
 
       ### ADD OWN DATATYPE
       print('\n*** ADD OWN DATATYPE ***')
+      # Update datadictionary
+      newDataDict = self.be.db.db['-dataDictionary-']
+      newDataDict['instrument'] = {'config': ['Instruments'],'default': [\
+                {'name': 'name',  'long': 'What is the name?','length': 25},
+                {'name': 'vendor', 'long': 'What is the vendor?', 'length': 25},
+                {'name': 'model',  'long': 'What is the model?', 'length': 25},
+                {"name":"comment",  "long":"#tags comments :field:value:","length":35}
+                ]}
+      newDataDict.save()
+      # restart
       self.be.exit()
-      print(self.be.softwarePath)
-
-      # ***** enter new data-case: swimming
-      # "swimming": {
-      #     "config":["SwimmingExcercise"],
-      #     "default":[
-      #       {"name":"distance",   "long":"What distance did you swimm?",         "length":8},
-      #       {"name":"stroke",     "long":"What stroke did you swim?",            "length":25},
-      #       {"name":"pool",       "long":"What was the length of the pool?",     "length":5},
-      #       {"name":"comment","long":"#tags comments :field:value:",             "length":50}
-      #       ]
-      # },
+      self.be = JamDB(configName)
+      # add data
+      self.be.addData('instrument', {'name': 'XP', 'vendor':'MTS', 'model':'Nanoindenter XP', 'comment':':room:10:'})
+      self.be.addData('instrument', {'name': 'Fischer', 'vendor':'Fischer', 'model':'Fischer Scope 300mN', 'comment':':room:12:'})
+      # look at data
+      print(self.be.output('Instruments'))
+      # look at one data-set
+      print("One dataset")
+      view = self.be.db.getView('viewInstruments/viewInstruments')
+      for item in view:
+        if (item['value'][0]=='XP'):
+          doc = self.be.db.getDoc(item['id'])
+          del doc['branch']; del doc['client']
+          print(doc)
+      print("   room is a normal data-entry in the dataset. Machine learning can be used to add this entry into tables, without ever being told to.")
 
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
