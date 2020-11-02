@@ -143,6 +143,7 @@ class TestStringMethods(unittest.TestCase):
           del doc['branch']; del doc['client']
           print(doc)
       print("   room is a normal data-entry in the dataset. Machine learning can be used to add this entry into tables, without ever being told to.")
+      print('\n*** DONE WITH VERIFY ***')
 
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )

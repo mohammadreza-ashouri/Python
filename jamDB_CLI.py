@@ -132,7 +132,7 @@ while be.alive:
       print('\n==> You are at the root |'+be.cwd+'| <==')
     except:
       print('CWD not set:', be.cwd)
-      exit(1)
+      sys.exit(1)
   else:
     levelName = be.hierList[len(be.hierStack)-1]
     objName   = be.getDoc(be.hierStack[-1])['name']

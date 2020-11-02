@@ -101,7 +101,7 @@ class JamDB:
         path = self.basePath+path
         if os.path.exists(path):
           os.chdir(path)
-          _ = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+          _ = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
     time.sleep(2)
@@ -256,8 +256,9 @@ class JamDB:
           # _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
           # datalad api version: produces undesired output
           datalad.create(path,description=doc['objective'], cfg_proc='text2git')
-          vanillaGit = ['*.md','*.rst','*.org','*.tex','*.py'] #tracked but in git
-          gitIgnore = ['*.log','.id_jamDB.json','.vscode/','*.xcf','*.css'] #misc
+          vanillaGit = ['*.md','*.rst','*.org','*.tex','*.py','.id_jamDB.json'] #tracked but in git;
+          #   .id_jamDB.json has to be tracked by git (if ignored: they don't appear on git-status; they have to change by jamDB)
+          gitIgnore = ['*.log','.vscode/','*.xcf','*.css'] #misc
           gitIgnore+= ['*.bcf','*.run.xml','*.synctex.gz','*.aux']#latex files
           gitIgnore+= ['*.pdf','*.png','*.svg','*.jpg']           #result figures
           gitIgnore+= ['*.hap','*.csv','*.mss','*.mit','*.mst']   #extractors do not exist yet
