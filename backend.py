@@ -223,15 +223,23 @@ class JamDB:
           view = self.db.getView('viewSHAsum/viewSHAsum',shasum)
           if len(view)==0 or forceNewImage:  #measurement not in database: create doc
             while True:
-              self.getMeasurement(path,shasum,doc)
+              self.getMeasurement(path,shasum,doc)  #create image and add to datalad
               if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
                 doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: extractor does not exit
                 return False
               if callback is None or not callback(doc):
-                if doc['type'][-1]=='trash':
-                  return False
+                # if no more iterations of curation
+                if 'ignore' in doc:
+                  ignore = doc['ignore']; del doc['ignore']
+                  if ignore=='dir':
+                    projPath = self.basePath + path.split(os.sep)[0]
+                    dirPath =  os.path.relpath(os.path.split(self.basePath+path)[0] , projPath)
+                    with open(projPath+os.sep+'.gitignore','a') as fOut:
+                      fOut.write(dirPath+os.sep+'\n')
+                  if ignore!='none':  #ignored images are added to datalad but not to database
+                    return False
                 break
-          if len(view)==1:
+          if len(view)==1:  #measurement is already in database
             self.getMeasurement(path,shasum,doc,exitAfterDataLad=True)
             doc['_id'] = view[0]['id']
             doc['shasum'] = shasum
@@ -266,9 +274,9 @@ class JamDB:
             gitAttribute += fileI+' annex.largefiles=nothing\n'
           gitIgnore = '\n'.join(self.gitIgnore)
           with open(path+os.sep+'.gitattributes','w') as fOut:
-            fOut.write(gitAttribute)
+            fOut.write(gitAttribute+'\n')
           with open(path+os.sep+'.gitignore','w') as fOut:
-            fOut.write(gitIgnore)
+            fOut.write(gitIgnore+'\n')
           dlDataset = datalad.Dataset(path)
           dlDataset.save(path='.',message='changed gitattributes')
         else:
@@ -406,10 +414,7 @@ class JamDB:
       if origin == '':
         logging.info('scanTree file not in database: '+target)
         newDoc    = {'name':self.cwd+target}
-        success = self.addData('measurement', newDoc, hierStack, callback=callback)  #saved to datalad in here
-        if not success:
-          print("**Error could not add measurement to database",newDoc)
-          raise ValueError
+        _ = self.addData('measurement', newDoc, hierStack, callback=callback)  #saved to datalad in here
       # move or delete file
       else:
         #update to datalad

@@ -1,5 +1,5 @@
 {
-"__comment__most menus follow own structure":"",
+"__comment__most menus follow jamDB structure":"",
 "main":[ "Main menu",
    {"Open":                "menu_change",               "append":"nextLevel"},
    {"Add new":             "form_",                     "append":"nextLevel"},
@@ -17,7 +17,7 @@
    {"Output hierarchy":    "function_outputHierarchy"}
 ],
 "automate": [ "How to scan directories?",
-   {"Find new data & clean directories" :"function_scanTree"},
+   {"Find new measurements"             :"function_scanTree"},
    {"Compare procedures database-files" :"function_compareProcedures"},
    {"Replicate database":                "function_replicateDB"},
    {"Check database integrity":          "function_checkDB"},
@@ -28,12 +28,5 @@
    {"Compare backup to database":   "function_backup_compare"},
    {"Restore backup":               "function_backup_restore"},
    {"Check database and delete old revisions (DANGER)":     "function_checkDB_delRevisions"}
-],
-"__comment__curate follows the shape of default questionary":"",
-"curate":[
-   {"type": "input", "name": "comment",        "message": "Comment, #tags, :field:1:?",          "default":"" },
-   {"type": "list",  "name": "sample",         "message": "Which sample was used?"},
-   {"type": "list",  "name": "procedure",      "message": "Which procedure was used?"},
-   {"type": "input", "name": "measurementType","message": "What is the better measurement type?"}
 ]
 }

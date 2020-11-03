@@ -14,15 +14,12 @@ from backend import JamDB
 from miscTools import bcolors
 
 
-### global parameters
-pathSoftware = os.path.dirname(os.path.abspath(__file__))
-menuOutline = json.load(open(pathSoftware+'/userInterfaceCLI.json', 'r')) # keep menus separate from dataDictionary since only CLI needs menu
-
-### functions
+###########################################################
+### FUNCTIONS FOR USER INTERACTION
+###########################################################
 def confirm(doc=None, header=None):
   """
   Used as callback function: confirm that the given document should be written to database
-    required for initialization
 
   Args:
      doc (string): this is the content to be written
@@ -53,7 +50,7 @@ def confirm(doc=None, header=None):
 
 def curate(doc):
   """
-  Curate by user: say measurement good/bad/ugly
+  Curate measurement by user: say measurement good/bad/ugly
   Used as callback function after information is automatically found
     requires global variable menuOutline
 
@@ -63,6 +60,14 @@ def curate(doc):
   Returns:
     bool: success of curation
   """
+  questions = [
+    {"type":"confirm", "name":"use_file",       "message":"Use this measurement?",       "default":True},
+    {"type":"confirm", "name":"use_dir",        "message":"Use this directory?",         "default":True, "when": lambda x: not x["use_file"]},
+    {"type":"input",   "name":"comment",        "message":"Comment, #tags, :field:1:?",  "default":"",   "when": lambda x:     x["use_file"]},
+    {"type":"list",    "name":"sample",         "message":"Which sample was used?",                      "when": lambda x:     x["use_file"]},
+    {"type":"list",    "name":"procedure",      "message":"Which procedure was used?",                   "when": lambda x:     x["use_file"]},
+    {"type":"input",   "name":"measurementType","message":"Use other measurement type?",                 "when": lambda x:     x["use_file"]}
+    ]
   print(f'\n{bcolors.BOLD}=> Curate measurement:'+doc['name']+f' <={bcolors.ENDC}')
   #show image
   if doc['image'].startswith('<?xml'):
@@ -82,7 +87,6 @@ def curate(doc):
     image.save(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg', format='JPEG')
     viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg' ])
   #prepare question and ask question and use answer
-  questions = menuOutline['curate']
   for itemJ in questions:
     if itemJ['name']=='comment' and 'comment' in doc:
       itemJ['default'] = doc['comment']
@@ -106,6 +110,13 @@ def curate(doc):
     os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg')
   if len(answerJ)==0:  #ctrl-c hit
     return False
+  if not answerJ['use_file']:
+    doc['ignore'] = 'file'
+    if not answerJ['use_dir']:
+      doc['ignore'] = 'dir'
+    return False
+  #if measurement should be used
+  doc['ignore'] = "none"
   if answerJ['measurementType']!='':
     doc['type']    = ['measurement', '', answerJ['measurementType']]
   if answerJ['comment']!='':
@@ -120,6 +131,8 @@ def curate(doc):
 ###########################################################
 ### MAIN FUNCTION
 ###########################################################
+pathSoftware = os.path.dirname(os.path.abspath(__file__))
+menuOutline = json.load(open(pathSoftware+'/userInterfaceCLI.json', 'r')) # keep menus separate from dataDictionary since only CLI needs menu
 if len(sys.argv)>1: configName=sys.argv[1]
 else:               configName=None
 be = JamDB(configName=configName, confirm=confirm)
