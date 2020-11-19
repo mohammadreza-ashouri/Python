@@ -35,7 +35,7 @@ class JamDB:
     self.gitIgnore = ['*.log','.vscode/','*.xcf','*.css'] #misc
     self.gitIgnore+= ['*.bcf','*.run.xml','*.synctex.gz','*.aux']#latex files
     self.gitIgnore+= ['*.pdf','*.png','*.svg','*.jpg']           #result figures
-    self.gitIgnore+= ['*.hap','*.csv','*.mss','*.mit','*.mst']   #extractors do not exist yet
+    self.gitIgnore+= ['*.hap','*.mss','*.mit','*.mst']   #extractors do not exist yet
 
     # open configuration file
     self.debug = True
@@ -380,6 +380,9 @@ class JamDB:
           shasumDict[shasum] = [fileName, shasumDict[shasum][1]]
         else:
           shasumDict[shasum] = [fileName, '']
+      if fileList[posixPath]['state']=='modified':
+        shasum = fileList[posixPath]['gitshasum']
+        shasumDict[shasum] = ['', fileName] #new content is same place. No moving necessary, just "new file"
 
     # loop all entries and separate into moved,new,deleted
     for shasum in shasumDict:
@@ -531,11 +534,13 @@ class JamDB:
         filePath (string): path to file
         shasum (string): shasum (git-style hash) to store in database (not used here)
         doc (dict): pass known data/measurement type, can be used to create image; This doc is altered
-        kwargs (dict): additional parameter, i.e. maxSize, show
+        kwargs (dict): additional parameter
+          - maxSize of image
+          - extractorTest: test the extractor and show image
     """
     logging.debug('getMeasurement started for path '+filePath)
     maxSize = kwargs.get('maxSize', 600)
-    show    = kwargs.get('show', False)
+    extractorTest    = kwargs.get('extractorTest', False)
     exitAfterDataLad = kwargs.get('exitAfterDataLad',False)
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
@@ -545,10 +550,11 @@ class JamDB:
       dataset = datalad.Dataset(self.basePath+projectDB)
     else:
       parentPath = filePath.split(os.sep)[0]
-      dataset = datalad.Dataset(self.basePath+parentPath)
-      dataset.save(path=self.basePath+filePath, message='Added locked document')
-      if exitAfterDataLad:
-        return
+      if not extractorTest:
+        dataset = datalad.Dataset(self.basePath+parentPath)
+        dataset.save(path=self.basePath+filePath, message='Added locked document')
+        if exitAfterDataLad:
+          return
       absFilePath = self.basePath + filePath
       outFile = absFilePath.replace('.','_')+'_jamDB'
     pyFile = 'jamDB_'+extension+'.py'
@@ -557,7 +563,7 @@ class JamDB:
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
       image, imgType, meta = module.getMeasurement(absFilePath, doc)
-      if show:
+      if extractorTest:
         if isinstance(image, PIL.Image.Image):
           image.show()
         else:
@@ -591,7 +597,7 @@ class JamDB:
         meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
         logging.debug('getMeasurement should not read data; returned data void '+str(imgType))
       else:
-        if self.cwd is not None:
+        if self.cwd is not None and not extractorTest:
           if outFileFull.endswith('svg'):
             fileType = 'w'
           else:
@@ -620,7 +626,7 @@ class JamDB:
                 'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
     logging.debug('getMeasurement: finished')
     doc.update(document)
-    if show:
+    if extractorTest:
       print("Measurement type:",document['type'])
     if 'comment' not in doc: doc['comment']=''
     return

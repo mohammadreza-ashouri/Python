@@ -43,9 +43,14 @@ else:
       be.backup(args.item)
     elif args.command=='extractorTest':
       if args.options is None:
-        be.getMeasurement(args.item,"empty_md5sum",{'type':['measurement', '']},show=True)
+        doc = {'type':['measurement', '']}
       else:
-        be.getMeasurement(args.item,"empty_md5sum",{'type':['measurement', '', args.options]},show=True)
+        doc = {'type':['measurement', '', args.options]}
+      be.getMeasurement(args.item,"empty_md5sum",doc,extractorTest=True)
+      if len(doc['type'])>1:
+        print("SUCCESS")
+      else:
+        print("**ERROR**")
     else:
       #all commands that require an open project
       be.changeHierarchy(args.item)

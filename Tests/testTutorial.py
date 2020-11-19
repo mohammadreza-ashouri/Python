@@ -14,8 +14,8 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ImportWarning)
     warnings.filterwarnings('ignore', module='js2py')
 
-    configName = 'jams_tutorial'
-    dirName    = 'jams_tutorial'
+    configName = 'jamDB_tutorial'
+    dirName    = 'jamDB_tutorial'
     self.dirName      = os.path.expanduser('~')+os.sep+dirName
     if os.path.exists(self.dirName):
       #uninit / delete everything of git-annex and datalad
