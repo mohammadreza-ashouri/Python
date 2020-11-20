@@ -760,7 +760,7 @@ class JamDB:
           formatString = '{0: <'+str(abs(item['length']))+'}'
           if isinstance(lineItem['value'][idx], str ):
             contentString = lineItem['value'][idx]
-          elif isinstance(lineItem['value'][idx], bool ):
+          elif isinstance(lineItem['value'][idx], bool ) or lineItem['value'][idx] is None:
             contentString = str(lineItem['value'][idx])
           else:
             contentString = ' '.join(lineItem['value'][idx])
@@ -768,7 +768,7 @@ class JamDB:
           if item['length']<0:  #test if value as non-trivial length
             if lineItem['value'][idx]=='true' or lineItem['value'][idx]=='false':
               contentString = lineItem['value'][idx]
-            elif isinstance(lineItem['value'][idx], bool ):
+            elif isinstance(lineItem['value'][idx], bool ) or lineItem['value'][idx] is None:
               contentString = str(lineItem['value'][idx])
             elif len(lineItem['value'][idx])>1 and len(lineItem['value'][idx][0])>3:
               contentString = 'true'
