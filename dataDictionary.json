@@ -39,10 +39,11 @@
     "config":["Measurements"],
     "default":[
       {"name":"name",           "long":"What is the file name?",      "length":25},
-      {"name":"tags",           "long":"",                            "length":15},
+      {"name":"tags",           "long":"",                            "length":10},
       {"name":"comment",        "long":"#tags comments :field:value:","length":25},
-      {"name":"type",           "long":"Measurement type",            "length":34},
-      {"name":"image",          "long":"",                            "length":-5}
+      {"name":"type",           "long":"Measurement type",            "length":28},
+      {"name":"image",          "long":"",                            "length":-6},
+      {"name":"curate",         "long":"",                            "length":-5}
       ]
     },
 

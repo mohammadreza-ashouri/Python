@@ -227,6 +227,7 @@ class JamDB:
               if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
                 doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: extractor does not exit
                 return False
+              doc['curate'] = False
               if callback is None or not callback(doc):
                 # if no more iterations of curation
                 if 'ignore' in doc:
@@ -759,12 +760,16 @@ class JamDB:
           formatString = '{0: <'+str(abs(item['length']))+'}'
           if isinstance(lineItem['value'][idx], str ):
             contentString = lineItem['value'][idx]
+          elif isinstance(lineItem['value'][idx], bool ):
+            contentString = str(lineItem['value'][idx])
           else:
             contentString = ' '.join(lineItem['value'][idx])
           contentString = contentString.replace('\n',' ')
           if item['length']<0:  #test if value as non-trivial length
             if lineItem['value'][idx]=='true' or lineItem['value'][idx]=='false':
               contentString = lineItem['value'][idx]
+            elif isinstance(lineItem['value'][idx], bool ):
+              contentString = str(lineItem['value'][idx])
             elif len(lineItem['value'][idx])>1 and len(lineItem['value'][idx][0])>3:
               contentString = 'true'
             else:
