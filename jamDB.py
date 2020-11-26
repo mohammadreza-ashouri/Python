@@ -1,5 +1,12 @@
 #!/usr/bin/python3
 """ Main function when command-line commands used
+
+Called by user or reactElectron frontend
+
+frontend calls:
+  test
+  scan with documentID
+  save with documentID string
 """
 import os, json, sys
 import argparse, traceback
@@ -9,6 +16,7 @@ argparser = argparse.ArgumentParser(usage='''
 jamDB.py <command> <item>
 
 Possible commands are:
+    test: test jamDB setup
     print: print overview
         item can be 'Projects', 'Samples', 'Measurements', 'Procedures'
     clean, scan, produce, compare, hierarchy:
@@ -19,7 +27,7 @@ Possible commands are:
     extractorTest: test the extractor of this file
         item is the path to file from base folder
 ''')
-argparser.add_argument('command', help='print, clean, scan, produce, compare, hierarchy, newDB')
+argparser.add_argument('command', help='test, print, clean, scan, produce, compare, hierarchy, newDB')
 argparser.add_argument('item',    help="'Projects', 'Samples', 'Measurements', 'Procedures', 'documentID'")
 argparser.add_argument('-db','--database', help='name of database configuration') #required for be = JamDB(args.database)
 argparser.add_argument('--options', help='Options for extractor test')
@@ -37,7 +45,9 @@ else:
   #other commands require open jamDB database
   try:
     be = JamDB(args.database)
-    if args.command=='print':
+    if args.command=='test':
+      print('backend was started')
+    elif args.command=='print':
       print(be.output(args.item,True))
     elif args.command=='backup':
       be.backup(args.item)
@@ -62,6 +72,7 @@ else:
         be.exit()
         raise NameError('Wrong command: '+args.command)
     be.exit()
+    print('SUCCESS')
   except:
     print(traceback.format_exc())
     print("HELP:")
