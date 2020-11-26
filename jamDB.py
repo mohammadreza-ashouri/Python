@@ -4,8 +4,6 @@
 Called by user or reactElectron frontend
 
 frontend calls:
-  test
-  scan with documentID
   save with documentID string
 """
 import os, json, sys
@@ -13,24 +11,25 @@ import argparse, traceback
 from backend import JamDB
 
 argparser = argparse.ArgumentParser(usage='''
-jamDB.py <command> <item>
+jamDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
 
 Possible commands are:
     test: test jamDB setup
     print: print overview
-        item can be 'Projects', 'Samples', 'Measurements', 'Procedures'
-    clean, scan, produce, compare, hierarchy:
-        item is documentID. To be identified by printing Project
-    cleanAll: cleans all directories: item not needed
+        item: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
+    scan, hierarchy: scan or print project
+        item: documentID for. To be identified by printing Project
     newDB: add/update database configuration. item is e.g.
         '{"test":{"user":"Peter","password":"Parker",...}}'
     extractorTest: test the extractor of this file
-        item is the path to file from base folder
+        -p should be specified is the path to file from base folder
 ''')
-argparser.add_argument('command', help='test, print, clean, scan, produce, compare, hierarchy, newDB')
-argparser.add_argument('item',    help="'Projects', 'Samples', 'Measurements', 'Procedures', 'documentID'")
-argparser.add_argument('-db','--database', help='name of database configuration') #required for be = JamDB(args.database)
-argparser.add_argument('--options', help='Options for extractor test')
+argparser.add_argument('command', help='test, print, scan, hierarchy, newDB, extractorTest')
+argparser.add_argument('-i','--docID',   help='docID of project', default='')
+argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
+argparser.add_argument('-l','--label',   help='label used for printing', default='Projects')
+argparser.add_argument('-p','--path',    help='path for extractor test', default='')
+argparser.add_argument('-d','--database',help='name of database configuration', default='local') #required for be = JamDB(args.database)
 args = argparser.parse_args()
 if args.command=='newDB':
   #use new database configuration and store in local-config file
@@ -47,25 +46,30 @@ else:
     be = JamDB(args.database)
     if args.command=='test':
       print('backend was started')
+      #TODO test if dataDictionary exsist
     elif args.command=='print':
-      print(be.output(args.item,True))
+      print(be.output(args.label,True))
     elif args.command=='backup':
-      be.backup(args.item)
+      be.backup()
     elif args.command=='extractorTest':
-      if args.options is None:
+      if args.content is None:
         doc = {'type':['measurement', '']}
       else:
-        doc = {'type':['measurement', '', args.options]}
-      be.getMeasurement(args.item,"empty_md5sum",doc,extractorTest=True)
+        doc = {'type':['measurement', '', args.content]}
+      be.getMeasurement(args.path,"empty_md5sum",doc,extractorTest=True)
       if len(doc['type'])>1:
         print("SUCCESS")
       else:
         print("**ERROR**")
     else:
       #all commands that require an open project
-      be.changeHierarchy(args.item)
+      be.changeHierarchy(args.docID)
       if args.command=='scan':
         be.scanTree()                 #there can not be a callback function
+      elif args.command=='save':
+        print(args.content[1:-1])
+        print('>> Ensure that the beginning end are correct <<')
+        be.setEditString(args.content[1:-1])
       elif args.command=='hierarchy':
         print(be.outputHierarchy(True,True))
       else:
