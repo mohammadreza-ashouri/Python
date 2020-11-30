@@ -48,6 +48,7 @@ class JamDB:
     user         = configuration[configName]['user']
     password     = configuration[configName]['password']
     databaseName = configuration[configName]['database']
+    self.configName=configName
     # directories
     #    self.basePath (root of directory tree) is root of all projects
     #    self.cwd changes during program
