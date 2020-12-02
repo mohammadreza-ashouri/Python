@@ -10,6 +10,7 @@ from urllib import request
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
+import pypandoc
 import datalad.api as datalad
 from datalad.support import gitrepo, annexrepo
 from database import Database
@@ -248,7 +249,10 @@ class JamDB:
             edit = True
         elif doc['type'][0]=='procedure' and path is not None:
           with open(self.basePath+path,'r') as fIn:
-            doc['content'] = fIn.read()
+            text = fIn.read()
+            if path.endswith('.org'):
+              text = pypandoc.convert_text(text, 'md', format='org')
+            doc['content'] = text
     # assemble branch information
     doc['branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
     if edit:
