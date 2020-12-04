@@ -104,11 +104,13 @@ class JamDB:
     if deleteDB:
       #uninit / delete everything of git-annex and datalad
       for item in self.db.getView('viewProjects/viewProjects'):
-        path = self.db.getDoc(item['key'])['branch'][0]['path']
-        path = self.basePath+path
-        if os.path.exists(path):
-          os.chdir(path)
-          _ = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+        doc = self.db.getDoc(item['key'])
+        if 'branch' in doc:
+          path = doc['branch'][0]['path']
+          path = self.basePath+path
+          if os.path.exists(path):
+            os.chdir(path)
+            _ = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
     time.sleep(2)
@@ -274,7 +276,11 @@ class JamDB:
           # cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
           # _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
           # datalad api version: produces undesired output
-          datalad.create(path,description=doc['objective'], cfg_proc='text2git')
+          try:
+            datalad.create(path,description=doc['objective'], cfg_proc='text2git')
+          except:
+            print('**ERROR** Tried to create new datalad folder which did already exist')
+            raise
           gitAttribute = '\n* annex.backend=SHA1\n**/.git* annex.largefiles=nothing\n'
           for fileI in self.vanillaGit:
             gitAttribute += fileI+' annex.largefiles=nothing\n'

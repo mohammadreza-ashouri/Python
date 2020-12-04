@@ -14,17 +14,20 @@ argparser = argparse.ArgumentParser(usage='''
 jamDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
 
 Possible commands are:
+    help: help information
     test: test jamDB setup
     print: print overview
         item: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
     scan, hierarchy: scan or print project
         item: documentID for. To be identified by printing Project
+    addDoc:
+      content is required as json-string
     newDB: add/update database configuration. item is e.g.
         '{"test":{"user":"Peter","password":"Parker",...}}'
     extractorTest: test the extractor of this file
         -p should be specified is the path to file from base folder
 ''')
-argparser.add_argument('command', help='test, print, scan, hierarchy, newDB, extractorTest')
+argparser.add_argument('command', help='help, test, print, scan, addDoc, hierarchy, newDB, extractorTest')
 argparser.add_argument('-i','--docID',   help='docID of project', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
 argparser.add_argument('-l','--label',   help='label used for printing', default='Projects')
@@ -40,6 +43,9 @@ if args.command=='newDB':
   configuration[label] = newDB[label]
   with open(os.path.expanduser('~')+'/.jamDB.json','w') as f:
     f.write(json.dumps(configuration, indent=2))
+elif args.command=='help':
+  print("HELP:")
+  argparser.print_help()
 else:
   #other commands require open jamDB database
   try:
@@ -73,6 +79,12 @@ else:
         print("SUCCESS")
       else:
         print("**ERROR**")
+    elif args.command=='addDoc':
+      doc = json.loads(args.content)
+      docType = doc['docType']
+      del doc['docType']
+      print('addDoc',docType,doc)
+      be.addData(docType,doc)
     else:
       #all commands that require an open project
       be.changeHierarchy(args.docID)
@@ -91,6 +103,4 @@ else:
     print('SUCCESS')
   except:
     print(traceback.format_exc())
-    print("HELP:")
-    argparser.print_help()
     sys.exit(1)
