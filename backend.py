@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """ Python Backend
 """
-import os, json, base64, shutil, re, sys
+import os, json, base64, shutil, re, sys, stat
 import logging, time, subprocess
 from io import StringIO, BytesIO
 import importlib, tempfile
@@ -103,14 +103,11 @@ class JamDB:
     """
     if deleteDB:
       #uninit / delete everything of git-annex and datalad
-      for item in self.db.getView('viewProjects/viewProjects'):
-        doc = self.db.getDoc(item['key'])
-        if 'branch' in doc:
-          path = doc['branch'][0]['path']
-          path = self.basePath+path
-          if os.path.exists(path):
-            os.chdir(path)
-            _ = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+      for root, dirs, files in os.walk(self.basePath):  
+        for momo in dirs:  
+          os.chmod(os.path.join(root, momo), stat.S_IWRITE)
+        for momo in files:
+          os.chmod(os.path.join(root, momo), stat.S_IWRITE)
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
     time.sleep(2)
@@ -277,7 +274,7 @@ class JamDB:
           # _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
           # datalad api version: produces undesired output
           try:
-            datalad.create(path,description=doc['objective'], cfg_proc='text2git')
+            datalad.create(path,description=doc['objective']) #TODO SB-Windows10  cfg_proc='text2git'
           except:
             print('**ERROR** Tried to create new datalad folder which did already exist')
             raise
@@ -610,10 +607,6 @@ class JamDB:
         logging.debug('getMeasurement should not read data; returned data void '+str(imgType))
       else:
         if self.cwd is not None and not extractorTest:
-          if outFileFull.endswith('svg'):
-            fileType = 'w'
-          else:
-            fileType = 'wb'
           appendix = ''
           if os.path.exists(outFileFull):
              #all files are by default locked in git-annex
@@ -622,9 +615,14 @@ class JamDB:
              #  - save locks them automatically
             dataset.unlock(path=outFileFull)
             appendix = '(was unlocked before)'
-          with open(outFileFull,fileType) as f:
-            figfile.seek(0)
-            shutil.copyfileobj(figfile, f)
+          if outFileFull.endswith('svg'):
+            with open(outFileFull,'w', encoding="utf-8") as f:  #TODO SB , encoding="utf-8"?? for svg
+              figfile.seek(0)
+              shutil.copyfileobj(figfile, f)
+          else:
+            with open(outFileFull,'wb') as f:
+              figfile.seek(0)
+              shutil.copyfileobj(figfile, f)
           dataset.save(path=outFileFull, message='Added document '+appendix)
     else:
       image = ''
@@ -764,7 +762,7 @@ class JamDB:
         outString.append(formatString.format(item['name']) )
     outString = '|'.join(outString)+'\n'
     outString += '-'*110+'\n'
-    for lineItem in self.db.getView(view+os.sep+view):
+    for lineItem in self.db.getView(view+'/'+view):
       rowString = []
       for idx, item in enumerate(self.db.dataDictionary[docType]['default']):
         if item['length']!=0:
