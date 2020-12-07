@@ -58,7 +58,7 @@ class Database:
           if item['name'] == 'image':
             outputList.append('(doc.image.length>3).toString()')
           elif item['name'] == 'tags':
-            outputList.append('doc.tags.join(' ')')
+            outputList.append('doc.tags.join(" ")')
           elif item['name'] == 'type':
             outputList.append('doc.type.slice(1).join("/")')
           elif item['name'] == 'content':
