@@ -17,13 +17,12 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ImportWarning)
     warnings.filterwarnings('ignore', module='js2py')
 
-    configName = 'develop_test0'
-    dirName    = 'temporary_test0'
-    self.dirName      = os.path.expanduser('~')+os.sep+dirName
-    if os.path.exists(self.dirName): shutil.rmtree(self.dirName)
-    os.makedirs(self.dirName)
+    configName = 'jamDB_tutorial'
     self.be = JamDB(configName)
+    self.dirName = self.be.basePath
     self.be.exit(deleteDB=True)
+    shutil.rmtree(self.dirName)
+    os.makedirs(self.dirName)
     self.be = JamDB(configName)
 
     try:
@@ -52,10 +51,6 @@ class TestStringMethods(unittest.TestCase):
       self.assertTrue(output.count('**WARNING')==0,'WARNING string in output')
       self.assertTrue(output.count('**ERROR')==0,'ERROR string in output')
       print('\n*** DONE WITH VERIFY ***')
-      self.be.exit(deleteDB=True)
-      time.sleep(2)
-      shutil.rmtree(self.dirName)
-      time.sleep(2)
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
       self.assertTrue(False,'Exception occurred')

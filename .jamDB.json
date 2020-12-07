@@ -1,25 +1,19 @@
 {
-  "-userID": "*INITIALS-UUID*",
-  "-defaultLocal": "local",
+  "-userID": "**ORCID-ID**",
+  "-defaultLocal": "jamDB_tutorial",
   "-defaultRemote": "remote",
   "-eargs": { "editor": "emacs", "ext": ".org", "style": "all" },
   "-magicTags": ["P1","P2","P3","TODO","WAIT","DONE"],
-  "local": {
-    "user": "*USER*",
-    "password": "*PASSWORD*",
-    "database": "*UUID*",
-    "path": "*jamDB-folder*"
-  },
-  "temporary_test": {
-    "user": "*USER*",
-    "password": "*PASSWORD*",
-    "database": "temporary_test",
-    "path": "temporary_test"
+  "jamDB_tutorial": {
+    "user": "**USER**",
+    "password": "**PASSWORD**",
+    "database": "**UUID**",
+    "path": "**jamDB-folder**"
   },
   "remote": {
-    "user": "*USER-bluemix*",
-    "password": "*PASSWORD_2*",
-    "url": "https://*USER-bluemix*.cloudantnosqldb.appdomain.cloud",
-    "database": "*UUID*"
+    "user": "**USER_2**",
+    "password": "**PASSWORD_2**",
+    "url": "https://*",
+    "database": "**UUID**"
   }
 }

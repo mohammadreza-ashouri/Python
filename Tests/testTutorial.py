@@ -15,24 +15,11 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', module='js2py')
 
     configName = 'jamDB_tutorial'
-    dirName    = 'jamDB_tutorial'
-    self.dirName      = os.path.expanduser('~')+os.sep+dirName
-    if os.path.exists(self.dirName):
-      #uninit / delete everything of git-annex and datalad
-      curDirectory = os.path.curdir
-      os.chdir(self.dirName)
-      for iDir in os.listdir('.'):
-        if not os.path.isdir(iDir):
-          continue
-        os.chdir(iDir)
-        output = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        os.chdir('..')
-      os.chdir(curDirectory)
-      #remove directory
-      shutil.rmtree(self.dirName)
-    os.makedirs(self.dirName)
     self.be = JamDB(configName)
+    self.dirName = self.be.basePath
     self.be.exit(deleteDB=True)
+    shutil.rmtree(self.dirName)
+    os.makedirs(self.dirName)
     self.be = JamDB(configName)
 
     try:

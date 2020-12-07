@@ -14,25 +14,12 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ImportWarning)
     warnings.filterwarnings('ignore', module='js2py')
 
-    configName = 'develop_test0'
-    dirName    = 'temporary_test0'
-    self.dirName      = os.path.expanduser('~')+os.sep+dirName
-    if os.path.exists(self.dirName):
-      #uninit / delete everything of git-annex and datalad
-      curDirectory = os.path.curdir
-      os.chdir(self.dirName)
-      for iDir in os.listdir('.'):
-        if not os.path.isdir(iDir):
-          continue
-        os.chdir(iDir)
-        output = subprocess.run(['git-annex','uninit'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        os.chdir('..')
-      os.chdir(curDirectory)
-      #remove directory
-      shutil.rmtree(self.dirName)
-    os.makedirs(self.dirName)
+    configName = 'jamDB_tutorial'
     self.be = JamDB(configName)
+    self.dirName = self.be.basePath
     self.be.exit(deleteDB=True)
+    shutil.rmtree(self.dirName)
+    os.makedirs(self.dirName)
     self.be = JamDB(configName)
 
     try:
@@ -206,18 +193,14 @@ class TestStringMethods(unittest.TestCase):
       self.assertTrue(output.count('**UNSURE')==0,'UNSURE string in output')
       self.assertTrue(output.count('**WARNING')==0,'WARNING string in output')
       self.assertTrue(output.count('**ERROR')==0,'ERROR string in output')
-      print('Replication test')
-      self.be.replicateDB(configName,True)
+      # print('Replication test')
+      # self.be.replicateDB(configName,True)
       print('\n*** DONE WITH VERIFY ***')
       self.backup()
-      self.be.exit(deleteDB=True)
       with open(self.be.softwarePath+'/jamDB.log','r') as fIn:
         text = fIn.read()
         self.assertFalse(text.count('**WARNING')==7,'WARNING string !=7 in log-file')
         self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
-      time.sleep(2)
-      shutil.rmtree(self.dirName)
-      time.sleep(2)
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
       self.assertTrue(False,'Exception occurred')
