@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """ Python Backend
 """
-import os, json, base64, shutil, re, sys, stat
-import logging, time, subprocess
+import os, json, base64, shutil, re, sys
+import logging, time
 from io import StringIO, BytesIO
 import importlib, tempfile
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -103,11 +103,11 @@ class JamDB:
     """
     if deleteDB:
       #uninit / delete everything of git-annex and datalad
-      for root, dirs, files in os.walk(self.basePath):  
-        for momo in dirs:  
-          os.chmod(os.path.join(root, momo), stat.S_IWRITE)
+      for root, dirs, files in os.walk(self.basePath):
+        for momo in dirs:
+          os.chmod(os.path.join(root, momo), 0o755)
         for momo in files:
-          os.chmod(os.path.join(root, momo), stat.S_IWRITE)
+          os.chmod(os.path.join(root, momo), 0o755)
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
     time.sleep(2)
