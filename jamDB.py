@@ -83,7 +83,8 @@ else:
       doc = json.loads(args.content)
       docType = doc['docType']
       del doc['docType']
-      print('addDoc',docType,doc)
+      if len(args.docID)>1:
+        be.changeHierarchy(args.docID)
       be.addData(docType,doc)
     else:
       #all commands that require an open project
