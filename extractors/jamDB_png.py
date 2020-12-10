@@ -28,6 +28,6 @@ def getMeasurement(fileName, doc):
             'metaUser':{}}
     return image, 'png', meta
   except:
-    logging.error("image_PNG: PNG "+fileName)
-    logging.error(traceback.format_exc())
+    logging.error('extractor png: '+fileName+' not a measurement')
+    #logging.error(traceback.format_exc())
     return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}

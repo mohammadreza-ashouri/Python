@@ -722,7 +722,7 @@ class JamDB:
           continue
         logging.info(relPath+' not in database')
         count += 1
-    output += 'Number of files on disk that are not in database '+str(count)+'\n'
+    output += 'Number of files on disk that are not in database '+str(count)+' (see log for details)\n'
     listPaths = [i for i in listPaths if not "://" in i ]
     listPaths = [i for i in listPaths if not os.path.exists(self.basePath+i)]
     if len(listPaths)>0:

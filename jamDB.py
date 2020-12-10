@@ -16,6 +16,7 @@ jamDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
 Possible commands are:
     help: help information
     test: test jamDB setup
+    checkDB: test jamDB database
     print: print overview
         item: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
     scan, hierarchy: scan or print project
@@ -27,7 +28,7 @@ Possible commands are:
     extractorTest: test the extractor of this file
         -p should be specified is the path to file from base folder
 ''')
-argparser.add_argument('command', help='help, test, print, scan, addDoc, hierarchy, newDB, extractorTest')
+argparser.add_argument('command', help='help, test, checkDB, print, scan, addDoc, hierarchy, newDB, extractorTest')
 argparser.add_argument('-i','--docID',   help='docID of project', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
 argparser.add_argument('-l','--label',   help='label used for printing', default='Projects')
@@ -65,6 +66,8 @@ else:
         print('dataDictionary does NOT exist on server')
       print('local directory:',be.basePath)
       print('software directory:',be.softwarePath)
+    elif args.command=='checkDB':
+      print(be.checkDB(verbose=False))
     elif args.command=='print':
       print(be.output(args.label,True))
     elif args.command=='backup':

@@ -18,7 +18,7 @@ def getMeasurement(fileName, doc):
     i = Indentation(fileName, verbose=1)
     if i is not None:
 
-      if doc['type'][-1] =='all':
+      if doc['type'][-1] =='all':       #measurement type 'all'
         _, img = plt.subplots()
         while len(i.testList)>1:
           img.plot(i.h, i.p)
@@ -34,7 +34,7 @@ def getMeasurement(fileName, doc):
 
       meta = {'measurementType':measurementType,
               'metaVendor':i.meta,
-              'metaUser':{}}
+              'metaUser':i.getDictionary()}
       return img, 'svg', meta
     # other data routines follow here
     # .
@@ -43,6 +43,6 @@ def getMeasurement(fileName, doc):
     # if nothing successful
     return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
   except:
-    logging.error("image_tif: Tif "+fileName)
-    logging.error(traceback.format_exc())
+    logging.error('extractor txt: '+fileName+' not a measurement')
+    #logging.error(traceback.format_exc())
     return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}

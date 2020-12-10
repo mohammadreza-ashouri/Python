@@ -25,6 +25,6 @@ def getMeasurement(fileName, doc):
             'metaUser':{}}
     return image, 'jpg', meta
   except:
-    logging.error("image_JPEG: JPEG "+fileName)
-    logging.error(traceback.format_exc())
+    logging.error('extractor jpeg: '+fileName+' not a measurement')
+    #logging.error(traceback.format_exc())
     return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}

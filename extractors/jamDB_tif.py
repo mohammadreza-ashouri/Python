@@ -36,9 +36,6 @@ def getMeasurement(fileName, doc):
     # if nothing successful
     return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
   except:
-    print("Image failure")
-    print(traceback.format_exc())
-    print(doc)
-    logging.error("image_tif: Tif "+fileName)
-    logging.error(traceback.format_exc())
+    logging.error('extractor xls: '+fileName+' not a measurement')
+    #logging.error(traceback.format_exc())
     return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
