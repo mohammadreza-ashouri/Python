@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-""" Python Backend
+""" Python Backend: all operations with the filesystem are here
 """
 import os, json, base64, shutil, re, sys
 import logging, time
@@ -238,6 +238,9 @@ class JamDB:
                     dirPath =  os.path.relpath(os.path.split(self.basePath+path)[0] , projPath)
                     with open(projPath+os.sep+'.gitignore','a') as fOut:
                       fOut.write(dirPath+os.sep+'\n')
+                    if sys.platform=='win32':
+                      import win32con, win32api
+                      win32api.SetFileAttributes(projPath+os.sep+'.gitignore',win32con.FILE_ATTRIBUTE_HIDDEN)
                   if ignore!='none':  #ignored images are added to datalad but not to database
                     return False
                 break
@@ -284,14 +287,23 @@ class JamDB:
           gitIgnore = '\n'.join(self.gitIgnore)
           with open(path+os.sep+'.gitattributes','w') as fOut:
             fOut.write(gitAttribute+'\n')
+          if sys.platform=='win32':
+            import win32con, win32api
+            win32api.SetFileAttributes(path+os.sep+'.gitattributes',win32con.FILE_ATTRIBUTE_HIDDEN)
           with open(path+os.sep+'.gitignore','w') as fOut:
             fOut.write(gitIgnore+'\n')
+          if sys.platform=='win32':
+            import win32con, win32api
+            win32api.SetFileAttributes(path+os.sep+'.gitignore',win32con.FILE_ATTRIBUTE_HIDDEN)
           dlDataset = datalad.Dataset(path)
           dlDataset.save(path='.',message='changed gitattributes')
         else:
           os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
       with open(self.basePath+path+os.sep+'.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(doc))
+      if sys.platform=='win32':
+        import win32con, win32api
+        win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_jamDB.json',win32con.FILE_ATTRIBUTE_HIDDEN)
       projectPath = path.split(os.sep)[0]
       # datalad api version
       dataset = datalad.Dataset(self.basePath+projectPath)
@@ -944,7 +956,6 @@ class JamDB:
     os.unlink(tempfile.gettempdir()+os.sep+'tempSetEditString.txt')
     return
 
-
   def getChildren(self, docID):
     """
     Get children from this parent using outputHierarchy
@@ -962,7 +973,6 @@ class JamDB:
     result = cT.getChildren(hierTree,docID)
     return result['names'], result['ids']
 
-
   def outputQR(self):
     """
     output list of sample qr-codes
@@ -975,7 +985,6 @@ class JamDB:
     for item in self.db.getView('viewQR/viewQR'):
       outString += '{0: <36}|{1: <36}|{2: <36}'.format(item['key'][:36], item['value'][:36], item['id'][:36])+'\n'
     return outString
-
 
   def outputSHAsum(self):
     """

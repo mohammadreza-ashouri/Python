@@ -141,7 +141,8 @@ disable=print-statement,
         useless-return,
         no-member,
         import-outside-toplevel,
-        fixme
+        fixme,
+        import-error
 
 #Reasons:
 # looks better: len-as-condition, multiple-statements, bad-whitespace, multiple-imports
@@ -513,7 +514,7 @@ max-public-methods=20
 max-returns=6
 
 # Maximum number of statements in function / method body
-max-statements=150 #Steffen change from 50
+max-statements=250 #Steffen change from 50
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=2
