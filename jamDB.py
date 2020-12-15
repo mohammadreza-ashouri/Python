@@ -83,7 +83,8 @@ else:
       else:
         print("**ERROR**")
     elif args.command=='addDoc':
-      doc = json.loads(args.content)
+      content = args.content.replace("'",'"')
+      doc = json.loads(content)
       docType = doc['docType']
       del doc['docType']
       if len(args.docID)>1:
@@ -95,9 +96,10 @@ else:
       if args.command=='scan':
         be.scanTree()                 #there can not be a callback function
       elif args.command=='save':
-        print(args.content[1:-1])
+        print(args.content)
         print('>> Ensure that the beginning end are correct <<')
-        be.setEditString(args.content[1:-1])
+        content = args.content.replace('\\n','\n')
+        be.setEditString(content)
       elif args.command=='hierarchy':
         print(be.outputHierarchy(True,True))
       else:

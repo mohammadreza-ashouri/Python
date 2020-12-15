@@ -912,6 +912,7 @@ class JamDB:
         dirName = createDirName(doc['name'],doc['type'][0],children[-1])
         if not os.path.exists(dirName):                     #if move, deletion or because new
           if doc['_id']=='':                                #if new data
+          if doc['_id']=='' or doc['_id']=='undefined':     #if new data
             os.makedirs(dirName)
             edit = doc['type'][-1]
           else:                                             #if move
@@ -985,6 +986,7 @@ class JamDB:
     for item in self.db.getView('viewQR/viewQR'):
       outString += '{0: <36}|{1: <36}|{2: <36}'.format(item['key'][:36], item['value'][:36], item['id'][:36])+'\n'
     return outString
+
 
   def outputSHAsum(self):
     """
