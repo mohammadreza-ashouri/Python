@@ -911,7 +911,6 @@ class JamDB:
         #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
         dirName = createDirName(doc['name'],doc['type'][0],children[-1])
         if not os.path.exists(dirName):                     #if move, deletion or because new
-          if doc['_id']=='':                                #if new data
           if doc['_id']=='' or doc['_id']=='undefined':     #if new data
             os.makedirs(dirName)
             edit = doc['type'][-1]
