@@ -96,9 +96,11 @@ else:
       if args.command=='scan':
         be.scanTree()                 #there can not be a callback function
       elif args.command=='save':
-        print(args.content)
-        print('>> Ensure that the beginning end are correct <<')
         content = args.content.replace('\\n','\n')
+        if sys.platform!='win32':
+          content = content[1:-1]
+        print(content)
+        print('>> Ensure that the beginning end are correct <<')
         be.setEditString(content)
       elif args.command=='hierarchy':
         print(be.outputHierarchy(True,True))

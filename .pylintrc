@@ -142,7 +142,8 @@ disable=print-statement,
         no-member,
         import-outside-toplevel,
         fixme,
-        import-error
+        import-error,
+        unused-import
 
 #Reasons:
 # looks better: len-as-condition, multiple-statements, bad-whitespace, multiple-imports
@@ -275,7 +276,7 @@ indent-string='  '
 max-line-length=200
 
 # Maximum number of lines in a module
-max-module-lines=1000
+max-module-lines=1500
 
 # List of optional constructs for which whitespace checking is disabled. `dict-
 # separator` is used to allow tabulation in dicts, etc.: {1  : 1,\n222: 2}.
