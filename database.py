@@ -386,7 +386,8 @@ class Database:
               if verbose:
                 outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure/sample '+doc['_id']+'|'+doc['name']+f'{bcolors.ENDC}\n'
             else:
-              outstring+= f'{bcolors.WARNING}**WARNING branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
+              if verbose:
+                outstring+= f'{bcolors.WARNING}**warning branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
           if doc['type'][0]=='text':
             try:
               dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
@@ -398,11 +399,11 @@ class Database:
             if doc['type'][0] == 'procedure' or doc['type'][0] == 'sample':
               if verbose:
                 outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'
-            elif doc['type'][0] == 'measurement':
+            elif doc['type'][0] == 'text':
+              outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
+            else:  #measurement and new docTypes
               if verbose:
                 outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+f'{bcolors.ENDC}\n'
-            else:
-              outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
           else:                                                            #if sensible path
             if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):#check if length of path and stack coincide
               if verbose:
@@ -423,16 +424,6 @@ class Database:
         elif doc['type'][0] == 'measurement':
           if 'shasum' not in doc:
             outstring+= f'{bcolors.FAIL}**ERROR shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
-        elif doc['type'][0] == 'procedure':
-          pass
-        elif doc['type'][0] == 'text':
-          pass
-        elif doc['type'][0] == 'step':
-          pass
-        elif doc['type'][0] == 'task':
-          pass
-        else:
-          outstring+= f'{bcolors.FAIL}**ERROR unknown doctype '+doc['_id']+' '+str(doc['type'])+f'{bcolors.ENDC}\n'
 
         ###custom temporary changes: keep few as examples
         # if 'revisions' in doc:

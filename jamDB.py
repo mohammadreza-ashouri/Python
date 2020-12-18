@@ -68,7 +68,10 @@ else:
       print('local directory:',be.basePath)
       print('software directory:',be.softwarePath)
     elif args.command=='checkDB':
-      print(be.checkDB(verbose=False))
+      output = be.checkDB(verbose=False)
+      print(output)
+      if '**ERROR' in output:
+        success = False
     elif args.command=='print':
       print(be.output(args.label,True))
     elif args.command=='backup':
@@ -101,9 +104,9 @@ else:
         #SEEM NOT REQUIRED ANYMORE
         # if sys.platform!='win32':
         #   content = content[1:-1]
-        print('---------------------------------------------')
+        print('---- Ensure beginning & end are correct ----')
         print(content)
-        print('>> Ensure that the beginning end are correct <<')
+        print('---- Ensure beginning & end are correct ----')
         success = be.setEditString(content)
       elif args.command=='hierarchy':
         print(be.outputHierarchy(True,True))
