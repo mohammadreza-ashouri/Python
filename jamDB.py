@@ -17,6 +17,7 @@ Possible commands are:
     help: help information
     test: test jamDB setup
     checkDB: test jamDB database
+    sync: synchronize / replicate with remote server
     print: print overview
         item: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
     scan, hierarchy: scan or print project
@@ -72,6 +73,8 @@ else:
       print(output)
       if '**ERROR' in output:
         success = False
+    elif args.command=='sync':
+      print('sync not implemented yet')
     elif args.command=='print':
       print(be.output(args.label,True))
     elif args.command=='backup':
