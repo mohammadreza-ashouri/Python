@@ -54,6 +54,7 @@ else:
       with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
         config = json.load(f)
         args.database = config['-defaultLocal']
+    success = True
     be = JamDB(args.database)
     if args.command=='test':
       print('backend was started')
@@ -97,18 +98,23 @@ else:
         be.scanTree()                 #there can not be a callback function
       elif args.command=='save':
         content = args.content.replace('\\n','\n')
-        if sys.platform!='win32':
-          content = content[1:-1]
+        #SEEM NOT REQUIRED ANYMORE
+        # if sys.platform!='win32':
+        #   content = content[1:-1]
+        print('---------------------------------------------')
         print(content)
         print('>> Ensure that the beginning end are correct <<')
-        be.setEditString(content)
+        success = be.setEditString(content)
       elif args.command=='hierarchy':
         print(be.outputHierarchy(True,True))
       else:
         be.exit()
         raise NameError('Wrong command: '+args.command)
     be.exit()
-    print('SUCCESS')
+    if success:
+      print('SUCCESS')
+    else:
+      print('**ERROR**')
   except:
     print(traceback.format_exc())
     sys.exit(1)

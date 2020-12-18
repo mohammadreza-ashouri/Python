@@ -923,7 +923,7 @@ class JamDB:
               path = pathParent+os.sep+path.split(os.sep)[-1]
             if not os.path.exists(self.basePath+path):        #if still does not exist
               print("**ERROR** doc path was not found and parent path was not found\nReturn")
-              return
+              return False
             if self.confirm is None or self.confirm(None,"Move directory "+path+" -> "+self.cwd+dirName):
               shutil.move(self.basePath+path, self.basePath+self.cwd+dirName)
               dlDataset.save(path=self.basePath+path, message='SetEditString move directory: origin')
@@ -954,7 +954,7 @@ class JamDB:
     for _ in range(len(children)-1):
       self.changeHierarchy(None)
     os.unlink(tempfile.gettempdir()+os.sep+'tempSetEditString.txt')
-    return
+    return True
 
   def getChildren(self, docID):
     """
