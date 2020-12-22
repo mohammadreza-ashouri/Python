@@ -104,9 +104,10 @@ else:
         be.scanTree()                 #there can not be a callback function
       elif args.command=='save':
         content = args.content.replace('\\n','\n')
-        #SEEM NOT REQUIRED ANYMORE
-        # if sys.platform!='win32':
-        #   content = content[1:-1]
+        if content[0]=='"' and content[-1]=='"':
+          content = content[1:-1]
+        elif content[0]=='"' or content[-1]=='"':
+          print('SOMETHING STRANGE occurs with content string')
         print('---- Ensure beginning & end are correct ----')
         print(content)
         print('---- Ensure beginning & end are correct ----')
