@@ -978,7 +978,10 @@ class JamDB:
     for _ in range(len(children)-1):
       self.changeHierarchy(None)
     os.unlink(tempfile.gettempdir()+os.sep+'tempSetEditString.txt')
+    dataset = datalad.Dataset(self.basePath+self.cwd)
+    dataset.save(message='set-edit-string: update the project structure')
     return True
+
 
   def getChildren(self, docID):
     """

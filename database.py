@@ -76,7 +76,7 @@ class Database:
         }
       '''
       jsPath = '''
-        if ('branch' in doc && !('current_rev' in doc)){
+        if ('type' in doc && 'branch' in doc && !('current_rev' in doc)){
           if ('shasum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,doc.shasum]);}});}
           else                {doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,''        ]);}});}
         }
@@ -397,7 +397,7 @@ class Database:
             else:
               if verbose:
                 outstring+= f'{bcolors.WARNING}**warning branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
-          if doc['type'][0]=='text':
+          if 'type' in doc and doc['type'][0]=='text':
             try:
               dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
               if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
@@ -427,10 +427,10 @@ class Database:
                 if not onePathFound:
                   outstring+= f'{bcolors.FAIL}**ERROR parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
         #doc-type specific tests
-        if doc['type'][0] == 'sample':
+        if 'type' in doc and doc['type'][0] == 'sample':
           if 'qrCode' not in doc:
             outstring+= f'{bcolors.FAIL}**ERROR qrCode not in sample '+doc['_id']+f'{bcolors.ENDC}\n'
-        elif doc['type'][0] == 'measurement':
+        elif 'type' in doc and doc['type'][0] == 'measurement':
           if 'shasum' not in doc:
             outstring+= f'{bcolors.FAIL}**ERROR shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
 
