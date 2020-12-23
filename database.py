@@ -163,64 +163,73 @@ class Database:
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
     change['client'] = tracebackString
     newDoc = self.db[docID]  #this is the document that stays live
-    oldDoc = {}              #this is an older revision of the document
-    nothingChanged = True
-    # handle branch
-    if 'branch' in change and len(change['branch']['stack'])>0 and change['branch']['path'] is not None:
-      op = change['branch']['op']
-      del change['branch']['op']
-      if not change['branch'] in newDoc['branch']:       #skip if new path already in path
-        oldDoc['branch'] = newDoc['branch'].copy()
-        if op=='c':    #create, append
-          newDoc['branch'] += [change['branch']]
-          nothingChanged = False
-        elif op=='u':  #update=remove current at zero
-          if 'oldpath' in change['branch']:
-            for branch in newDoc['branch']:
-              if branch['path'].startswith(change['branch']['oldpath']):
-                branch['path'] = branch['path'].replace(change['branch']['oldpath'] ,change['branch']['path'])
-                branch['stack']= change['branch']['stack']
-                del change['branch']['oldpath']
-                break
-          else:
-            newDoc['branch'][0] = change['branch'] #change the initial one
-          nothingChanged = False
-        elif op=='d':  #delete
-          originalLength = len(newDoc['branch'])
-          newDoc['branch'] = [branch for branch in newDoc['branch'] if branch['path']!=change['branch']['path']]
-          if originalLength!=len(newDoc['branch']):
+    if 'edit' in change:  #if delete
+      oldDoc = dict(newDoc)
+      for item in oldDoc:
+        if item!='_id' and item!='_rev' and item!='branch' and item!='nextRevision':
+          del newDoc[item]
+      newDoc['client'] = tracebackString
+      newDoc['user']   = change['user']
+    else:
+      oldDoc = {}              #this is an older revision of the document
+      nothingChanged = True
+      # handle branch
+      if 'branch' in change and len(change['branch']['stack'])>0 and change['branch']['path'] is not None:
+        op = change['branch']['op']
+        del change['branch']['op']
+        if not change['branch'] in newDoc['branch']:       #skip if new path already in path
+          oldDoc['branch'] = newDoc['branch'].copy()
+          if op=='c':    #create, append
+            newDoc['branch'] += [change['branch']]
             nothingChanged = False
-        else:
-          logging.error('database:updateDoc: op(eration) unknown, exit update')
-          return newDoc
-    #handle other items
-    for item in change:
-      if item in ['nextRevision','_id','_rev','branch']:                #skip items cannot come from change
-        continue
-      if item=='type' and change['type']=='--':                      #skip non-set type
-        continue
-      if item=='image' and change['image']=='':
-        continue
-      ## What if content only differs by whitespace changes?
-      # These changes should occur in the database, the user wanted it so
-      # Do these changes justify a new revision?
-      # Hence one could update the doc and previous-revision(with the current _rev)
-      #  - but that would lead to special cases, more code, chaos
-      #  - also not sure how often simple white space changes occur, how important
-      # To identify these cases use the following
-      # if (isinstance(change[item], str) and " ".join(change[item].split())!=" ".join(newDoc[item].split()) ) or \
-      #    (isinstance(change[item], list) and change[item]!=newDoc[item] ):
-      # Add to testBasic to test for it:
-      #       myString = myString.replace('A long comment','A long   comment')
-      if change[item]!=newDoc[item]:
-        if item not in ['date','client']:      #if only date/client change, no real change
-          nothingChanged = False
-        oldDoc[item] = newDoc[item]
-        newDoc[item] = change[item]
-    if nothingChanged:
-      logging.info('database:updateDoc no change of content: '+newDoc['name'])
-      return newDoc
-    #produce _id of revDoc
+          elif op=='u':  #update=remove current at zero
+            if 'oldpath' in change['branch']:
+              for branch in newDoc['branch']:
+                if branch['path'].startswith(change['branch']['oldpath']):
+                  branch['path'] = branch['path'].replace(change['branch']['oldpath'] ,change['branch']['path'])
+                  branch['stack']= change['branch']['stack']
+                  del change['branch']['oldpath']
+                  break
+            else:
+              newDoc['branch'][0] = change['branch'] #change the initial one
+            nothingChanged = False
+          elif op=='d':  #delete
+            originalLength = len(newDoc['branch'])
+            newDoc['branch'] = [branch for branch in newDoc['branch'] if branch['path']!=change['branch']['path']]
+            if originalLength!=len(newDoc['branch']):
+              nothingChanged = False
+          else:
+            logging.error('database:updateDoc: op(eration) unknown, exit update')
+            return newDoc
+      #handle other items
+      for item in change:
+        if item in ['nextRevision','_id','_rev','branch']:                #skip items cannot come from change
+          continue
+        if item=='type' and change['type']=='--':                      #skip non-set type
+          continue
+        if item=='image' and change['image']=='':
+          continue
+        ## What if content only differs by whitespace changes?
+        # These changes should occur in the database, the user wanted it so
+        # Do these changes justify a new revision?
+        # Hence one could update the doc and previous-revision(with the current _rev)
+        #  - but that would lead to special cases, more code, chaos
+        #  - also not sure how often simple white space changes occur, how important
+        # To identify these cases use the following
+        # if (isinstance(change[item], str) and " ".join(change[item].split())!=" ".join(newDoc[item].split()) ) or \
+        #    (isinstance(change[item], list) and change[item]!=newDoc[item] ):
+        # Add to testBasic to test for it:
+        #       myString = myString.replace('A long comment','A long   comment')
+        if change[item]!=newDoc[item]:
+          if item not in ['date','client']:      #if only date/client change, no real change
+            nothingChanged = False
+          oldDoc[item] = newDoc[item]
+          newDoc[item] = change[item]
+      if nothingChanged:
+        logging.info('database:updateDoc no change of content: '+newDoc['name'])
+        return newDoc
+    #For delete and update
+    # produce _id of revDoc
     oldDoc['_id'] = docID+'-'+str( newDoc['nextRevision'] )
     newDoc['nextRevision'] += 1
     #add id to revisions and save

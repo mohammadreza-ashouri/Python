@@ -863,6 +863,9 @@ class JamDB:
     Args:
        text (string): org-mode structured text
        callback (function): function to verify database change
+
+    Returns:
+       success of function: true/false
     """
     # write backup
     with open(tempfile.gettempdir()+os.sep+'tempSetEditString.txt','w') as fOut:
@@ -884,6 +887,16 @@ class JamDB:
     children  = [0]
     path      = None
     for doc in docList:  #iterate through all entries
+      if doc['edit'] == '-delete-':
+        doc['user']   = self.userID
+        doc = self.db.updateDoc(doc,doc['_id'])
+        oldPath   = doc['branch'][0]['path']
+        pathArray = oldPath.split(os.sep)
+        pathArray[-1]='trash_'+'_'.join(pathArray[-1].split('_')[1:])
+        newPath   = os.sep.join(pathArray)
+        print('Deleted doc: Path',oldPath,newPath)
+        os.rename(self.basePath+oldPath,self.basePath+newPath)
+        continue
       # identify docType
       levelID     = doc['type']
       doc['type'] = ['text',self.hierList[levelID]]
@@ -925,7 +938,7 @@ class JamDB:
               print("**ERROR** doc path was not found and parent path was not found\nReturn")
               return False
             if self.confirm is None or self.confirm(None,"Move directory "+path+" -> "+self.cwd+dirName):
-              shutil.move(self.basePath+path, self.basePath+self.cwd+dirName)
+              os.rename(self.basePath+path, self.basePath+self.cwd+dirName)
               dlDataset.save(path=self.basePath+path, message='SetEditString move directory: origin')
               dlDataset.save(path=self.basePath+self.cwd+dirName, message='SetEditString move directory: target')
               logging.info("moved folder "+self.basePath+path+' -> '+self.basePath+self.cwd+dirName)
