@@ -3,7 +3,8 @@ echo "Installer for jamDB on Ubuntu Systems"
 echo
 echo "Ensure installer has sudo rights"
 if [ "$EUID" -ne 0 ]
-  then echo "  ERROR: Please run as root with 'sudo ./install.sh' "
+  then
+  echo "  ERROR: Please run as root with 'sudo ./install.sh' "
   exit
 fi
 echo

@@ -882,20 +882,31 @@ class JamDB:
         newText += line+'\n'
     newText = prefix+' '+newText
     docList = cT.editString2Docs(newText, self.magicTags)
+    del newText; del text
     # initialize iteration
     hierLevel = None
     children  = [0]
     path      = None
+    deletedDocs= []
     for doc in docList:  #iterate through all entries
       if doc['edit'] == '-delete-':
         doc['user']   = self.userID
         doc = self.db.updateDoc(doc,doc['_id'])
+        deletedDocs.append(doc['_id'])
+        thisStack = ' '.join(doc['branch'][0]['stack']+[doc['_id']])
+        view = self.db.getView('viewHierarchy/viewHierarchy', startKey=thisStack)
+        for item in view:
+          subDoc = {'user':self.userID, 'edit':'-delete-'}
+          _ = self.db.updateDoc(subDoc, item['id'])
+          deletedDocs.append(item['id'])
         oldPath   = doc['branch'][0]['path']
         pathArray = oldPath.split(os.sep)
         pathArray[-1]='trash_'+'_'.join(pathArray[-1].split('_')[1:])
         newPath   = os.sep.join(pathArray)
         print('Deleted doc: Path',oldPath,newPath)
         os.rename(self.basePath+oldPath,self.basePath+newPath)
+        continue
+      if doc['_id'] in deletedDocs:  #skip if doc was deleted
         continue
       # identify docType
       levelID     = doc['type']
