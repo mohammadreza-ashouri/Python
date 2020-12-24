@@ -20,7 +20,7 @@ class TestStringMethods(unittest.TestCase):
     self.be.exit(deleteDB=True)
     shutil.rmtree(self.dirName)
     os.makedirs(self.dirName)
-    self.be = JamDB(configName)
+    self.be = JamDB(configName, initViews=True)
 
     try:
       ### CREATE PROJECTS AND SHOW
@@ -32,7 +32,7 @@ class TestStringMethods(unittest.TestCase):
 
       ### TEST PROJECT PLANING
       print('*** TEST PROJECT PLANING ***')
-      viewProj = self.be.db.getView('viewProjects/viewProjects')
+      viewProj = self.be.db.getView('viewDocType/viewProjects')
       projID1  = [i['id'] for i in viewProj if 'Intermetals at interfaces'==i['value'][0]][0]
       self.be.changeHierarchy(projID1)
       self.be.addData('step',    {'comment': 'This is hard!', 'name': 'Get steel and Al-powder'})
@@ -115,7 +115,7 @@ class TestStringMethods(unittest.TestCase):
       newDataDict.save()
       # restart
       self.be.exit()
-      self.be = JamDB(configName)
+      self.be = JamDB(configName, initViews=True)
       # add data
       self.be.addData('instrument', {'name': 'XP', 'vendor':'MTS', 'model':'Nanoindenter XP', 'comment':':room:10:'})
       self.be.addData('instrument', {'name': 'Fischer', 'vendor':'Fischer', 'model':'Fischer Scope 300mN', 'comment':':room:12:'})
@@ -123,7 +123,7 @@ class TestStringMethods(unittest.TestCase):
       print(self.be.output('Instruments'))
       # look at one data-set
       print("One dataset")
-      view = self.be.db.getView('viewInstruments/viewInstruments')
+      view = self.be.db.getView('viewDocType/viewInstruments')
       for item in view:
         if (item['value'][0]=='XP'):
           doc = self.be.db.getDoc(item['id'])

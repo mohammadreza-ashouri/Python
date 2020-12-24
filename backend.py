@@ -22,13 +22,14 @@ class JamDB:
   PYTHON BACKEND
   """
 
-  def __init__(self, configName=None, confirm=None):
+  def __init__(self, configName=None, confirm=None, initViews=False):
     """
     open server and define database
 
     Args:
         configName (string): name of configuration used; if not given, use the one defined by '-defaultLocal' in config file
         confirm (function): confirm changes to database and file-tree
+        initViews (bool): initialize views at startup
     """
     ## CONFIGURATION FOR DATALAD and GIT: has to move to dictionary
     self.vanillaGit = ['*.md','*.rst','*.org','*.tex','*.py','.id_jamDB.json'] #tracked but in git;
@@ -79,7 +80,7 @@ class JamDB:
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
     logging.info('\nSTART JAMS '+configName)
     # start database
-    self.db = Database(user, password, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep)
+    self.db = Database(user, password, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep, initViews=initViews)
     self.userID   = configuration['-userID']
     self.remoteDB = configuration[remoteName]
     self.eargs   = configuration['-eargs']
@@ -221,7 +222,7 @@ class JamDB:
         if shasum is not None and doc['type'][0]=='measurement':         #samples, procedures not added to shasum database, getMeasurement not sensible
           if shasum == '':
             shasum = generic_hash(self.basePath+path, forceFile=True)
-          view = self.db.getView('viewSHAsum/viewSHAsum',shasum)
+          view = self.db.getView('viewIdentify/viewSHAsum',shasum)
           if len(view)==0 or forceNewImage:  #measurement not in database: create doc
             while True:
               self.getMeasurement(path,shasum,doc)  #create image and add to datalad
@@ -702,8 +703,8 @@ class JamDB:
     ### check if datalad status is clean for all projects
     if verbose:
       output += "--- DataLad status ---\n"
-    viewProjects   = self.db.getView('viewProjects/viewProjects')
-    viewPaths       = self.db.getView('viewHierarchy/viewPaths')
+    viewProjects   = self.db.getView('viewDocType/viewProjects')
+    viewPaths      = self.db.getView('viewHierarchy/viewPaths')
     listPaths = [item['key'] for item in viewPaths]
     curDirectory = os.path.abspath(os.path.curdir)
     clean, count = True, 0
@@ -774,7 +775,7 @@ class JamDB:
         outString.append(formatString.format(item['name']) )
     outString = '|'.join(outString)+'\n'
     outString += '-'*110+'\n'
-    for lineItem in self.db.getView(view+'/'+view):
+    for lineItem in self.db.getView('viewDocType/'+view):
       rowString = []
       for idx, item in enumerate(self.db.dataDictionary[docType]['default']):
         if item['length']!=0:
@@ -1009,7 +1010,7 @@ class JamDB:
     """
     outString = '{0: <36}|{1: <36}|{2: <36}'.format('QR', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
-    for item in self.db.getView('viewQR/viewQR'):
+    for item in self.db.getView('viewIdentify/viewQR'):
       outString += '{0: <36}|{1: <36}|{2: <36}'.format(item['key'][:36], item['value'][:36], item['id'][:36])+'\n'
     return outString
 
@@ -1023,6 +1024,6 @@ class JamDB:
     """
     outString = '{0: <32}|{1: <40}|{2: <25}'.format('SHAsum', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
-    for item in self.db.getView('viewSHAsum/viewSHAsum'):
+    for item in self.db.getView('viewIdentify/viewSHAsum'):
       outString += '{0: <32}|{1: <40}|{2: <25}'.format(item['key'], item['value'][-40:], item['id'])+'\n'
     return outString

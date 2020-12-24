@@ -13,7 +13,7 @@ class Database:
   Class for interaction with couchDB
   """
 
-  def __init__(self, user, password, databaseName, confirm, softwarePath=''):
+  def __init__(self, user, password, databaseName, confirm, softwarePath='', initViews=False):
     """
     Args:
         user (string): user name to local database
@@ -21,6 +21,7 @@ class Database:
         databaseName (string): local database name
         confirm (function): confirm changes to database and file-tree
         softwarePath (string): path to software and default dataDictionary.json
+        initViews (bool): initialize views at startup
     """
     self.confirm = confirm
     try:
@@ -45,7 +46,18 @@ class Database:
     res = cT.dataDictionary2DataLabels(self.dataDictionary)
     self.dataLabels = list(res['dataList'])
     self.hierarchyLabels = list(res['hierarchyList'])
+    if initViews:
+      self.initViews()
+    return
+
+
+  def initViews(self):
+    """
+    initialize all views
+    """
+    # for the individual docTypes
     jsDefault = "if ($docType$ && !('current_rev' in doc)) {emit($key$, [$outputList$]);}"
+    viewCode = {}
     for docType, docLabel in self.dataLabels+self.hierarchyLabels:
       view = 'view'+docLabel
       if '_design/'+view not in self.db:
@@ -68,26 +80,25 @@ class Database:
         outputList = ','.join(outputList)
         jsString = jsString.replace('$outputList$', outputList)
         logging.info('database:init '+view+' not defined. Use default one:'+jsString)
-        self.saveView(view, view, jsString)
-    if '_design/viewHierarchy' not in self.db:
-      jsHierarchy  = '''
-        if ('type' in doc && !('current_rev' in doc)) {
-          doc.branch.forEach(function(branch) {emit(branch.stack.concat([doc._id]).join(' '),[branch.child,doc.type,doc.name]);});
-        }
-      '''
-      jsPath = '''
-        if ('type' in doc && 'branch' in doc && !('current_rev' in doc)){
-          if ('shasum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,doc.shasum]);}});}
-          else                {doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,''        ]);}});}
-        }
-      '''
-      self.saveView('viewHierarchy','.',{'viewHierarchy':jsHierarchy,'viewPaths':jsPath})
-    if '_design/viewSHAsum' not in self.db:
-      self.saveView('viewSHAsum','viewSHAsum',"if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.shasum, doc.name);}")
-    if '_design/viewQR' not in self.db:
-      jsString = "if (doc.qrCode.length > 0 && !('current_rev' in doc))"
-      jsString+=   '{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}'
-      self.saveView('viewQR','viewQR', jsString )
+        viewCode[view]=jsString
+    self.saveView('viewDocType', viewCode)
+    # general views
+    jsHierarchy  = '''
+      if ('type' in doc && !('current_rev' in doc)) {
+        doc.branch.forEach(function(branch) {emit(branch.stack.concat([doc._id]).join(' '),[branch.child,doc.type,doc.name]);});
+      }
+    '''
+    jsPath = '''
+      if ('type' in doc && 'branch' in doc && !('current_rev' in doc)){
+        if ('shasum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,doc.shasum]);}});}
+        else                {doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,''        ]);}});}
+      }
+    '''
+    self.saveView('viewHierarchy',{'viewHierarchy':jsHierarchy,'viewPaths':jsPath})
+    jsSHA= "if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.shasum, doc.name);}"
+    jsQR = "if (doc.qrCode.length > 0 && !('current_rev' in doc))"
+    jsQR+=   '{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}'
+    self.saveView('viewIdentify',     {'viewQR': jsQR, 'viewSHAsum':jsSHA} )
     return
 
 
@@ -166,7 +177,7 @@ class Database:
     if 'edit' in change:  #if delete
       oldDoc = dict(newDoc)
       for item in oldDoc:
-        if item!='_id' and item!='_rev' and item!='branch' and item!='nextRevision':
+        if item not in ('_id', '_rev', 'branch', 'nextRevision'):
           del newDoc[item]
       newDoc['client'] = tracebackString
       newDoc['user']   = change['user']
@@ -265,23 +276,21 @@ class Database:
     return res
 
 
-  def saveView(self, designName, viewName, jsCode):
+  def saveView(self, designName, viewCode):
     """
     Adopt the view by defining a new jsCode
 
     Args:
         designName (string): name of the design
-        viewName (string): name of the view (ignored if jsCode==dictionary)
-        jsCode (string): new code (string or dict of multiple)
+        viewCode (dict): viewName: js-code
     """
+    if '_design/'+designName in self.db:
+      designDoc = self.db['_design/'+designName]
+      designDoc.delete()
     designDoc = DesignDocument(self.db, designName)
-    if isinstance(jsCode, str):
-      thisJsCode = 'function (doc) {' + jsCode + '}'
-      designDoc.add_view(viewName, thisJsCode)
-    elif isinstance(jsCode, dict):
-      for view in jsCode:
-        thisJsCode = 'function (doc) {' + jsCode[view] + '}'
-        designDoc.add_view(view, thisJsCode)
+    for view in viewCode:
+      thisJsCode = 'function (doc) {' + viewCode[view] + '}'
+      designDoc.add_view(view, thisJsCode)
     try:
       designDoc.save()
     except:
@@ -448,7 +457,7 @@ class Database:
     ##TEST views
     if verbose:
       outstring+= f'{bcolors.UNDERLINE}**** List problematic VIEWS ****{bcolors.ENDC}\n'
-    view = self.getView('viewSHAsum/viewSHAsum')
+    view = self.getView('viewIdentify/viewSHAsum')
     shasumKeys = []
     for item in view:
       if item['key']=='':

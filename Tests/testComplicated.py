@@ -20,7 +20,7 @@ class TestStringMethods(unittest.TestCase):
     self.be.exit(deleteDB=True)
     shutil.rmtree(self.dirName)
     os.makedirs(self.dirName)
-    self.be = JamDB(configName)
+    self.be = JamDB(configName, initViews=True)
 
     try:
       ### create some projects and show them
@@ -34,7 +34,7 @@ class TestStringMethods(unittest.TestCase):
       ### create some steps and tasks in the first (by id-number) project
       # add also some empty measurements
       print('*** TEST PROJECT HIERARCHY: no output ***')
-      viewProj = self.be.db.getView('viewProjects/viewProjects')
+      viewProj = self.be.db.getView('viewDocType/viewProjects')
       projID  = [i['id'] for i in viewProj if 'Test project1'==i['value'][0]][0]
       projID1 = [i['id'] for i in viewProj if 'Test project2'==i['value'][0]][0]
       self.be.changeHierarchy(projID)
@@ -119,7 +119,7 @@ class TestStringMethods(unittest.TestCase):
 
       ### Change plot-type
       print('\n*** TEST CHANGE PLOT-TYPE ***')
-      viewMeasurements = self.be.db.getView('viewMeasurements/viewMeasurements')
+      viewMeasurements = self.be.db.getView('viewDocType/viewMeasurements')
       for item in viewMeasurements:
         fileName = item['value'][0]
         if fileName == 'Zeiss.tif':

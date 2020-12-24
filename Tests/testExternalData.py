@@ -23,12 +23,12 @@ class TestStringMethods(unittest.TestCase):
     self.be.exit(deleteDB=True)
     shutil.rmtree(self.dirName)
     os.makedirs(self.dirName)
-    self.be = JamDB(configName)
+    self.be = JamDB(configName, initViews=True)
 
     try:
       ### create some project and move into it
       self.be.addData('project', {'name': 'Test project1', 'objective': 'Test objective1', 'status': 'active', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
-      viewProj = self.be.db.getView('viewProjects/viewProjects')
+      viewProj = self.be.db.getView('viewDocType/viewProjects')
       projID  = [i['id'] for i in viewProj][0]
       self.be.changeHierarchy(projID)
 

@@ -56,7 +56,11 @@ else:
         config = json.load(f)
         args.database = config['-defaultLocal']
     success = True
-    be = JamDB(args.database)
+    initViews = False
+    if args.command=='test':
+      initViews = True
+    be = JamDB(args.database, initViews=initViews)
+    # depending on choices
     if args.command=='test':
       print('backend was started')
       print('database server:',be.db.db.client.server_url)
