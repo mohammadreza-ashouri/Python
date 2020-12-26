@@ -86,8 +86,6 @@ class JamDB:
     self.eargs   = configuration['-eargs']
     self.magicTags= configuration['-magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
     # internal hierarchy structure
-    self.dataDictionary = self.db.getDoc('-dataDictionary-')
-    self.hierList = self.dataDictionary['-hierarchy-']
     self.hierStack = []
     self.currentID  = None
     self.alive     = True
@@ -147,7 +145,7 @@ class JamDB:
     if docType == '-edit-':
       edit = True
       if 'type' not in doc:
-        doc['type'] = ['text',self.hierList[len(self.hierStack)-1]]
+        doc['type'] = ['text',self.db.hierList[len(self.hierStack)-1]]
       if len(hierStack) == 0:  hierStack = self.hierStack
       if '_id' not in doc:
         doc['_id'] = hierStack[-1]
@@ -157,7 +155,7 @@ class JamDB:
         hierStack   = doc['branch'][0]['stack']
     else:  #new doc
       edit = False
-      if docType in self.hierList:
+      if docType in self.db.hierList:
         doc['type'] = ['text',docType]
       else:
         doc['type'] = [docType]
@@ -331,7 +329,7 @@ class JamDB:
         dirName (string): use this name to change into
         kwargs (dict): additional parameter
     """
-    if docID is None or docID in self.hierList:  # none, 'project', 'step', 'task' are given: close
+    if docID is None or docID in self.db.hierList:  # none, 'project', 'step', 'task' are given: close
       self.hierStack.pop()
       if self.cwd is not None:
         os.chdir('..')
@@ -769,17 +767,28 @@ class JamDB:
     docList = self.db.dataLabels+self.db.hierarchyLabels
     idx     = list(dict(docList).values()).index(docLabel)
     docType = list(dict(docList).keys())[idx]
-    for item in self.db.dataDictionary[docType]['default']:
-      if item['length']!=0:
-        formatString = '{0: <'+str(abs(item['length']))+'}'
+    widthArray = self.db.tableFormat['-default-']
+    if docType in self.db.tableFormat:
+      widthArray = self.db.tableFormat[docType]['-default-']
+    for idx,item in enumerate(self.db.ontology[docType]):
+      if idx<len(widthArray):
+        width = widthArray[idx]
+      else:
+        width = 0
+      if width!=0:
+        formatString = '{0: <'+str(abs(width))+'}'
         outString.append(formatString.format(item['name']) )
     outString = '|'.join(outString)+'\n'
-    outString += '-'*110+'\n'
+    outString += '-'*104+'\n'
     for lineItem in self.db.getView('viewDocType/'+view):
       rowString = []
-      for idx, item in enumerate(self.db.dataDictionary[docType]['default']):
-        if item['length']!=0:
-          formatString = '{0: <'+str(abs(item['length']))+'}'
+      for idx, item in enumerate(self.db.ontology[docType]):
+        if idx<len(widthArray):
+          width = widthArray[idx]
+        else:
+          width = 0
+        if width!=0:
+          formatString = '{0: <'+str(abs(width))+'}'
           if isinstance(lineItem['value'][idx], str ):
             contentString = lineItem['value'][idx]
           elif isinstance(lineItem['value'][idx], bool ) or lineItem['value'][idx] is None:
@@ -787,7 +796,7 @@ class JamDB:
           else:
             contentString = ' '.join(lineItem['value'][idx])
           contentString = contentString.replace('\n',' ')
-          if item['length']<0:  #test if value as non-trivial length
+          if width<0:  #test if value as non-trivial length
             if lineItem['value'][idx]=='true' or lineItem['value'][idx]=='false':
               contentString = lineItem['value'][idx]
             elif isinstance(lineItem['value'][idx], bool ) or lineItem['value'][idx] is None:
@@ -797,7 +806,7 @@ class JamDB:
             else:
               contentString = 'false'
             # contentString = True if contentString=='true' else False
-          rowString.append(formatString.format(contentString)[:abs(item['length'])] )
+          rowString.append(formatString.format(contentString)[:abs(width)] )
       if printID:
         rowString.append(' '+lineItem['id'])
       outString += '|'.join(rowString)+'\n'
@@ -911,7 +920,7 @@ class JamDB:
         continue
       # identify docType
       levelID     = doc['type']
-      doc['type'] = ['text',self.hierList[levelID]]
+      doc['type'] = ['text',self.db.hierList[levelID]]
       if doc['edit'] == "-edit-":
         edit = "-edit-"
       else:

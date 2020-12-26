@@ -66,10 +66,10 @@ else:
       print('database server:',be.db.db.client.server_url)
       print('configName:',be.configName)
       print('database name:',be.db.db.database_name)
-      if be.db.getDoc('-dataDictionary-')['_id'] == '-dataDictionary-':
-        print('dataDictionary exists on server')
+      if be.db.getDoc('-ontology-')['_id'] == '-ontology-':
+        print('Ontology exists on server')
       else:
-        print('dataDictionary does NOT exist on server')
+        print('Ontology does NOT exist on server')
       print('local directory:',be.basePath)
       print('software directory:',be.softwarePath)
     elif args.command=='checkDB':

@@ -104,15 +104,15 @@ class TestStringMethods(unittest.TestCase):
 
       ### ADD OWN DATATYPE
       print('\n*** ADD OWN DATATYPE ***')
-      # Update datadictionary
-      newDataDict = self.be.db.db['-dataDictionary-']
-      newDataDict['instrument'] = {'config': ['Instruments'],'default': [\
-                {'name': 'name',  'long': 'What is the name?','length': 25},
-                {'name': 'vendor', 'long': 'What is the vendor?', 'length': 25},
-                {'name': 'model',  'long': 'What is the model?', 'length': 25},
-                {"name":"comment",  "long":"#tags comments :field:value:","length":35}
-                ]}
-      newDataDict.save()
+      # Update ontology
+      newOntology = self.be.db.db['-ontology-']
+      newOntology['instrument'] = [\
+                {'name': 'name',  'query': 'What is the name?'},
+                {'name': 'vendor', 'query': 'What is the vendor?'},
+                {'name': 'model',  'query': 'What is the model?'},
+                {"name":"comment",  "query":"#tags comments :field:value:"}
+                ]
+      newOntology.save()
       # restart
       self.be.exit()
       self.be = JamDB(configName, initViews=True)

@@ -35,17 +35,22 @@ class Database:
       self.db = self.client[self.databaseName]
     else:
       self.db = self.client.create_database(self.databaseName)
-    # check if default document exist and create
-    if '-dataDictionary-' not in self.db:
-      logging.info('database:init Data structure not defined. Use default one')
-      with open(softwarePath+'dataDictionary.json', 'r') as fIn:
-        dataDictionary = json.load(fIn)
-      _ = self.db.create_document(dataDictionary)
+    # check if default documents exist and create
+    for item in ['-ontology-','-tableFormat-']:
+      if item not in self.db:
+        logging.info('database:init '+item+' not defined. Use default one')
+        with open(softwarePath+'configuration.json', 'r') as fIn:
+          doc = json.load(fIn)[item]
+        doc['_id'] = item
+        _ = self.db.create_document(doc)
     # check if default views exist and create them
-    self.dataDictionary = self.db['-dataDictionary-']
-    res = cT.dataDictionary2DataLabels(self.dataDictionary)
+    self.ontology    = self.db['-ontology-']
+    self.tableFormat = self.db['-tableFormat-']
+    res = cT.ontology2Labels(self.ontology,self.tableFormat)
+    # save labels and hierarchy list
     self.dataLabels = list(res['dataList'])
     self.hierarchyLabels = list(res['hierarchyList'])
+    self.hierList        = self.ontology['-hierarchy-']
     if initViews:
       self.initViews()
     return
@@ -66,7 +71,7 @@ class Database:
         else:     #only show first instance in list doc.branch[0]
           jsString = jsDefault.replace('$docType$', "doc.type[0]=='"+docType+"'").replace('$key$','doc.branch[0].stack[0]')
         outputList = []
-        for item in self.dataDictionary[docType]['default']:
+        for item in self.ontology[docType]:
           if item['name'] == 'image':
             outputList.append('(doc.image.length>3).toString()')
           elif item['name'] == 'tags':
@@ -356,9 +361,9 @@ class Database:
         if verbose:
           outstring+= f'{bcolors.OKGREEN}..info: Design document '+doc['_id']+f'{bcolors.ENDC}\n'
         continue
-      if doc['_id'] == '-dataDictionary-':
+      if doc['_id'] == '-ontology-' or doc['_id'] == '-tableFormat-':
         if verbose:
-          outstring+= f'{bcolors.OKGREEN}..info: Data dictionary exists{bcolors.ENDC}\n'
+          outstring+= f'{bcolors.OKGREEN}..info: '+doc['_id']+' exists{bcolors.ENDC}\n'
         continue
 
       # old revisions of document. Test
