@@ -36,34 +36,24 @@ class Database:
     else:
       self.db = self.client.create_database(self.databaseName)
     # check if default documents exist and create
-    for item in ['-ontology-','-tableFormat-']:
-      if item not in self.db:
-        logging.info('database:init '+item+' not defined. Use default one')
-        with open(softwarePath+'configuration.json', 'r') as fIn:
-          doc = json.load(fIn)[item]
-        doc['_id'] = item
-        _ = self.db.create_document(doc)
+    if '-ontology-' not in self.db:
+      logging.info('database:init ontology not defined. Use default one')
+      with open(softwarePath+'ontology.json', 'r') as fIn:
+        doc = json.load(fIn)
+      _ = self.db.create_document(doc)
     # check if default views exist and create them
     self.ontology    = self.db['-ontology-']
-    self.tableFormat = self.db['-tableFormat-']
-    res = cT.ontology2Labels(self.ontology,self.tableFormat)
-    # save labels and hierarchy list
-    self.dataLabels = list(res['dataList'])
-    self.hierarchyLabels = list(res['hierarchyList'])
-    self.hierList        = self.ontology['-hierarchy-']
-    if initViews:
-      self.initViews()
     return
 
 
-  def initViews(self):
+  def initViews(self, docTypesLabels):
     """
     initialize all views
     """
     # for the individual docTypes
     jsDefault = "if ($docType$ && !('current_rev' in doc)) {emit($key$, [$outputList$]);}"
     viewCode = {}
-    for docType, docLabel in self.dataLabels+self.hierarchyLabels:
+    for docType, docLabel in docTypesLabels:
       view = 'view'+docLabel
       if '_design/'+view not in self.db:
         if docType=='project':
@@ -361,9 +351,9 @@ class Database:
         if verbose:
           outstring+= f'{bcolors.OKGREEN}..info: Design document '+doc['_id']+f'{bcolors.ENDC}\n'
         continue
-      if doc['_id'] == '-ontology-' or doc['_id'] == '-tableFormat-':
+      if doc['_id'] == '-ontology-':
         if verbose:
-          outstring+= f'{bcolors.OKGREEN}..info: '+doc['_id']+' exists{bcolors.ENDC}\n'
+          outstring+= f'{bcolors.OKGREEN}..info: ontology exists{bcolors.ENDC}\n'
         continue
 
       # old revisions of document. Test

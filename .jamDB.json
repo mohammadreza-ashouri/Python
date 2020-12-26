@@ -15,5 +15,21 @@
     "password": "**PASSWORD_2**",
     "url": "https://*",
     "database": "**UUID**"
+  },
+
+  "-tableFormat-":{
+    "project":{
+      "-label-":"Projects",
+      "-default-": [22,6,50,22]
+    },
+    "measurement":{
+      "-default-": [23,13,22,22,-5,-5,-5,-5]
+    },
+    "sample":{
+      "-default-": [23,23,23,23,-5]
+    },
+    "procedure":{
+      "-default-": [20,20,20,40]
+    }
   }
 }

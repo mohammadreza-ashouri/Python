@@ -80,7 +80,14 @@ class JamDB:
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
     logging.info('\nSTART JAMS '+configName)
     # start database
-    self.db = Database(user, password, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep, initViews=initViews)
+    self.db = Database(user, password, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep)
+    self.tableFormat = configuration['-tableFormat-']
+    res = cT.ontology2Labels(self.db.ontology,self.tableFormat)
+    self.dataLabels      = list(res['dataList'])
+    self.hierarchyLabels = list(res['hierarchyList'])
+    self.hierList        = self.db.ontology['-hierarchy-']
+    if initViews:
+      self.db.initViews(self.dataLabels+self.hierarchyLabels)
     self.userID   = configuration['-userID']
     self.remoteDB = configuration[remoteName]
     self.eargs   = configuration['-eargs']
@@ -145,7 +152,7 @@ class JamDB:
     if docType == '-edit-':
       edit = True
       if 'type' not in doc:
-        doc['type'] = ['text',self.db.hierList[len(self.hierStack)-1]]
+        doc['type'] = ['text',self.hierList[len(self.hierStack)-1]]
       if len(hierStack) == 0:  hierStack = self.hierStack
       if '_id' not in doc:
         doc['_id'] = hierStack[-1]
@@ -155,7 +162,7 @@ class JamDB:
         hierStack   = doc['branch'][0]['stack']
     else:  #new doc
       edit = False
-      if docType in self.db.hierList:
+      if docType in self.hierList:
         doc['type'] = ['text',docType]
       else:
         doc['type'] = [docType]
@@ -329,7 +336,7 @@ class JamDB:
         dirName (string): use this name to change into
         kwargs (dict): additional parameter
     """
-    if docID is None or docID in self.db.hierList:  # none, 'project', 'step', 'task' are given: close
+    if docID is None or docID in self.hierList:  # none, 'project', 'step', 'task' are given: close
       self.hierStack.pop()
       if self.cwd is not None:
         os.chdir('..')
@@ -764,12 +771,12 @@ class JamDB:
     """
     view = 'view'+docLabel
     outString = []
-    docList = self.db.dataLabels+self.db.hierarchyLabels
+    docList = self.dataLabels+self.hierarchyLabels
     idx     = list(dict(docList).values()).index(docLabel)
     docType = list(dict(docList).keys())[idx]
-    widthArray = self.db.tableFormat['-default-']
-    if docType in self.db.tableFormat:
-      widthArray = self.db.tableFormat[docType]['-default-']
+    widthArray = [25,25,25,25]
+    if docType in self.tableFormat:
+      widthArray = self.tableFormat[docType]['-default-']
     for idx,item in enumerate(self.db.ontology[docType]):
       if idx<len(widthArray):
         width = widthArray[idx]
@@ -920,7 +927,7 @@ class JamDB:
         continue
       # identify docType
       levelID     = doc['type']
-      doc['type'] = ['text',self.db.hierList[levelID]]
+      doc['type'] = ['text',self.hierList[levelID]]
       if doc['edit'] == "-edit-":
         edit = "-edit-"
       else:

@@ -1,0 +1,45 @@
+{
+  "_id":"-ontology-",
+  "-hierarchy-":["project","step","task"],
+
+  "project": [
+      {"name":"name",     "query":"What is the project's name?"},
+      {"name":"status",   "query":"What is the project status", "list":["active","paused","passive"]},
+      {"name":"objective","query":"What is the objective?"},
+      {"name":"tags"},
+      {"name":"comment",  "query":"#tags comments :field:value:"}
+  ],
+  "step": [
+      {"name":"name",     "query":"What is the name of step?"},
+      {"name":"comment",  "query":"#tags comments :field:value:"}
+  ],
+  "task": [
+      {"name":"name",     "query":"What is the name of task?"},
+      {"name":"comment",  "query":"#tags comments :field:value:"},
+      {"name":"procedure","query":"Which procedure to use"}
+  ],
+
+  "measurement": [
+    {"name":"name",       "query":"What is the file name?"},
+    {"name":"tags"},
+    {"name":"comment",    "query":"#tags comments :field:value:"},
+    {"name":"type",       "query":"Measurement type"},
+    {"name":"image"},
+    {"name":"curate"},
+    {"name":"sample",     "query":"Which sample was used?",     "list":"sample"},
+    {"name":"procedure",  "query":"Which procedure was used?",  "list":"procedure"}
+  ],
+  "sample": [
+    {"name":"name",       "query":"What is the name of the sample?"},
+    {"name":"chemistry",  "query":"What is its chemical composition?"},
+    {"name":"tags"},
+    {"name":"comment",    "query":"#tags comments :field:value:"},
+    {"name":"qrCode",     "query":"What is its QR-code?"}
+  ],
+  "procedure": [
+    {"name":"name",       "query":"What is the name / path?"},
+    {"name":"tags"},
+    {"name":"comment",    "query":"#tags comments :field:value: e.g. #SOP_v1"},
+    {"name":"content",    "query":"What are the steps (autofilled if file given)?"}
+  ]
+}
