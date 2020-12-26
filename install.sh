@@ -264,6 +264,13 @@ else
   sudo -u $THEUSER echo "    \"password\": \"____\"," >> /home/$THEUSER/.jamDB.json
   sudo -u $THEUSER echo "    \"url\": \"https://____\"," >> /home/$THEUSER/.jamDB.json
   sudo -u $THEUSER echo "    \"database\": \"____\"" >> /home/$THEUSER/.jamDB.json
+  sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.jamDB.json
+  sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
+  sudo -u $THEUSER echo "  \"-tableFormat-\": {" >> /home/$THEUSER/.jamDB.json
+  sudo -u $THEUSER echo "    \"project\":{\"-label-\":\"Projects\",\"-default-\": [22,6,50,22]}," >> /home/$THEUSER/.jamDB.json
+  sudo -u $THEUSER echo "    \"measurement\":{\"-default-\": [23,13,22,22,-5,-5,-5,-5]}," >> /home/$THEUSER/.jamDB.json
+  sudo -u $THEUSER echo "    \"sample\":{\"-default-\": [23,23,23,23,-5]}," >> /home/$THEUSER/.jamDB.json
+  sudo -u $THEUSER echo "    \"procedure\":{\"-default-\": [20,20,20,40]}" >> /home/$THEUSER/.jamDB.json
   sudo -u $THEUSER echo "  }" >> /home/$THEUSER/.jamDB.json
   sudo -u $THEUSER echo "}" >> /home/$THEUSER/.jamDB.json
 fi
