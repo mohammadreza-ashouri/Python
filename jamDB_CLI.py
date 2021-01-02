@@ -185,23 +185,23 @@ while be.alive:
         expand = ['']
       else:
         if nextMenu == 'main':
-          expand = [' '+j for i, j in be.db.dataLabels]
+          expand = [' '+j for i, j in be.dataLabels]
         else:  # output
-          expand = [' '+j for i, j in be.db.dataLabels+be.db.hierarchyLabels]
+          expand = [' '+j for i, j in be.dataLabels+be.hierarchyLabels]
       #create list of choices
       for itemI in expand:
         question[0]['choices'].append({'name': key+itemI, 'value': value+itemI[1:]})
     if nextMenu != 'main':
       question[0]['choices'].append({'name':'>Go back to main<', 'value':'menu_main'})
-  elif nextMenu.startswith('change') or nextMenu in [i for j,i in be.db.dataLabels]:
+  elif nextMenu.startswith('change') or nextMenu in [i for j,i in be.dataLabels]:
     #change menu OR add/edit samples,procedures,measurements
-    addEditDoc = nextMenu in [i for j,i in be.db.dataLabels]
+    addEditDoc = nextMenu in [i for j,i in be.dataLabels]
     question = [{'type': 'list', 'name': 'choice', 'message': nextMenu, 'choices':[]}]
     if len(be.hierStack) == 0 or addEditDoc: # no project in stack or sample/procedures/measurements: use VIEW
       if addEditDoc:
-        view    = be.db.getView('view'+nextMenu+'/view'+nextMenu)
+        view    = be.db.getView('viewDocType/view'+nextMenu)
       else:
-        view    = be.db.getView('viewProjects/viewProjects')
+        view    = be.db.getView('viewDocType/viewProjects')
       values = [i['id'] for i in view]
       names  = [i['value'][0] for i in view]
     else:                      # step/task: get its children
@@ -222,21 +222,27 @@ while be.alive:
     #create form (=sequence of questions for string input) is dynamically created from dataDictonary
     docType = nextMenu.split('_')[1]
     question = []
-    if docType not in be.dataDictionary:  #only measurements, samples, procedures
-      for type_, label_ in be.db.dataLabels:
+    if docType not in be.db.ontology:  #only measurements, samples, procedures
+      for type_, label_ in be.dataLabels:
         if label_ == docType:
           docType = type_
-    for line in be.dataDictionary[docType]['default']:  # iterate over all data stored within this docType
+    for line in be.db.ontology[docType]:  # iterate over all data stored within this docType
       ### convert line into json-string that PyInquirer understands
       # decode incoming json
       itemList = line['list'] if 'list' in line else None
       name = line['name']
-      questionString = line['long']
+      questionString = line['query']
       generate = bool(len(questionString)==0)
+      if 'unit' in line:
+        questionString += ' ['+line['unit']+']'
+      if 'required' in line and line['required']==True:
+        questionString += ' *'
       # encode outgoing json
       if generate:
         continue  # it is generated, no need to ask
       newQuestion = {'type': 'input', 'name': name, 'message': questionString}
+      if 'required' in line and line['required']==True:
+        newQuestion['validate'] = lambda val: len(val.strip())>0
       if itemList is not None:
         newQuestion['type'] = 'list'
       if isinstance(itemList, list):
@@ -293,7 +299,7 @@ while be.alive:
         print(res)  #output string returned from e.g. output-projects
       nextMenu = 'main'
   else:
-    # all data collected, save it
+    # all data collected, save it to database
     if nextMenu=='edit': #edit-> update data
       print("I SHOULD NOT BE HERE")
     elif len(answer)!=0 and np.sum([len(i) for i in list(answer.values())])>0:

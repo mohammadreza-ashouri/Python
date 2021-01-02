@@ -4,7 +4,7 @@
 
   "project": [
       {"name":"name",     "query":"What is the project's name?"},
-      {"name":"status",   "query":"What is the project status", "list":["active","paused","passive"]},
+      {"name":"status",   "query":"What is the project status", "list":["active","paused","passive","finished"]},
       {"name":"objective","query":"What is the objective?"},
       {"name":"tags"},
       {"name":"comment",  "query":"#tags comments :field:value:"}
