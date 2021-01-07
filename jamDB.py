@@ -19,7 +19,7 @@ Possible commands are:
     checkDB: test jamDB database
     sync: synchronize / replicate with remote server
     print: print overview
-        item: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
+        label: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
     scan, hierarchy: scan or print project
         item: documentID for. To be identified by printing Project
     addDoc:
@@ -32,7 +32,7 @@ Possible commands are:
 argparser.add_argument('command', help='help, test, checkDB, print, scan, addDoc, hierarchy, newDB, extractorTest')
 argparser.add_argument('-i','--docID',   help='docID of project', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
-argparser.add_argument('-l','--label',   help='label used for printing', default='Projects')
+argparser.add_argument('-l','--label',   help='label used for printing', default='')
 argparser.add_argument('-p','--path',    help='path for extractor test', default='')
 argparser.add_argument('-d','--database',help='name of database configuration', default='') #required for be = JamDB(args.database)
 args = argparser.parse_args()
@@ -80,7 +80,11 @@ else:
     elif args.command=='sync':
       print('sync not implemented yet')
     elif args.command=='print':
+      if args.label=='':
+        args.label='Projects'
       print(be.output(args.label,True))
+    elif args.command=='printTags':
+      print(be.outputTags(args.label))
     elif args.command=='backup':
       be.backup()
     elif args.command=='extractorTest':
@@ -103,7 +107,8 @@ else:
       be.addData(docType,doc)
     else:
       #all commands that require an open project
-      be.changeHierarchy(args.docID)
+      if args.docID!='':
+        be.changeHierarchy(args.docID)
       if args.command=='scan':
         be.scanTree()                 #there can not be a callback function
       elif args.command=='save':
@@ -119,6 +124,7 @@ else:
       elif args.command=='hierarchy':
         print(be.outputHierarchy(True,True))
       else:
+        print("Command does not exist:",args.command)
         be.exit()
         raise NameError('Wrong command: '+args.command)
     be.exit()

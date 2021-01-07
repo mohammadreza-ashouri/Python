@@ -46,7 +46,7 @@ class Database:
     return
 
 
-  def initViews(self, docTypesLabels):
+  def initViews(self, docTypesLabels, magicTags=['TODO','v1']):
     """
     initialize all views
     """
@@ -77,7 +77,7 @@ class Database:
         logging.info('database:init '+view+' not defined. Use default one:'+jsString)
         viewCode[view]=jsString
     self.saveView('viewDocType', viewCode)
-    # general views
+    # general views: Hierarchy, Identify
     jsHierarchy  = '''
       if ('type' in doc && !('current_rev' in doc)) {
         doc.branch.forEach(function(branch) {emit(branch.stack.concat([doc._id]).join(' '),[branch.child,doc.type,doc.name]);});
@@ -92,8 +92,10 @@ class Database:
     self.saveView('viewHierarchy',{'viewHierarchy':jsHierarchy,'viewPaths':jsPath})
     jsSHA= "if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.shasum, doc.name);}"
     jsQR = "if (doc.qrCode.length > 0 && !('current_rev' in doc))"
-    jsQR+=   '{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}'
-    self.saveView('viewIdentify',     {'viewQR': jsQR, 'viewSHAsum':jsSHA} )
+    jsQR+= '{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}'
+    jsTags=str(magicTags)+".forEach(function(tag){if(doc.tags.indexOf('#'+tag)>-1) emit('#'+tag, doc.name);});"
+    views = {'viewQR':jsQR, 'viewSHAsum':jsSHA, 'viewTags':jsTags}
+    self.saveView('viewIdentify', views)
     return
 
 

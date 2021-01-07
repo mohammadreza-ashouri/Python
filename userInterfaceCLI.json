@@ -6,7 +6,7 @@
    {"Edit this":           "direct_edit_",              "append":"thisLevel"},
    {"Close this":          "function_changeHierarchy_", "append":"thisLevel"},
    {"---":                 ""},
-   {"Edit/Add":           "menu_",                     "expand":"docLabel"},
+   {"Edit/Add":           "menu_",                      "expand":"docLabel"},
    {"---":                 ""},
    {"Output database":     "menu_output"},
    {"Automatic functions": "menu_automate"},
@@ -14,7 +14,11 @@
 ],
 "output": [ "What to display?",
    {"Output":              "function_output_",          "expand":"docLabel"},
-   {"Output hierarchy":    "function_outputHierarchy"}
+   {"---":                 ""},
+   {"Output hierarchy":    "function_outputHierarchy"},
+   {"Output all tags":     "function_outputTags"},
+   {"Output TODO tag":     "function_outputTags_TODO"},
+   {"Output PAUSE tag":    "function_outputTags_PAUSE"}
 ],
 "automate": [ "How to scan directories?",
    {"Find new measurements"             :"function_scanTree"},

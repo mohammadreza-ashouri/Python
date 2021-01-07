@@ -35,8 +35,8 @@ class TestStringMethods(unittest.TestCase):
       viewProj = self.be.db.getView('viewDocType/viewProjects')
       projID1  = [i['id'] for i in viewProj if 'Intermetals at interfaces'==i['value'][0]][0]
       self.be.changeHierarchy(projID1)
-      self.be.addData('step',    {'comment': 'This is hard!', 'name': 'Get steel and Al-powder'})
-      self.be.addData('step',    {'comment': 'This will take a long time.', 'name': 'Get spray machine'})
+      self.be.addData('step',    {'comment': 'This is hard! #TODO', 'name': 'Get steel and Al-powder'})
+      self.be.addData('step',    {'comment': 'This will take a long time. #WAIT', 'name': 'Get spray machine'})
       self.be.changeHierarchy(self.be.currentID)
       self.be.addData('task',    {'name': 'Get quotes', 'comment': 'Dont forget company-A', 'procedure': 'Guidelines of procurement'})
       self.be.addData('task',    {'name': 'Buy machine','comment': 'Delivery time will be 6month'})
@@ -118,8 +118,8 @@ class TestStringMethods(unittest.TestCase):
       self.be.exit()
       self.be = JamDB(configName, initViews=True)
       # add data
-      self.be.addData('instrument', {'name': 'XP', 'vendor':'MTS', 'model':'Nanoindenter XP', 'comment':':room:10:'})
-      self.be.addData('instrument', {'name': 'Fischer', 'vendor':'Fischer', 'model':'Fischer Scope 300mN', 'comment':':room:12:'})
+      self.be.addData('instrument', {'name': 'XP', 'vendor':'MTS', 'model':'Nanoindenter XP', 'comment':':room:10: #TODO'})
+      self.be.addData('instrument', {'name': 'Fischer', 'vendor':'Fischer', 'model':'Fischer Scope 300mN', 'comment':':room:12: #TODO'})
       # look at data
       print(self.be.output('Instruments'))
       # look at one data-set

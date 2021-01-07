@@ -79,19 +79,20 @@ class JamDB:
     logging.getLogger('PIL').setLevel(logging.WARNING)
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
     logging.info('\nSTART JAMS '+configName)
+    # decipher configuration and store
+    self.userID   = configuration['-userID']
+    self.remoteDB = configuration[remoteName]
+    self.eargs   = configuration['-eargs']
+    self.magicTags= configuration['-magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
+    self.tableFormat = configuration['-tableFormat-']
     # start database
     self.db = Database(user, password, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep)
-    self.tableFormat = configuration['-tableFormat-']
     res = cT.ontology2Labels(self.db.ontology,self.tableFormat)
     self.dataLabels      = list(res['dataList'])
     self.hierarchyLabels = list(res['hierarchyList'])
     self.hierList        = self.db.ontology['-hierarchy-']
     if initViews:
-      self.db.initViews(self.dataLabels+self.hierarchyLabels)
-    self.userID   = configuration['-userID']
-    self.remoteDB = configuration[remoteName]
-    self.eargs   = configuration['-eargs']
-    self.magicTags= configuration['-magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
+      self.db.initViews(self.dataLabels+self.hierarchyLabels,self.magicTags)
     # internal hierarchy structure
     self.hierStack = []
     self.currentID  = None
@@ -759,7 +760,7 @@ class JamDB:
   def output(self, docLabel, printID=False, **kwargs):
     """
     output view to screen
-    - length of output 110 character
+    - length of output 100 character
 
     Args:
       docLabel (string): document label to output
@@ -816,6 +817,39 @@ class JamDB:
           rowString.append(formatString.format(contentString)[:abs(width)] )
       if printID:
         rowString.append(' '+lineItem['id'])
+      outString += '|'.join(rowString)+'\n'
+    return outString
+
+
+  def outputTags(self, tag='', **kwargs):
+    """
+    output view to screen
+    - length of output 100 character
+
+    Args:
+      tag (string): tag to be listed, if empty: print all
+      printID (bool):  include docID in output string
+      kwargs (dict): additional parameter
+
+    Returns:
+        string: output incl. \n
+    """
+    outString = []
+    outString.append( '{0: <10}'.format('Tags') )
+    outString.append( '{0: <60}'.format('Name') )
+    outString.append( '{0: <10}'.format('ID') )
+    outString = '|'.join(outString)+'\n'
+    outString += '-'*106+'\n'
+    view = None
+    if tag=='':
+      view = self.db.getView('viewIdentify/viewTags')
+    else:
+      view = self.db.getView('viewIdentify/viewTags',preciseKey='#'+tag)
+    for lineItem in view:
+      rowString = []
+      rowString.append('{0: <10}'.format(lineItem['key']))
+      rowString.append('{0: <60}'.format(lineItem['value']))
+      rowString.append('{0: <10}'.format(lineItem['id']))
       outString += '|'.join(rowString)+'\n'
     return outString
 
