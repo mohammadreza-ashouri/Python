@@ -1,6 +1,31 @@
 #!/bin/bash
 echo "Installer for jamDB on Ubuntu Systems"
+echo "  the following actions are executed (only install if item does not exist)"
+echo "  - install Python 3"
+echo "  - install Python extensions: openCV, pip"
+echo "  - install pandoc"
+echo "  - install git and git-annex; if git is not configured it will be"
+echo "  - ensure that xv command exists"
+echo "  - install couchDB"
+echo "  - adopt PATH and PYTHONPATH"
+echo "  - clone python programs for micromechanics"
+echo "  - clone python backend of jamDB"
+echo "  - clone graphical frontend of jamDB"
+echo "  - install python requirements for jamDB"
+echo "  - adopt .jamDB.json file in home directory"
+echo "  - run a short test"
+echo "  - install npm (node package manager)"
+echo "  - install node requirements for jamDB"
+echo "  - start graphical user interface (GUI)"
 echo
+read -p "Do you wish to install all these items now [Y/n] ? " yesno
+if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
+then
+  echo "  Did not install anything"
+  exit
+fi
+echo
+
 echo "Ensure installer has sudo rights"
 if [ "$EUID" -ne 0 ]
   then
@@ -19,15 +44,8 @@ if [ ${OUTPUT1[0]} = "Python" ] && [ ${OUTPUT2[0]} = "3" ]
 then
   echo "  Python installed in version 3."
 else
-  echo "  Info: Python 3 not installed."
-  read -p "  Do you wish to install it now [Y/n] ? " yesno
-  if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
-  then
-    echo "  Did not install python"
-    exit
-  else
-    sudo apt-get install -y python3
-  fi
+  echo "  Info: Python 3 will be installed."
+  sudo apt-get install -y python3
 fi
 echo
 echo "Ensure openCV for python is installed"
@@ -35,32 +53,37 @@ if dpkg --get-selections | grep -q "^python3-opencv[[:space:]]*install$" >/dev/n
 then
   echo "  python3-opencv is installed"
 else
-  read -p "  Do you wish to install python3-openCV [Y/n] ? " yesno
-  if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
-  then
-    echo "  Did not install python3-opencv"
-    exit
-  else
-    sudo apt-get install -y python3-opencv
-  fi
+  echo "  Info: Python-OpenCV will be installed."
+  sudo apt-get install -y python3-opencv
+fi
+echo
+echo "Ensure pip for python is installed"
+if dpkg --get-selections | grep -q "^python3-pip[[:space:]]*install$" >/dev/null
+then
+  echo "  python3-pip is installed"
+else
+  echo "  Info: Python3-pip will be installed."
+  sudo apt-get install -y python3-pip
 fi
 echo
 
 
+echo "Ensure pandoc is installed"
+if command -v pandoc &> /dev/null
+then
+  echo "  pandoc installed."
+else
+  echo "  Info: pandoc will be installed."
+  sudo apt-get install -y pandoc
+fi
+echo
 echo "Ensure git is installed"
 if command -v git &> /dev/null
 then
   echo "  git installed."
 else
-  echo "  Info: git not installed."
-  read -p "  Do you wish to install it now [Y/n] ? " yesno
-  if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
-  then
-    echo "  Did not install git"
-    exit
-  else
-    sudo apt-get install -y git
-  fi
+  echo "  Info: git will be installed."
+  sudo apt-get install -y git
 fi
 echo
 echo "Ensure git-annex is installed"
@@ -68,15 +91,8 @@ if command -v git-annex &> /dev/null
 then
   echo "  git-annex installed."
 else
-  echo "  Info: git-annex not installed."
-  read -p "  Do you wish to install it now [Y/n] ? " yesno
-  if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
-  then
-    echo "  Did not install git-annex"
-    exit
-  else
-    sudo apt-get install -y git-annex
-  fi
+  echo "  Info: git-annex will be installed."
+  sudo apt-get install -y git-annex
 fi
 OUTPUT=$(sudo -u $THEUSER git config -l | grep "user")
 if [[ -n $OUTPUT ]]
@@ -98,26 +114,13 @@ then
   echo "  xv is present"
 else
   echo "  xv is not present. Try display"
-  if ! command -v xv &> /dev/null
+  if ! command -v display &> /dev/null
   then
-    echo "  xv and display NOT installed."
-    read -p "  Do you wish to install imagemagick now [Y/n] ? " yesno
-    if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
-    then
-      echo "  Did not install imagemagick"
-      exit
-    else
-      sudo apt-get install -y imagemagick
-    fi
+    echo "  xv and display are NOT installed. Imagemagick will be installed."
+    sudo apt-get install -y imagemagick
   fi
-  read -p "  Do you wish to create link from display to xv [Y/n] ? " yesno
-  if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
-  then
-    echo "  Did not create link"
-    exit
-  else
-    sudo ln -s /usr/bin/display /usr/bin/xv
-  fi
+  echo "  Create link from display to xv."
+  sudo ln -s /usr/bin/display /usr/bin/xv
 fi
 echo
 
@@ -127,46 +130,17 @@ if dpkg --get-selections | grep -q "^couchdb[[:space:]]*install$" >/dev/null
 then
   echo "  couchdb is installed"
 else
-  read -p "  Do you wish to install couchdb [Y/n] ? " yesno
-  if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
-  then
-    echo "  Did not install couchdb"
-    exit
-  else
-    sudo apt-get install -y gnupg ca-certificates
-    echo "deb https://apache.bintray.com/couchdb-deb focal main" | sudo tee /etc/apt/sources.list.d/couchdb.list
-    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8756C4F765C9AC3CB6B85D62379CE192D401AB61
-    sudo apt update
-    sudo apt install -y couchdb
-  fi
+  echo "Install instructions:"
+  echo "  choose Standalone installation. Rest: choose OK"
+  echo "  The password will be saved on the harddisk in a file in plain text. Since this"
+  echo "  file/port cannot be reached from outside of your computer, there is no real danger."
+  sudo apt-get install -y gnupg ca-certificates
+  echo "deb https://apache.bintray.com/couchdb-deb focal main" | sudo tee /etc/apt/sources.list.d/couchdb.list
+  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8756C4F765C9AC3CB6B85D62379CE192D401AB61
+  sudo apt update
+  sudo apt install -y couchdb
 fi
-if command -v firefox &> /dev/null
-then
-  echo "  firefox is present"
-  WEBBROWSER='firefox'
-else
-  if command -v chromium &> /dev/null
-  then
-    echo "  chromium is present"
-    WEBBROWSER='chromium'
-  else
-    echo "  neither firefox nor chromium are present."
-    read -p "  What is your webbrowser? " WEBBROWSER
-    if command -v ${WEBBROWSER} &> /dev/null
-    then
-      echo "  ${WEBBROWSER} is present"
-    else
-      echo "  No webbrowser found"
-      exit
-    fi
-  fi
-fi
-echo
-echo "Start of webbrowser, please setup administrator and password for couchDB"
-echo "These will be saved on the harddisk in a file in plain text. Since this"
-echo "port cannot be reached from outside, there is no real danger."
-sudo -u $THEUSER $WEBBROWSER 127.0.0.1:5984/_utils/
-read -p "  Which user name did you enter? " CDB_USER
+CDB_USER="admin"
 read -p "  Which password did you enter? " CDB_PASSW
 echo
 
@@ -203,102 +177,79 @@ echo
 
 
 echo "Adopt path and python-path in your environment"
-read -p "  Do you wish to append the .bashrc file [Y/n] ? " yesno
-if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
-then
-  echo "  Did not append the .bashrc file."
-  exit
-else
-  sudo -u $THEUSER echo "#jamDB changes" >> /home/$THEUSER/.bashrc
-  sudo -u $THEUSER echo "export PATH=\$PATH:/home/${THEUSER}/${jamDB_src}/jamdb-python" >> /home/$THEUSER/.bashrc
-  sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${jamDB_src}/jamdb-python" >> /home/$THEUSER/.bashrc
-  sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${jamDB_src}/experimetal-micromechanics" >> /home/$THEUSER/.bashrc
-fi
+sudo -u $THEUSER echo "#jamDB changes" >> /home/$THEUSER/.bashrc
+sudo -u $THEUSER echo "export PATH=\$PATH:/home/${THEUSER}/${jamDB_src}/jamdb-python" >> /home/$THEUSER/.bashrc
+sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${jamDB_src}/jamdb-python" >> /home/$THEUSER/.bashrc
+sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${jamDB_src}/experimetal-micromechanics" >> /home/$THEUSER/.bashrc
 echo
 
 
 echo "Install python requirements"
 cd /home/$THEUSER/$jamDB_src/jamdb-python
-read -p "  Do you wish to install these requirements [Y/n] ? " yesno
-if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
-then
-  echo "  Did not install requirements"
-  exit
-else
-  cd /home/$THEUSER/$jamDB_src/jamdb-python
-  sudo -H pip3 install -r requirements.txt
-fi
+cd /home/$THEUSER/$jamDB_src/jamdb-python
+sudo -H pip3 install -r requirements.txt
 echo
 
 
 echo "Create jamDB configuration file .jamDB.json in home directory"
-read -p "  Do you wish to create a file .jamDB.json in your home folder [Y/n] ? " yesno
-if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
-then
-  echo "  Did not create .jamDB.json file."
-  exit
-else
-  sudo -u $THEUSER echo "{" > /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  \"-userID\": \"${jamDB_user}\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  \"-defaultLocal\": \"local\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  \"-defaultRemote\": \"remote\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  \"-eargs\": {\"editor\": \"emacs\", \"ext\": \".org\", \"style\": \"all\"}," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  \"-magicTags\": [\"P1\",\"P2\",\"P3\",\"TODO\",\"WAIT\",\"DONE\"]," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  \"local\": {" >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"database\": \"${jamDB_user}\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"path\": \"${jamDB}\"" >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  \"jamDB_tutorial\": {" >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"database\": \"jamdb_tutorial\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"path\": \"${jamDB_src}/jamDB_tutorial\"" >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  \"remote\": {" >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"user\": \"____\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"password\": \"____\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"url\": \"https://____\"," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"database\": \"____\"" >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  \"-tableFormat-\": {" >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"project\":{\"-label-\":\"Projects\",\"-default-\": [22,6,50,22]}," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"measurement\":{\"-default-\": [24,7,23,23,-5,-6,-6,-6]}," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"sample\":{\"-default-\": [23,23,23,23,-5]}," >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "    \"procedure\":{\"-default-\": [20,20,20,40]}" >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "  }" >> /home/$THEUSER/.jamDB.json
-  sudo -u $THEUSER echo "}" >> /home/$THEUSER/.jamDB.json
-fi
+sudo -u $THEUSER echo "{" > /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  \"-userID\": \"${jamDB_user}\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  \"-defaultLocal\": \"jamDB_tutorial\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  \"-defaultRemote\": \"remote\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  \"-eargs\": {\"editor\": \"emacs\", \"ext\": \".org\", \"style\": \"all\"}," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  \"-magicTags\": [\"P1\",\"P2\",\"P3\",\"TODO\",\"WAIT\",\"DONE\"]," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  \"local\": {" >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"database\": \"${jamDB_user}\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"path\": \"${jamDB}\"" >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  \"jamDB_tutorial\": {" >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"database\": \"jamdb_tutorial\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"path\": \"${jamDB_src}/jamDB_tutorial\"" >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  \"remote\": {" >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"user\": \"____\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"password\": \"____\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"url\": \"https://____\"," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"database\": \"____\"" >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  \"-tableFormat-\": {" >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"project\":{\"-label-\":\"Projects\",\"-default-\": [22,6,50,22]}," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"measurement\":{\"-default-\": [24,7,23,23,-5,-6,-6,-6]}," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"sample\":{\"-default-\": [23,23,23,23,-5]}," >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "    \"procedure\":{\"-default-\": [20,20,20,40]}" >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "  }" >> /home/$THEUSER/.jamDB.json
+sudo -u $THEUSER echo "}" >> /home/$THEUSER/.jamDB.json
 echo
 
 
-read -p "Run a test for 30sec - 2min [Y/n] ? " yesno
-if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
-then
-  echo "  Did not run test"
-  exit
-else
-  cd /home/$THEUSER/$jamDB_src/jamdb-python
-  sudo PYTHONPATH=/home/$THEUSER/$jamDB_src/jamdb-python:/home/$THEUSER/$jamDB_src/experimetal-micromechanics/src -u $THEUSER python3 Tests/testTutorial.py
-fi
+echo "Run a short test for 20-40sec?"
+cd /home/$THEUSER/$jamDB_src/jamdb-python
+sudo PYTHONPATH=/home/$THEUSER/$jamDB_src/jamdb-python:/home/$THEUSER/$jamDB_src/experimetal-micromechanics/src -u $THEUSER python3 Tests/testTutorial.py
 echo
 
 
 echo "Graphical user interface GUI"
-read -p "  Do you wish to install graphical user interface requirements [Y/n] ? " yesno
-if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
+echo "  Ensure npm is installed"
+if command -v npm &> /dev/null
 then
-  echo "  Did not install requirements"
-  exit
+  echo "  npm installed."
 else
-  cd /home/$THEUSER/$jamDB_src/jamdb-reactelectron
-  sudo -u $THEUSER npm install
+  echo "  Info: npm will be installed."
+  sudo apt-get install -y npm
 fi
+echo
+cd /home/$THEUSER/$jamDB_src/jamdb-reactelectron
+sudo -u $THEUSER npm install
+
+
 echo -e "\033[0;31m=========================================================="
 echo -e "Last step: Start the graphical user interface. If you want to do that in "
 echo -e "the future:"
