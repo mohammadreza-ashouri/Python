@@ -18,7 +18,7 @@ echo - run a short test
 echo - install npm (node package manager)
 echo - install node requirements for jamDB
 echo - start graphical user interface (GUI)
-echo
+echo.
 REM print empty line
 echo.
 REM ask for user input
@@ -92,7 +92,10 @@ pip.exe install matplotlib pandas wget spyder>nul
 echo  [0m [0m...
 
 echo Test if python is fully working: plot a sine-curve
-python.exe -c "import numpy as np;x = np.linspace(0,2*np.pi);y = np.sin(x);import matplotlib.pyplot as plt;plt.plot(x,y);plt.show()"
+set var=void void
+set /p var="  Skip sine-curve [y/N] "
+echo %var% | findstr "y">nul
+if errorlevel==1 (python.exe -c "import numpy as np;x = np.linspace(0,2*np.pi);y = np.sin(x);import matplotlib.pyplot as plt;plt.plot(x,y);plt.show()")
 echo.
 echo If error occured with numpy: there is some issue with Windows
 echo.  and some basic fuction. Click start button and type: cmd and
@@ -167,10 +170,11 @@ echo.  **run anyway**. REMber the user and password that you
 echo.  enter in the setup utility. If the webbrowser does not
 echo.  start automatically, go to http://localhost:5984/_utils
 echo.
+if exist "%ProgramFiles%\Apache CouchDB\bin" (goto end_couchdb)
 if not exist %downloadDir%/apache-couchdb-3.1.1.msi (python.exe -m wget -o %downloadDir% https://couchdb.neighbourhood.ie/downloads/3.1.1/win/apache-couchdb-3.1.1.msi)
 start /WAIT %downloadDir%\apache-couchdb-3.1.1.msi
+:end_couchdb
 
-echo Create jamDB configuration file .jamDB.json in home directory
 set /p CDB_USER="Which user-name did you use? [admin] "
 set /p CDB_PASSW="Which password did you enter? "
 if not defined CDB_USER (set CDB_USER=admin)
@@ -223,7 +227,7 @@ echo.
 
 
 REM Run a short (20-80sec) test of the python backend
-echo Run a short (20-40sec) test of the python backend
+echo Run a short (20-80sec) test of the python backend
 cd %softwareDir%\jamdb-python
 python Tests\testTutorial.py
 echo.
@@ -248,11 +252,12 @@ cmd /c "npm install"
 
 echo.
 echo ==========================================================
-echo Last step: Start the graphical user interface. If you want to do that in
+echo Start the graphical user interface. If you want to do that in
 echo the future:
 echo.  cd %softwareDir%\jamdb-reactelectron
 echo.  npm start
-echo Enjoy this test version
+echo Enjoy this test version. Ctrl-C stops the command-prompt,
+echo.  sometimes multiple are required.
 echo ==========================================================
 echo.
-cmd /c "npm start"
+npm start
