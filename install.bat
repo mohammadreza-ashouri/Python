@@ -106,6 +106,19 @@ echo.
 pause
 
 
+REM START WITH PANDOC
+echo Install pandoc
+set var=void void
+FOR /F "tokens=* USEBACKQ" %%F in (`where pandoc`) do (set var=%%F)
+echo %var% | findstr "void">nul
+if errorlevel==1 (echo. Pandoc is installed & goto end_pandoc)
+echo.  Download Pandoc now
+if not exist %downloadDir%\pandoc-2.11.3.2-windows-x86_64.msi (python.exe -m wget -o %downloadDir% https://github.com/jgm/pandoc/releases/download/2.11.3.2/pandoc-2.11.3.2-windows-x86_64.msi)
+start /WAIT %downloadDir%\pandoc-2.11.3.2-windows-x86_64.msi
+:end_pandoc
+echo.
+
+
 REM START WITH GIT, Git-annex, git-credentials
 echo Install git
 set var=void void
