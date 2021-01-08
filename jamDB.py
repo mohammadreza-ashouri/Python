@@ -1,10 +1,8 @@
 #!/usr/bin/python3
 """ Main function when command-line commands used
 
-Called by user or reactElectron frontend
-
-frontend calls:
-  save with documentID string
+Called by user or reactElectron frontend. Keep it simple: only functions that
+are required by frontend. Otherwise, make only temporary changes
 """
 import os, json, sys
 import argparse, traceback
@@ -17,10 +15,11 @@ Possible commands are:
     help: help information
     test: test jamDB setup
     checkDB: test jamDB database
+    save,load: save to file.zip / load from file.zip
     sync: synchronize / replicate with remote server
     print: print overview
         label: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
-    scan, hierarchy: scan or print project
+    scan, hierarchy: scan / print project
         item: documentID for. To be identified by printing Project
     addDoc:
       content is required as json-string
@@ -29,10 +28,10 @@ Possible commands are:
     extractorTest: test the extractor of this file
         -p should be specified is the path to file from base folder
 ''')
-argparser.add_argument('command', help='help, test, checkDB, print, scan, addDoc, hierarchy, newDB, extractorTest')
+argparser.add_argument('command', help='help, test, checkDB, save, load, print, scan, addDoc, hierarchy, newDB, extractorTest')
 argparser.add_argument('-i','--docID',   help='docID of project', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
-argparser.add_argument('-l','--label',   help='label used for printing', default='')
+argparser.add_argument('-l','--label',   help='label used for printing', default='Projects')
 argparser.add_argument('-p','--path',    help='path for extractor test', default='')
 argparser.add_argument('-d','--database',help='name of database configuration', default='') #required for be = JamDB(args.database)
 args = argparser.parse_args()
@@ -80,13 +79,11 @@ else:
     elif args.command=='sync':
       print('sync not implemented yet')
     elif args.command=='print':
-      if args.label=='':
-        args.label='Projects'
       print(be.output(args.label,True))
-    elif args.command=='printTags':
-      print(be.outputTags(args.label))
-    elif args.command=='backup':
-      be.backup()
+    elif args.command=='save':   #save to backup file.zip
+      be.backup('backup')
+    elif args.command=='load':   #load from backup file.zip
+      be.backup('restore')
     elif args.command=='extractorTest':
       if args.content is None:
         doc = {'type':['measurement', '']}
