@@ -2,6 +2,7 @@
 REM print content line. No " '
 echo Installer for jamDB on Windows Systems
 echo -- use 64-bit programs --
+echo -- 3GB on C: are required --
 echo the following actions are executed (only install if item does not exist)"
 echo - install Python 3
 echo - adopt PATH
@@ -58,13 +59,15 @@ REM chain commands, use & at beginning of new line
 if errorlevel==1 (echo.  Download python now) else (echo.  Python is installed in version 3.& goto end_python)
 pause
 if not exist %downloadDir%/python-3.8.7-amd64.exe (bitsadmin.exe /TRANSFER python3 https://www.python.org/ftp/python/3.8.7/python-3.8.7-amd64.exe  %downloadDir%/python-3.8.7-amd64.exe)
+echo IMPORTANT: SELECT "Add Python 3.8 to PATH" inside the installer
+pause
 start /WAIT %downloadDir%/python-3.8.7-amd64.exe
 :end_python
 echo.
 
 
 echo Set environment variables: PATH
-echo %PATH% | findstr "AppData\Local\Programs\Python\Python38">nul
+echo %PATH% | findstr "jamdb-python">nul
 REM echo with preceeding space
 REM chain commands, use & at beginning of new line
 if errorlevel==1 (echo.  setting path now^
@@ -73,9 +76,12 @@ if errorlevel==1 (echo.  setting path now^
   & echo.  "Enviro" and select "Edit environmenal variables for your account"^
   & echo.  from the search results. In the window, click on "Path" and "Edit..."^
   & echo.  Click new three times and enter each time with copy-paste^
+  & echo.    if content is already inside, skip it
   & echo.  - C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38^
   & echo.  - C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38\Scripts^
   & echo.  - %softwareDir%\jamdb-python^
+  & echo.
+  & pause
   ) else (echo.  no need to set path variable as it seems to be correct)
 echo.
 REM this does not work in a reproducable fashion
@@ -87,8 +93,7 @@ echo Output: %var%
 echo.
 
 echo Install basic python packages
-echo   Don't care about WARNING about versions
-pip.exe install matplotlib pandas wget spyder>nul
+pip.exe install --disable-pip-version-check matplotlib pandas wget spyder>nul
 echo  [0m [0m...
 
 echo Test if python is fully working: plot a sine-curve
@@ -191,7 +196,7 @@ echo Set environment variables: PYTHONPATH
 setx PYTHONPATH "%softwareDir%\experimetal-micromechanics\src;%softwareDir%\jamdb-python"
 
 cd %softwareDir%\jamdb-python
-pip install -r requirements.txt >nul
+pip install --disable-pip-version-check -r requirements.txt >nul
 echo  [0m [0m...
 
 cd %HOMEDRIVE%%HOMEPATH%

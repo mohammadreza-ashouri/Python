@@ -14,13 +14,14 @@ jamDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
 Possible commands are:
     help: help information
     test: test jamDB setup
-    checkDB: test jamDB database
-    save,load: save to file.zip / load from file.zip
+    verifyDB: test jamDB database
+    saveBackup,loadBackup: save to file.zip / load from file.zip
     sync: synchronize / replicate with remote server
     print: print overview
         label: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
-    scan, hierarchy: scan / print project
+    scanHierarchy, hierarchy: scan / print project
         item: documentID for. To be identified by printing Project
+    saveHierarchy: save hierarchy to database
     addDoc:
       content is required as json-string
     newDB: add/update database configuration. item is e.g.
@@ -28,7 +29,7 @@ Possible commands are:
     extractorTest: test the extractor of this file
         -p should be specified is the path to file from base folder
 ''')
-argparser.add_argument('command', help='help, test, checkDB, save, load, print, scan, addDoc, hierarchy, newDB, extractorTest')
+argparser.add_argument('command', help='help, test, verifyDB, saveBackup, loadBackup, print, scanHierarchy, saveHierarchy, addDoc, hierarchy, newDB, extractorTest')
 argparser.add_argument('-i','--docID',   help='docID of project', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
 argparser.add_argument('-l','--label',   help='label used for printing', default='Projects')
@@ -71,7 +72,7 @@ else:
         print('Ontology does NOT exist on server')
       print('local directory:',be.basePath)
       print('software directory:',be.softwarePath)
-    elif args.command=='checkDB':
+    elif args.command=='verifyDB':
       output = be.checkDB(verbose=False)
       print(output)
       if '**ERROR' in output:
@@ -80,9 +81,9 @@ else:
       print('sync not implemented yet')
     elif args.command=='print':
       print(be.output(args.label,True))
-    elif args.command=='save':   #save to backup file.zip
+    elif args.command=='saveBackup':   #save to backup file.zip
       be.backup('backup')
-    elif args.command=='load':   #load from backup file.zip
+    elif args.command=='loadBackup':   #load from backup file.zip
       be.backup('restore')
     elif args.command=='extractorTest':
       if args.content is None:
@@ -106,9 +107,9 @@ else:
       #all commands that require an open project
       if args.docID!='':
         be.changeHierarchy(args.docID)
-      if args.command=='scan':
+      if args.command=='scanHierarchy':
         be.scanTree()                 #there can not be a callback function
-      elif args.command=='save':
+      elif args.command=='saveHierarchy':
         content = args.content.replace('\\n','\n')
         if content[0]=='"' and content[-1]=='"':
           content = content[1:-1]
