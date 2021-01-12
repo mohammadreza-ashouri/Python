@@ -4,7 +4,7 @@
 Called by user or reactElectron frontend. Keep it simple: only functions that
 are required by frontend. Otherwise, make only temporary changes
 """
-import os, json, sys
+import os, json, sys, subprocess
 import argparse, traceback
 from backend import JamDB
 
@@ -14,6 +14,7 @@ jamDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
 Possible commands are:
     help: help information
     test: test jamDB setup
+    updateJamDB: git pull in source
     verifyDB: test jamDB database
     saveBackup,loadBackup: save to file.zip / load from file.zip
     sync: synchronize / replicate with remote server
@@ -29,7 +30,7 @@ Possible commands are:
     extractorTest: test the extractor of this file
         -p should be specified is the path to file from base folder
 ''')
-argparser.add_argument('command', help='help, test, verifyDB, saveBackup, loadBackup, print, scanHierarchy, saveHierarchy, addDoc, hierarchy, newDB, extractorTest')
+argparser.add_argument('command', help='help, test, updateJamDB, verifyDB, saveBackup, loadBackup, print, scanHierarchy, saveHierarchy, addDoc, hierarchy, newDB, extractorTest')
 argparser.add_argument('-i','--docID',   help='docID of project', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
 argparser.add_argument('-l','--label',   help='label used for printing', default='Projects')
@@ -62,7 +63,6 @@ else:
     be = JamDB(args.database, initViews=initViews)
     # depending on choices
     if args.command=='test':
-      print('backend was started')
       print('database server:',be.db.db.client.server_url)
       print('configName:',be.configName)
       print('database name:',be.db.db.database_name)
@@ -72,6 +72,11 @@ else:
         print('Ontology does NOT exist on server')
       print('local directory:',be.basePath)
       print('software directory:',be.softwarePath)
+    elif args.command=='updateJamDB':
+      os.chdir(be.softwarePath)
+      cmd = ['git','pull']
+      output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+      print(output.stdout.decode('utf-8'))
     elif args.command=='verifyDB':
       output = be.checkDB(verbose=False)
       print(output)

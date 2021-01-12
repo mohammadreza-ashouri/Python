@@ -94,7 +94,7 @@ echo.
 
 echo Install basic python packages
 pip.exe install --disable-pip-version-check matplotlib pandas wget spyder>nul
-echo  [0m [0m...
+echo.
 
 echo Test if python is fully working: plot a sine-curve
 set var=void void
@@ -197,7 +197,7 @@ setx PYTHONPATH "%softwareDir%\experimetal-micromechanics\src;%softwareDir%\jamd
 
 cd %softwareDir%\jamdb-python
 pip install --disable-pip-version-check -r requirements.txt >nul
-echo  [0m [0m...
+echo.
 
 cd %HOMEDRIVE%%HOMEPATH%
 echo { > .jamDB.json
