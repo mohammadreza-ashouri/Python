@@ -1,6 +1,7 @@
 @echo off
 REM print content line. No " '
 echo Installer for jamDB on Windows Systems
+echo IMPORTANT: always select to adjust the path in the started programs.
 echo -- use 64-bit programs --
 echo -- 3GB on C: are required --
 echo the following actions are executed (only install if item does not exist)"
@@ -93,7 +94,8 @@ echo Output: %var%
 echo.
 
 echo Install basic python packages
-pip.exe install --disable-pip-version-check matplotlib pandas wget spyder>nul
+pip.exe install --disable-pip-version-check win-unicode-console>nul
+pip.exe install --disable-pip-version-check matplotlib pandas wget>nul
 echo.
 
 echo Test if python is fully working: plot a sine-curve
@@ -105,11 +107,6 @@ echo.
 echo If error occured with numpy: there is some issue with Windows
 echo.  and some basic fuction. Click start button and type: cmd and
 echo.  commandline tool. Enter "pip install numpy==1.19.3" in it.
-echo.
-echo Spyder is a helpful Tool for writing python code. Search for
-echo.  "spyder" on your hard-disk and pin it to start.
-echo.
-echo If you only care about python, stop here.
 echo.
 pause
 
@@ -135,6 +132,8 @@ echo %var% | findstr "void">nul
 if errorlevel==1 (echo. Git is installed) else (^
   echo.  Download git now^
   & python.exe -m wget -o %downloadDir% https://github.com/git-for-windows/git/releases/download/v2.30.0.windows.1/Git-2.30.0-64-bit.exe^
+  & echo IMPORTANT: In "Adjusting your path environment" select: "Run Git from the Windows Command Prompt"
+  & pause
   & start /WAIT %downloadDir%\Git-2.30.0-64-bit.exe^
   )
 echo.
@@ -194,11 +193,14 @@ git clone https://jugit.fz-juelich.de/s.brinckmann/jamdb-reactelectron.git
 
 echo Set environment variables: PYTHONPATH
 setx PYTHONPATH "%softwareDir%\experimetal-micromechanics\src;%softwareDir%\jamdb-python"
+echo.
 
+echo Install python libraries for backend
 cd %softwareDir%\jamdb-python
 pip install --disable-pip-version-check -r requirements.txt >nul
 echo.
 
+echo Create basic jamDB.json configuration
 cd %HOMEDRIVE%%HOMEPATH%
 echo { > .jamDB.json
 echo   "-userID": "%jamDB_user%",>> .jamDB.json
@@ -266,3 +268,5 @@ echo.  sometimes multiple are required.
 echo ==========================================================
 echo.
 npm start
+
+pause
