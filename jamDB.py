@@ -72,6 +72,10 @@ else:
         print('Ontology does NOT exist on server')
       print('local directory:',be.basePath)
       print('software directory:',be.softwarePath)
+      os.chdir(be.softwarePath)
+      cmd = ['git','show','-s','--format=%ci']
+      output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+      print('software version:',' '.join(output.stdout.decode('utf-8').split()[0:2]))
     elif args.command=='updateJamDB':
       os.chdir(be.softwarePath)
       cmd = ['git','pull']

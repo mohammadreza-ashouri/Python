@@ -584,7 +584,7 @@ class JamDB:
         if exitAfterDataLad:
           return
       absFilePath = self.basePath + filePath
-      outFile = absFilePath.replace('.','_')+'_jamDB'
+      outFile = self.basePath + filePath.replace('.','_')+'_jamDB'
     pyFile = 'jamDB_'+extension+'.py'
     pyPath = self.softwarePath+os.sep+'extractors'+os.sep+pyFile
     if os.path.exists(pyPath):

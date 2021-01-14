@@ -94,8 +94,8 @@ echo Output: %var%
 echo.
 
 echo Install basic python packages
-pip.exe install --disable-pip-version-check win-unicode-console>nul
-pip.exe install --disable-pip-version-check matplotlib pandas wget>nul
+pip.exe install --disable-pip-version-check win-unicode-console
+pip.exe install --disable-pip-version-check matplotlib pandas wget spyder opencv-python
 echo.
 
 echo Test if python is fully working: plot a sine-curve
@@ -107,6 +107,11 @@ echo.
 echo If error occured with numpy: there is some issue with Windows
 echo.  and some basic fuction. Click start button and type: cmd and
 echo.  commandline tool. Enter "pip install numpy==1.19.3" in it.
+echo.
+echo Spyder is a helpful Tool for writing python code. Search for
+echo.  "spyder" on your hard-disk and pin it to start.
+echo.
+echo If you only care about python, stop here.
 echo.
 pause
 
@@ -197,7 +202,7 @@ echo.
 
 echo Install python libraries for backend
 cd %softwareDir%\jamdb-python
-pip install --disable-pip-version-check -r requirements.txt >nul
+pip.exe install --disable-pip-version-check -r requirements.txt
 echo.
 
 echo Create basic jamDB.json configuration
@@ -213,7 +218,7 @@ echo   "jamDB_tutorial": {>> .jamDB.json
 echo     "user": "%CDB_USER%",>> .jamDB.json
 echo     "password": "%CDB_PASSW%",>> .jamDB.json
 echo     "database": "jamdb_tutorial",>> .jamDB.json
-echo     "path": "Documents/%jamDB%">> .jamDB.json
+echo     "path": "Documents\%jamDB%">> .jamDB.json
 echo   },>> .jamDB.json
 echo.  >> .jamDB.json
 echo   "remote": {>> .jamDB.json
