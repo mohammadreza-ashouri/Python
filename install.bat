@@ -2,6 +2,7 @@
 REM print content line. No " '
 echo Installer for jamDB on Windows Systems
 echo IMPORTANT: always select to adjust the path in the started programs.
+echo IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/jamdb-python/-/wikis/notesUser
 echo -- use 64-bit programs --
 echo -- 3GB on C: are required --
 echo the following actions are executed (only install if item does not exist)"

@@ -1,6 +1,7 @@
 #!/bin/bash
 echo "Installer for jamDB on Ubuntu Systems"
-echo "  the following actions are executed (only install if item does not exist)"
+echo "IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/jamdb-python/-/wikis/notesUser"
+echo "The following actions are executed in this script (only install if item does not exist)"
 echo "  - install Python 3"
 echo "  - install Python extensions: openCV, pip"
 echo "  - install pandoc"
