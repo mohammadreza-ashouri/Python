@@ -81,6 +81,9 @@ else:
       cmd = ['git','pull']
       output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       print(output.stdout.decode('utf-8'))
+      cmd = ['pip3','install','-r','requirements.txt','--disable-pip-version-check']
+      output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+      print(output.stdout.decode('utf-8'))
     elif args.command=='verifyDB':
       output = be.checkDB(verbose=False)
       print(output)

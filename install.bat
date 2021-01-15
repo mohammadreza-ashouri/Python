@@ -238,9 +238,17 @@ echo }>> .jamDB.json
 echo.
 
 
-REM Run a short (20-80sec) test of the python backend
-echo Run a short (20-80sec) test of the python backend
+REM Run a two short tests of the python backend
+echo Run a very short (5sec) test of the python backend
 cd %softwareDir%\jamdb-python
+python jamDB.py test
+echo.
+echo If this test is not successful, it is likely that you entered the wrong username
+echo.  and password. Open the file %HOMEDRIVE%%HOMEPATH%\.jamDB.json in an editor and
+echo.  correct the entries after "user" and "password". "-userID" does not matter.
+echo.  Entries under "remote" do not matter.
+echo.
+echo Run a short (20-80sec) test of the python backend
 python Tests\testTutorial.py
 echo.
 

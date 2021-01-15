@@ -13,6 +13,9 @@ import PIL
 import pypandoc
 import datalad.api as datalad
 from datalad.support import gitrepo, annexrepo
+if sys.platform=='win32':
+  import win32con, win32api
+#jamDB
 from database import Database
 from commonTools import commonTools as cT
 from miscTools import bcolors, createDirName, generic_hash
@@ -246,7 +249,6 @@ class JamDB:
                     with open(projPath+os.sep+'.gitignore','a') as fOut:
                       fOut.write(dirPath+os.sep+'\n')
                     if sys.platform=='win32':
-                      import win32con, win32api
                       win32api.SetFileAttributes(projPath+os.sep+'.gitignore',win32con.FILE_ATTRIBUTE_HIDDEN)
                   if ignore!='none':  #ignored images are added to datalad but not to database
                     return False
@@ -295,21 +297,21 @@ class JamDB:
           with open(path+os.sep+'.gitattributes','w') as fOut:
             fOut.write(gitAttribute+'\n')
           if sys.platform=='win32':
-            import win32con, win32api
             win32api.SetFileAttributes(path+os.sep+'.gitattributes',win32con.FILE_ATTRIBUTE_HIDDEN)
           with open(path+os.sep+'.gitignore','w') as fOut:
             fOut.write(gitIgnore+'\n')
           if sys.platform=='win32':
-            import win32con, win32api
             win32api.SetFileAttributes(path+os.sep+'.gitignore',win32con.FILE_ATTRIBUTE_HIDDEN)
           dlDataset = datalad.Dataset(path)
           dlDataset.save(path='.',message='changed gitattributes')
         else:
           os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
+      if os.path.exists(self.basePath+path+os.sep+'.id_jamDB.json') and sys.platform=='win32':
+        if win32api.GetFileAttributes(self.basePath+path+os.sep+'.id_jamDB.json')==win32con.FILE_ATTRIBUTE_HIDDEN:
+          win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_jamDB.json',win32con.FILE_ATTRIBUTE_ARCHIVE)
       with open(self.basePath+path+os.sep+'.id_jamDB.json','w') as f:  #local path, update in any case
         f.write(json.dumps(doc))
       if sys.platform=='win32':
-        import win32con, win32api
         win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_jamDB.json',win32con.FILE_ATTRIBUTE_HIDDEN)
       projectPath = path.split(os.sep)[0]
       # datalad api version
