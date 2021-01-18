@@ -235,13 +235,13 @@ while be.alive:
       generate = bool(len(questionString)==0)
       if 'unit' in line:
         questionString += ' ['+line['unit']+']'
-      if 'required' in line and line['required']==True:
+      if 'required' in line and line['required']:
         questionString += ' *'
       # encode outgoing json
       if generate:
         continue  # it is generated, no need to ask
       newQuestion = {'type': 'input', 'name': name, 'message': questionString}
-      if 'required' in line and line['required']==True:
+      if 'required' in line and line['required']:
         newQuestion['validate'] = lambda val: len(val.strip())>0
       if itemList is not None:
         newQuestion['type'] = 'list'

@@ -13,12 +13,12 @@ import PIL
 import pypandoc
 import datalad.api as datalad
 from datalad.support import gitrepo, annexrepo
-if sys.platform=='win32':
-  import win32con, win32api
-#jamDB
+#jamDB modules
 from database import Database
 from commonTools import commonTools as cT
 from miscTools import bcolors, createDirName, generic_hash
+if sys.platform=='win32':
+  import win32con, win32api
 
 class JamDB:
   """
@@ -830,7 +830,6 @@ class JamDB:
 
     Args:
       tag (string): tag to be listed, if empty: print all
-      printID (bool):  include docID in output string
       kwargs (dict): additional parameter
 
     Returns:

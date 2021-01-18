@@ -143,7 +143,8 @@ disable=print-statement,
         import-outside-toplevel,
         fixme,
         import-error,
-        unused-import
+        unused-import,
+        dangerous-default-value
 
 #Reasons:
 # looks better: len-as-condition, multiple-statements, bad-whitespace, multiple-imports

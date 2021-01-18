@@ -49,6 +49,10 @@ class Database:
   def initViews(self, docTypesLabels, magicTags=['TODO','v1']):
     """
     initialize all views
+
+    Args:
+      docTypesLabels (list): pair of (docType,docLabel) used to create views
+      magicTags (list): magic tags used for view creation
     """
     # for the individual docTypes
     jsDefault = "if ($docType$ && !('current_rev' in doc)) {emit($key$, [$outputList$]);}"
@@ -137,7 +141,8 @@ class Database:
         dict: json representation of submitted document
     """
     tracebackString = traceback.format_stack()
-    tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
+    tracebackString = [item for item in tracebackString if 'backend.py' in item or 'database.py' in item or 'Tests' in item or 'jamDB' in item]
+    tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString])  #| separated list of stack excluding last
     doc['client'] = tracebackString
     if 'branch' in doc and 'op' in doc['branch']:
       del doc['branch']['op']  #remove operation, saveDoc creates and therefore always the same
@@ -168,7 +173,8 @@ class Database:
         dict: json representation of updated document
     """
     tracebackString = traceback.format_stack()
-    tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString[:-1]])  #| separated list of stack excluding last
+    tracebackString = [item for item in tracebackString if 'backend.py' in item or 'database.py' in item or 'Tests' in item or 'jamDB' in item]
+    tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString])  #| separated list of stack excluding last
     change['client'] = tracebackString
     newDoc = self.db[docID]  #this is the document that stays live
     if 'edit' in change:  #if delete
