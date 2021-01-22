@@ -193,12 +193,12 @@ if not defined CDB_USER (set CDB_USER=admin)
 REM Clone source from repository; set PYTHONPATH
 echo Clone files from repositories
 cd %softwareDir%
-git clone https://jugit.fz-juelich.de/s.brinckmann/experimetal-micromechanics
+git clone https://jugit.fz-juelich.de/s.brinckmann/experimental-micromechanics
 git clone https://jugit.fz-juelich.de/s.brinckmann/jamdb-python.git
 git clone https://jugit.fz-juelich.de/s.brinckmann/jamdb-reactelectron.git
 
 echo Set environment variables: PYTHONPATH
-setx PYTHONPATH "%softwareDir%\experimetal-micromechanics\src;%softwareDir%\jamdb-python"
+setx PYTHONPATH "%softwareDir%\experimental-micromechanics\src;%softwareDir%\jamdb-python"
 echo.
 
 echo Install python libraries for backend
