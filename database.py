@@ -66,6 +66,7 @@ class Database:
           jsString = jsDefault.replace('$docType$', "doc.type[0]=='"+docType+"'").replace('$key$','doc.branch[0].stack[0]')
         outputList = []
         for item in self.ontology[docType]:
+          if 'name' not in item: continue
           if item['name'] == 'image':
             outputList.append('(doc.image.length>3).toString()')
           elif item['name'] == 'tags':

@@ -110,8 +110,11 @@ class TestStringMethods(unittest.TestCase):
                 {'name': 'name',   'query': 'What is the name?', 'required':True},
                 {'name': 'vendor', 'query': 'What is the vendor?'},
                 {'name': 'model',  'query': 'What is the model?'},
-                {'name': 'size',   'query': 'What is the area?', 'unit':'m^2'},
-                {"name": "comment","query":"#tags comments :field:value:"}
+                {"name": "comment","query":"#tags comments :field:value:"},
+                {'name': 'kind',   'query': 'What is the kind?', "list":["oven","SEM"]},
+                {'name': 'procedure', 'query': 'What is the procedure?', "list":"procedure"},
+                {'heading': 'Requirements for room'},
+                {'name': 'size',   'query': 'What is the foot print area?', 'unit':'m^2'}
                 ]
       newOntology.save()
       # restart

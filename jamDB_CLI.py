@@ -157,12 +157,12 @@ while be.alive:
   if nextMenu in menuOutline and nextMenu != 'edit':
     #main and output menu are outlined in file, use those
     thisMenu = copy.deepcopy(menuOutline[nextMenu])
-    question = [{'type': 'list', 'name': 'choice', 'message': thisMenu[0], 'choices':[]}]
+    questions = [{'type': 'list', 'name': 'choice', 'message': thisMenu[0], 'choices':[]}]
     for idx, item in enumerate(thisMenu):
       if idx == 0:
         continue
       if '---' in item:
-        question[0]['choices'].append(Separator())
+        questions[0]['choices'].append(Separator())
         continue
       #extract properties of dictionary item
       append, expand = None, None
@@ -171,7 +171,7 @@ while be.alive:
       if 'expand' in item:
         expand = item.pop('expand')
       key, value = item.popitem()
-      #use properties to augment question
+      #use properties to augment questions
       if append is not None:
         if append == 'thisLevel':
           append = be.hierList[len(be.hierStack)-1] if len(be.hierStack) > 0 else None
@@ -190,13 +190,13 @@ while be.alive:
           expand = [' '+j for i, j in be.dataLabels+be.hierarchyLabels]
       #create list of choices
       for itemI in expand:
-        question[0]['choices'].append({'name': key+itemI, 'value': value+itemI[1:]})
+        questions[0]['choices'].append({'name': key+itemI, 'value': value+itemI[1:]})
     if nextMenu != 'main':
-      question[0]['choices'].append({'name':'>Go back to main<', 'value':'menu_main'})
+      questions[0]['choices'].append({'name':'>Go back to main<', 'value':'menu_main'})
   elif nextMenu.startswith('change') or nextMenu in [i for j,i in be.dataLabels]:
     #change menu OR add/edit samples,procedures,measurements
     addEditDoc = nextMenu in [i for j,i in be.dataLabels]
-    question = [{'type': 'list', 'name': 'choice', 'message': nextMenu, 'choices':[]}]
+    questions = [{'type': 'list', 'name': 'choice', 'message': nextMenu, 'choices':[]}]
     if len(be.hierStack) == 0 or addEditDoc: # no project in stack or sample/procedures/measurements: use VIEW
       if addEditDoc:
         view    = be.db.getView('viewDocType/view'+nextMenu)
@@ -213,46 +213,59 @@ while be.alive:
     if addEditDoc:   prefix = 'direct_edit_'+nextMenu+'_'
     else:            prefix = 'function_changeHierarchy_'
     for name, value in zip(names, values):
-      question[0]['choices'].append({'name': name, 'value': prefix+value})
+      questions[0]['choices'].append({'name': name, 'value': prefix+value})
     if addEditDoc:
-      question[0]['choices'].append({'name': '>Add to '+nextMenu+'<', 'value': 'form_'+nextMenu})
-    question[0]['choices'].append({'name':'>Go back to main<', 'value':'menu_main'})
+      questions[0]['choices'].append({'name': '>Add to '+nextMenu+'<', 'value': 'form_'+nextMenu})
+    questions[0]['choices'].append({'name':'>Go back to main<', 'value':'menu_main'})
   else:  #form
     #ask for measurements, samples, procedures, projects, ...
     #create form (=sequence of questions for string input) is dynamically created from dataDictonary
     docType = nextMenu.split('_')[1]
-    question = []
-    if docType not in be.db.ontology:  #only measurements, samples, procedures
-      for type_, label_ in be.dataLabels:
-        if label_ == docType:
-          docType = type_
+    if docType not in be.db.ontology:
+      #got docLable not docType
+      docType = [i[0] for i in be.dataLabels if i[1]==docType][0]
+    heading = None
+    questions = []
     for line in be.db.ontology[docType]:  # iterate over all data stored within this docType
       ### convert line into json-string that PyInquirer understands
       # decode incoming json
+      if 'heading' in line:
+        heading = line['heading']
+      if 'query' not in line:               #skip if no query in item line
+        continue
       itemList = line['list'] if 'list' in line else None
       name = line['name']
       questionString = line['query']
-      generate = bool(len(questionString)==0)
+      if heading is not None:
+        questionString = '--- '+heading +' ---\n'+questionString
+        heading = None
       if 'unit' in line:
         questionString += ' ['+line['unit']+']'
       if 'required' in line and line['required']:
         questionString += ' *'
       # encode outgoing json
-      if generate:
-        continue  # it is generated, no need to ask
-      newQuestion = {'type': 'input', 'name': name, 'message': questionString}
+      question = {'type': 'input', 'name': name, 'message': questionString}
       if 'required' in line and line['required']:
-        newQuestion['validate'] = lambda val: len(val.strip())>0
+        question['validate'] = lambda val: len(val.strip())>0
       if itemList is not None:
-        newQuestion['type'] = 'list'
-      if isinstance(itemList, list):
-        newQuestion['choices'] = itemList
-      question.append(newQuestion)
+        question['type'] = 'list'
+        if isinstance(itemList, list):
+          question['choices'] = itemList
+        else:
+          try:
+            itemList = [i[1] for i in be.dataLabels if i[0]==itemList][0]
+            itemList = be.output(itemList,printID=True).split("\n")[2:-1]
+            itemList = [i.split('|')[0].strip()+' || '+i.split('|')[-1] for i in itemList]
+          except:
+            print('**ERROR** ontology for '+docType+' has faulty list')
+            itemList = ['']
+          question['choices'] = ['--']+itemList
+      questions.append(question)
   #####################
-  ### ask question  ###
+  ### ask questions  ###
   #####################
   asyncio.set_event_loop(asyncio.new_event_loop())
-  answer = prompt(question)
+  answer = prompt(questions)
   #####################
   ### handle answer ###
   #####################
@@ -303,6 +316,9 @@ while be.alive:
     if nextMenu=='edit': #edit-> update data
       print("I SHOULD NOT BE HERE")
     elif len(answer)!=0 and np.sum([len(i) for i in list(answer.values())])>0:
+      for key in answer:
+        if ' || ' in answer[key]:
+          answer[key] = answer[key].split('||')[-1].strip()  #get rid of prefix
       be.addData(docType, answer)
     else:
       print('Did not understand you.')
