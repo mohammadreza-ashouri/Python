@@ -18,7 +18,7 @@
    {"Output hierarchy":    "function_outputHierarchy"},
    {"Output all tags":     "function_outputTags"},
    {"Output TODO tag":     "function_outputTags_TODO"},
-   {"Output PAUSE tag":    "function_outputTags_PAUSE"}
+   {"Output WAIT tag":    "function_outputTags_WAIT"}
 ],
 "automate": [ "How to scan directories?",
    {"Find new measurements"             :"function_scanTree"},

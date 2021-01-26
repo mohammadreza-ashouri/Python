@@ -68,11 +68,6 @@ class JamDB:
       print('**ERROR**: Base folder did not exist:'+self.basePath)
       sys.exit(1)
     sys.path.append(self.softwarePath+os.sep+'extractors')  #allow extractors
-    # ensure that development git-branch does not interfere with master
-    headName = gitrepo.GitRepo(self.softwarePath).get_active_branch()
-    if headName!='master' and not configName.startswith('develop'):
-      print("**ERROR**: Do not use non-master git-branch on other than develop directory")
-      sys.exit(1)
     # start logging
     logging.basicConfig(filename=self.softwarePath+os.sep+'jamDB.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -502,7 +497,7 @@ class JamDB:
       zipFileName = self.basePath+zipFileName
     if method=='backup':  mode = 'w'
     else:                 mode = 'r'
-    print(method,'to file',zipFileName)
+    print('  '+method.capitalize()+' to file: '+zipFileName)
     with ZipFile(zipFileName, mode, compression=ZIP_DEFLATED) as zipFile:
 
       # method backup, iterate through all database entries and save to file

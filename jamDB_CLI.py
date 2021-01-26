@@ -309,6 +309,8 @@ while be.alive:
       elif len(answer) > 2: #function
         res = getattr(be, answer[1])('_'.join(answer[2:]), callback=curate)
       if res is not None:
+        if res == True:  res='  Success'
+        if res == False: res='  Failure'
         print(res)  #output string returned from e.g. output-projects
       nextMenu = 'main'
   else:

@@ -98,7 +98,7 @@ class Database:
     jsSHA= "if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.shasum, doc.name);}"
     jsQR = "if (doc.qrCode.length > 0 && !('current_rev' in doc))"
     jsQR+= '{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}'
-    jsTags=str(magicTags)+".forEach(function(tag){if(doc.tags.indexOf('#'+tag)>-1) emit('#'+tag, doc.name);});"
+    jsTags=str(magicTags)+".forEach(function(tag){if(doc.tags.indexOf('#'+tag)>-1 && !('current_rev' in doc)) emit('#'+tag, doc.name);});"
     views = {'viewQR':jsQR, 'viewSHAsum':jsSHA, 'viewTags':jsTags}
     self.saveView('viewIdentify', views)
     return
