@@ -231,7 +231,7 @@ echo   },>> .jamDB.json
 echo.  >> .jamDB.json
 echo   "-tableFormat-": {>> .jamDB.json
 echo     "project":{"-label-":"Projects","-default-": [22,6,50,22]},>> .jamDB.json
-echo     "measuREMent":{"-default-": [24,7,23,23,-5,-6,-6,-6]},>> .jamDB.json
+echo     "measurement":{"-default-": [24,7,23,23,-5,-6,-6,-6]},>> .jamDB.json
 echo     "sample":{"-default-": [23,23,23,23,-5]},>> .jamDB.json
 echo     "procedure":{"-default-": [20,20,20,40]}>> .jamDB.json
 echo   }>> .jamDB.json
