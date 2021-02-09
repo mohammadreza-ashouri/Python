@@ -1,6 +1,6 @@
 """Class for interaction with couchDB
 """
-import traceback, json, logging, os, warnings, sys
+import traceback, json, logging, os, warnings, sys, time
 from cloudant.client import CouchDB, Cloudant
 from cloudant.view import View
 from cloudant.design_document import DesignDocument
@@ -313,16 +313,33 @@ class Database:
     try:
       rep = Replicator(self.client)
       client2 = Cloudant(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
-      if dbInfo['database'] in client2.all_dbs() and removeAtStart:
-        client2.delete_database(dbInfo['database'])
-      if dbInfo['database'] in client2.all_dbs():
-        db2 = client2[dbInfo['database']]
-      else:
-        db2 = client2.create_database(dbInfo['database'])
-      _ = rep.create_replication(self.db, db2, create_target=True)
-      logging.info('database:replicateDB Replication started')
+      try:
+        listAllDataBases = client2.all_dbs()
+        if dbInfo['database'] in listAllDataBases and removeAtStart:
+          client2.delete_database(dbInfo['database'])
+        if not dbInfo['database'] in listAllDataBases:
+          db2 = client2.create_database(dbInfo['database'])
+      except:
+        pass
+      db2 = client2[dbInfo['database']]
+      replResult = rep.create_replication(self.db, db2, create_target=False, continuous=False)
+      print('Start replication '+replResult['_id']+'. Wait max. 5min to see if successful.')
+      logging.info('database:replicateDB Replication started '+replResult['_id'])
+      #try every 10sec whether replicaton success. Do that for max. of 5min
+      startTime = time.time()
+      while True:
+        if (time.time()-startTime)/60.>5.:
+          print("Waited for 5min. No replication success in that time")
+          logging.info("Waited for 5min. No replication success in that time")
+          break
+        replResult.fetch()        # get updated, latest version from the server
+        if '_replication_state' in replResult:
+          print("Replication success state: "+replResult['_replication_state'])
+          logging.info("Replication success state: "+replResult['_replication_state'])
+          break
+        time.sleep(10)
     except:
-      print("**ERROR** preplicate\n",traceback.format_exc())
+      print("**ERROR** replicate\n",traceback.format_exc())
     return
 
 
