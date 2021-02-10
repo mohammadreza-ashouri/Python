@@ -1,7 +1,7 @@
 """Class for interaction with couchDB
 """
 import traceback, json, logging, os, warnings, sys, time
-from cloudant.client import CouchDB, Cloudant
+from cloudant.client import CouchDB
 from cloudant.view import View
 from cloudant.design_document import DesignDocument
 from cloudant.replicator import Replicator
@@ -312,7 +312,7 @@ class Database:
     """
     try:
       rep = Replicator(self.client)
-      client2 = Cloudant(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
+      client2 = CouchDB(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
       try:
         listAllDataBases = client2.all_dbs()
         if dbInfo['database'] in listAllDataBases and removeAtStart:
