@@ -76,6 +76,8 @@ else:
       cmd = ['git','show','-s','--format=%ci']
       output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       print('software version:',' '.join(output.stdout.decode('utf-8').split()[0:2]))
+    elif args.command=='up':
+      print('up:',be.upOut(args.docID))
     elif args.command=='updateJamDB':
       os.chdir(be.softwarePath)
       cmd = ['git','pull']

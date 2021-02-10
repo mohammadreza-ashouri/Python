@@ -176,7 +176,7 @@ echo.
 REM Start with couchDB
 echo Install couchDB
 echo.  If Windows warns you, go to **more information** and
-echo.  **run anyway**. REMber the user and password that you
+echo.  **run anyway**. Remeber the user and password that you
 echo.  enter in the setup utility. If the webbrowser does not
 echo.  start automatically, go to http://localhost:5984/_utils
 echo.
@@ -185,6 +185,7 @@ if not exist %downloadDir%/apache-couchdb-3.1.1.msi (python.exe -m wget -o %down
 start /WAIT %downloadDir%\apache-couchdb-3.1.1.msi
 :end_couchdb
 
+echo Please note: user name and password are scrambled at first usage, aka they are not stored as plain text but in vault.
 set /p CDB_USER="Which user-name did you use? [admin] "
 set /p CDB_PASSW="Which password did you enter? "
 if not defined CDB_USER (set CDB_USER=admin)

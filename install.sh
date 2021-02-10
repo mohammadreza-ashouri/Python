@@ -133,8 +133,7 @@ then
 else
   echo "Install instructions:"
   echo "  choose Standalone installation. Rest: choose OK"
-  echo "  The password will be saved on the harddisk in a file in plain text. Since this"
-  echo "  file/port cannot be reached from outside of your computer, there is no real danger."
+  echo "  The password and username are scrambled at first usage, hence not stored as plain-text. Both are in a vault."
   sudo apt-get install -y gnupg ca-certificates
   echo "deb https://apache.bintray.com/couchdb-deb focal main" | sudo tee /etc/apt/sources.list.d/couchdb.list
   sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8756C4F765C9AC3CB6B85D62379CE192D401AB61

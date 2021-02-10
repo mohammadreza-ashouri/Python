@@ -312,7 +312,11 @@ class Database:
     """
     try:
       rep = Replicator(self.client)
-      client2 = CouchDB(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
+      try:
+        client2 = CouchDB(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
+      except:
+        print('Could not connect to remote server: Abort replication.')
+        return
       try:
         listAllDataBases = client2.all_dbs()
         if dbInfo['database'] in listAllDataBases and removeAtStart:

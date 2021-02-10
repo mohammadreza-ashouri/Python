@@ -10,6 +10,7 @@ from urllib import request
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
+import keyring as cred
 import pypandoc
 import datalad.api as datalad
 from datalad.support import gitrepo, annexrepo
@@ -47,11 +48,20 @@ class JamDB:
     self.confirm = confirm
     with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
       configuration = json.load(f)
+    changed = False
+    for item in configuration:
+      if 'user' in configuration[item] and 'password' in configuration[item]:
+        configuration[item]['cred'] = self.upIn(configuration[item]['user']+':'+configuration[item]['password'])
+        del configuration[item]['user']
+        del configuration[item]['password']
+        changed = True
+    if changed:
+      with open(os.path.expanduser('~')+'/.jamDB.json','w') as f:
+        f.write(json.dumps(configuration,indent=2))
     if configName is None:
       configName = configuration['-defaultLocal']
     remoteName= configuration['-defaultRemote']
-    user         = configuration[configName]['user']
-    password     = configuration[configName]['password']
+    n, s      = self.upOut(configuration[configName]['cred']).split(':')
     databaseName = configuration[configName]['database']
     self.configName=configName
     # directories
@@ -84,7 +94,7 @@ class JamDB:
     self.magicTags= configuration['-magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
     self.tableFormat = configuration['-tableFormat-']
     # start database
-    self.db = Database(user, password, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep)
+    self.db = Database(n, s, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep)
     res = cT.ontology2Labels(self.db.ontology,self.tableFormat)
     self.dataLabels      = list(res['dataList'])
     self.hierarchyLabels = list(res['hierarchyList'])
@@ -120,6 +130,18 @@ class JamDB:
     logging.info('\nEND JAMS')
     logging.shutdown()
     return
+
+
+  def upOut(self, key):
+    key = cred.get_password('pastaDB',key)
+    key = ':'.join(key.split('bcA:Maw'))
+    return key
+
+  def upIn(self, key):
+    key = 'bcA:Maw'.join(key.split(':'))
+    id  = cT.uuidv4()
+    cred.set_password('pastaDB',id,key)
+    return id
 
 
   ######################################################
@@ -685,6 +707,7 @@ class JamDB:
     """
     if remoteDB is not None:
       self.remoteDB['database'] = remoteDB
+    self.remoteDB['user'],self.remoteDB['password'] = self.upOut(self.remoteDB['cred']).split(':')
     self.db.replicateDB(self.remoteDB, removeAtStart)
     return
 
