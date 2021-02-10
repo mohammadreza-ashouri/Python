@@ -7,6 +7,7 @@ from urllib import request
 from hashlib import sha1
 import numpy as np
 from PIL import Image
+import keyring as cred
 
 class bcolors:
   """
@@ -79,6 +80,25 @@ def generic_hash(path, forceFile=False):
     size = int(meta.get_all('Content-Length')[0])
     shasum = blob_hash(site, size)
   return shasum
+
+
+def upOut(key):
+  """
+  key (bool): key
+  """
+  key = cred.get_password('pastaDB',key)
+  key = ':'.join(key.split('bcA:Maw'))
+  return key
+
+def upIn(key):
+  """
+  key (bool): key
+  """
+  from commonTools import commonTools as cT
+  key = 'bcA:Maw'.join(key.split(':'))
+  id_  = cT.uuidv4()
+  cred.set_password('pastaDB',id_,key)
+  return id_
 
 
 def symlink_hash(path):

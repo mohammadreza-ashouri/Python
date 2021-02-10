@@ -10,14 +10,13 @@ from urllib import request
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL
-import keyring as cred
 import pypandoc
 import datalad.api as datalad
 from datalad.support import gitrepo, annexrepo
 #jamDB modules
 from database import Database
 from commonTools import commonTools as cT
-from miscTools import bcolors, createDirName, generic_hash
+from miscTools import bcolors, createDirName, generic_hash, upIn, upOut
 if sys.platform=='win32':
   import win32con, win32api
 
@@ -51,7 +50,7 @@ class JamDB:
     changed = False
     for item in configuration:
       if 'user' in configuration[item] and 'password' in configuration[item]:
-        configuration[item]['cred'] = self.upIn(configuration[item]['user']+':'+configuration[item]['password'])
+        configuration[item]['cred'] = upIn(configuration[item]['user']+':'+configuration[item]['password'])
         del configuration[item]['user']
         del configuration[item]['password']
         changed = True
@@ -61,7 +60,7 @@ class JamDB:
     if configName is None:
       configName = configuration['-defaultLocal']
     remoteName= configuration['-defaultRemote']
-    n, s      = self.upOut(configuration[configName]['cred']).split(':')
+    n, s      = upOut(configuration[configName]['cred']).split(':')
     databaseName = configuration[configName]['database']
     self.configName=configName
     # directories
@@ -130,18 +129,6 @@ class JamDB:
     logging.info('\nEND JAMS')
     logging.shutdown()
     return
-
-
-  def upOut(self, key):
-    key = cred.get_password('pastaDB',key)
-    key = ':'.join(key.split('bcA:Maw'))
-    return key
-
-  def upIn(self, key):
-    key = 'bcA:Maw'.join(key.split(':'))
-    id  = cT.uuidv4()
-    cred.set_password('pastaDB',id,key)
-    return id
 
 
   ######################################################
@@ -707,7 +694,7 @@ class JamDB:
     """
     if remoteDB is not None:
       self.remoteDB['database'] = remoteDB
-    self.remoteDB['user'],self.remoteDB['password'] = self.upOut(self.remoteDB['cred']).split(':')
+    self.remoteDB['user'],self.remoteDB['password'] = upOut(self.remoteDB['cred']).split(':')
     self.db.replicateDB(self.remoteDB, removeAtStart)
     return
 

@@ -60,7 +60,7 @@ def curate(doc):
   Returns:
     bool: success of curation
   """
-  questions = [
+  questionsLocal = [  #TODO use global items
     {"type":"confirm", "name":"use_file",       "message":"Use this measurement?",       "default":True},
     {"type":"confirm", "name":"use_dir",        "message":"Use this directory?",         "default":True, "when": lambda x: not x["use_file"]},
     {"type":"input",   "name":"comment",        "message":"Comment, #tags, :field:1:?",  "default":"",   "when": lambda x:     x["use_file"]},
@@ -87,7 +87,7 @@ def curate(doc):
     image.save(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg', format='JPEG')
     viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg' ])
   #prepare question and ask question and use answer
-  for itemJ in questions:
+  for itemJ in questionsLocal:
     if itemJ['name']=='comment' and 'comment' in doc:
       itemJ['default'] = doc['comment']
     if itemJ['name']=='sample':
@@ -99,7 +99,7 @@ def curate(doc):
       procedures = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in procedures]
       itemJ['choices'] = ['--']+procedures
   asyncio.set_event_loop(asyncio.new_event_loop())
-  answerJ = prompt(questions)
+  answerJ = prompt(questionsLocal)
   #clean open windows
   viewer.terminate()
   viewer.kill() #on windows could be skiped
@@ -309,8 +309,8 @@ while be.alive:
       elif len(answer) > 2: #function
         res = getattr(be, answer[1])('_'.join(answer[2:]), callback=curate)
       if res is not None:
-        if res == True:  res='  Success'
-        if res == False: res='  Failure'
+        if res:     res='  Success'
+        if not res: res='  Failure'
         print(res)  #output string returned from e.g. output-projects
       nextMenu = 'main'
   else:
