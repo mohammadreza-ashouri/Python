@@ -170,7 +170,7 @@ echo
 
 echo "Start cloning the git repositories: tools, python-backend, javascript-frontend"
 cd /home/$THEUSER/$jamDB_src
-sudo -u $THEUSER git clone https://jugit.fz-juelich.de/s.brinckmann/experimetal-micromechanics.git
+sudo -u $THEUSER git clone https://jugit.fz-juelich.de/s.brinckmann/experimental-micromechanics.git
 sudo -u $THEUSER git clone https://jugit.fz-juelich.de/s.brinckmann/jamdb-python.git
 sudo -u $THEUSER git clone https://jugit.fz-juelich.de/s.brinckmann/jamdb-reactelectron.git
 echo
@@ -180,7 +180,7 @@ echo "Adopt path and python-path in your environment"
 sudo -u $THEUSER echo "#jamDB changes" >> /home/$THEUSER/.bashrc
 sudo -u $THEUSER echo "export PATH=\$PATH:/home/${THEUSER}/${jamDB_src}/jamdb-python" >> /home/$THEUSER/.bashrc
 sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${jamDB_src}/jamdb-python" >> /home/$THEUSER/.bashrc
-sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${jamDB_src}/experimetal-micromechanics" >> /home/$THEUSER/.bashrc
+sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${jamDB_src}/experimental-micromechanics" >> /home/$THEUSER/.bashrc
 echo
 
 
@@ -232,7 +232,7 @@ echo
 
 echo "Run a very short test for 5sec?"
 cd /home/$THEUSER/$jamDB_src/jamdb-python
-sudo PYTHONPATH=/home/$THEUSER/$jamDB_src/jamdb-python:/home/$THEUSER/$jamDB_src/experimetal-micromechanics/src -u $THEUSER python3 jamDB.py test
+sudo PYTHONPATH=/home/$THEUSER/$jamDB_src/jamdb-python:/home/$THEUSER/$jamDB_src/experimental-micromechanics/src -u $THEUSER python3 jamDB.py test
 echo
 echo 'If this test is not successful, it is likely that you entered the wrong username'
 echo "  and password. Open the file /home/$THEUSER/.jamDB.json with an editor and correct"
@@ -240,7 +240,7 @@ echo '  the entries after "user" and "password". "-userID" does not matter. Entr
 echo '  "remote" do not matter, either.'
 echo
 echo "Run a short test for 20-40sec?"
-sudo PYTHONPATH=/home/$THEUSER/$jamDB_src/jamdb-python:/home/$THEUSER/$jamDB_src/experimetal-micromechanics/src -u $THEUSER python3 Tests/testTutorial.py
+sudo PYTHONPATH=/home/$THEUSER/$jamDB_src/jamdb-python:/home/$THEUSER/$jamDB_src/experimental-micromechanics/src -u $THEUSER python3 Tests/testTutorial.py
 echo
 
 
