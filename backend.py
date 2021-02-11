@@ -489,6 +489,7 @@ class JamDB:
     backup, verify, restore information from/to database
     - documents are named: (docID).json
     - all data is saved to one zip file
+    - after restore-to-database, the database changed (new revision)
 
     Args:
       method (string): backup, restore, compare
@@ -513,21 +514,28 @@ class JamDB:
 
       # method backup, iterate through all database entries and save to file
       if method=='backup':
+        numAttachments = 0
         for doc in self.db.db:
           fileName = doc['_id']+'.json'
-          zipFile.writestr(fileName,json.dumps(doc) )
+          zipFile.writestr(fileName, json.dumps(doc) )
+          if '_attachments' in doc:
+            numAttachments += len(doc['_attachments'])
+            for i in range(len(doc['_attachments'])):
+              attachmentName = doc['_id']+'/v'+str(i)+'.json'
+              zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
         compressed, fileSize = 0,0
         for doc in zipFile.infolist():
           compressed += doc.compress_size
           fileSize   += doc.file_size
         print(f'  File size: {fileSize:,} byte   Compressed: {compressed:,} byte')
+        print(f'  Num. documents (incl. ontology and views): {len(self.db.db):,},    num. attachments: {numAttachments:,}\n')
         return True
 
       # method compare
       if  method=='compare':
         filesInZip = zipFile.namelist()
-        print('  Number of documents in file:',len(filesInZip))
-        differenceFound, comparedFiles = False, 0
+        print('  Number of documents (incl. ontology and views) in file:',len(filesInZip))
+        differenceFound, comparedFiles, comparedAttachments = False, 0, 0
         for doc in self.db.db:
           fileName = doc['_id']+'.json'
           if fileName not in filesInZip:
@@ -540,23 +548,41 @@ class JamDB:
               print('  Data disagrees database, zipfile ',doc['_id'])
               differenceFound = True
             comparedFiles += 1
+          if '_attachments' in doc:
+            for i in range(len(doc['_attachments'])):
+              attachmentName = doc['_id']+'/v'+str(i)+'.json'
+              if attachmentName not in filesInZip:
+                print("**ERROR** revision not in zip file",attachmentName)
+                differenceFound = True
+              else:
+                filesInZip.remove(attachmentName)
+                zipData = json.loads( zipFile.read(attachmentName) )
+                if doc.get_attachment('v'+str(i)+'.json')!=zipData:
+                  print('  Data disagrees database, zipfile ',attachmentName)
+                  differenceFound = True
+                comparedAttachments += 1
         if len(filesInZip)>0:
           differenceFound = True
           print('Files in zipfile not in database',filesInZip)
         if differenceFound: print("  Difference exists between database and zipfile")
-        else:               print("  Database and zipfile are identical.",comparedFiles,'files were compared')
+        else:               print("  Database and zipfile are identical.",comparedFiles,'files &',comparedAttachments,'attachments were compared\n')
         return not differenceFound
 
       # method restore: loop through all files in zip and save to database
       #  - skip design and dataDictionary
       if method=='restore':
-        beforeLength = len(self.db.db)
+        beforeLength, restoredFiles = len(self.db.db), 0
         for fileName in zipFile.namelist():
-          if not ( fileName.startswith('_') or fileName.startswith('-') ):
+          if not ( fileName.startswith('_') or fileName.startswith('-') ):  #do not restore design documents and ontology
+            restoredFiles += 1
             zipData = json.loads( zipFile.read(fileName) )
-            self.db.saveDoc(zipData)
-        print('  Number of documents in file:',len(zipFile.namelist()))
-        print('  Number of documents before and after restore:',beforeLength, len(self.db.db))
+            if '/' in fileName:                                             #attachment
+              doc = self.db.getDoc(fileName.split('/')[0])
+              doc.put_attachment(fileName.split('/')[1], 'application/json', json.dumps(zipData))
+            else:                                                           #normal document
+              self.db.saveDoc(zipData)
+        print('  Number of documents & revisions in file:',restoredFiles)
+        print('  Number of documents before and after restore:',beforeLength, len(self.db.db),'\n')
         return True
     return False
 
