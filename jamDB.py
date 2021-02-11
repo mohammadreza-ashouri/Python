@@ -7,6 +7,7 @@ are required by frontend. Otherwise, make only temporary changes
 import os, json, sys, subprocess
 import argparse, traceback
 from backend import JamDB
+from miscTools import upOut
 
 argparser = argparse.ArgumentParser(usage='''
 jamDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
@@ -49,6 +50,8 @@ if args.command=='newDB':
 elif args.command=='help':
   print("HELP:")
   argparser.print_help()
+elif args.command=='up':
+  print('up:',upOut(args.docID))
 else:
   #other commands require open jamDB database
   try:
@@ -76,8 +79,6 @@ else:
       cmd = ['git','show','-s','--format=%ci']
       output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       print('software version:',' '.join(output.stdout.decode('utf-8').split()[0:2]))
-    elif args.command=='up':
-      print('up:',be.upOut(args.docID))
     elif args.command=='updateJamDB':
       os.chdir(be.softwarePath)
       cmd = ['git','pull']

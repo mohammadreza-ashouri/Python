@@ -1,12 +1,6 @@
 """Class for interaction with couchDB
 """
-import traceback, json, logging, os, warnings, sys, time
-from cloudant.client import CouchDB
-from cloudant.view import View
-from cloudant.design_document import DesignDocument
-from cloudant.replicator import Replicator
-from miscTools import bcolors
-from commonTools import commonTools as cT
+import traceback, logging
 
 class Database:
   """
@@ -23,12 +17,15 @@ class Database:
         softwarePath (string): path to software and default dataDictionary.json
         initViews (bool): initialize views at startup
     """
+    import json
+    from cloudant.client import CouchDB
     self.confirm = confirm
     try:
       self.client = CouchDB(user, password, url='http://127.0.0.1:5984', connect=True)
     except:
       logging.error('database:init Something unexpected has happend\n'+traceback.format_exc())
       print('database:init Something unexpected has happend\n'+traceback.format_exc())
+      import sys
       sys.exit()
     self.databaseName = databaseName
     if self.databaseName in self.client.all_dbs():
@@ -111,6 +108,7 @@ class Database:
     Args:
       deleteDB (bool): remove database
     """
+    import warnings
     if deleteDB:
       self.db.client.delete_database(self.databaseName)
     warnings.simplefilter("ignore")  #client disconnect triggers ignored ResourceWarning on socket
@@ -268,6 +266,7 @@ class Database:
     Returns:
         list: list of documents in this view
     """
+    from cloudant.view import View
     thePath = thePath.split('/')
     designDoc = self.db.get_design_document(thePath[0])
     v = View(designDoc, thePath[1])
@@ -288,6 +287,7 @@ class Database:
         designName (string): name of the design
         viewCode (dict): viewName: js-code
     """
+    from cloudant.design_document import DesignDocument
     if '_design/'+designName in self.db:
       designDoc = self.db['_design/'+designName]
       designDoc.delete()
@@ -310,6 +310,9 @@ class Database:
         dbInfo (dict): info on the remote database
         removeAtStart (bool): remove remote DB before starting new
     """
+    import time
+    from cloudant.client import CouchDB
+    from cloudant.replicator import Replicator
     try:
       rep = Replicator(self.client)
       try:
@@ -364,6 +367,8 @@ class Database:
     Returns:
         bool: success of check
     """
+    import os
+    from miscTools import bcolors
     if verbose:
       outstring = f'{bcolors.UNDERLINE}**** LEGEND ****{bcolors.ENDC}\n'
       outstring+= f'{bcolors.OKGREEN}Green: perfect and as intended{bcolors.ENDC}\n'

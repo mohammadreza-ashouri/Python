@@ -1,24 +1,6 @@
 #!/usr/bin/python3
 """ Python Backend: all operations with the filesystem are here
 """
-import os, json, base64, shutil, re, sys
-import logging, time
-from io import StringIO, BytesIO
-import importlib, tempfile
-from zipfile import ZipFile, ZIP_DEFLATED
-from urllib import request
-import numpy as np
-import matplotlib.pyplot as plt
-import PIL
-import pypandoc
-import datalad.api as datalad
-from datalad.support import gitrepo, annexrepo
-#jamDB modules
-from database import Database
-from commonTools import commonTools as cT
-from miscTools import bcolors, createDirName, generic_hash, upIn, upOut
-if sys.platform=='win32':
-  import win32con, win32api
 
 class JamDB:
   """
@@ -34,6 +16,10 @@ class JamDB:
         confirm (function): confirm changes to database and file-tree
         initViews (bool): initialize views at startup
     """
+    import os, logging, json, sys
+    from database import Database
+    from miscTools import upIn, upOut
+    from commonTools import commonTools as cT
     ## CONFIGURATION FOR DATALAD and GIT: has to move to dictionary
     self.vanillaGit = ['*.md','*.rst','*.org','*.tex','*.py','.id_jamDB.json'] #tracked but in git;
     #   .id_jamDB.json has to be tracked by git (if ignored: they don't appear on git-status; they have to change by jamDB)
@@ -115,6 +101,7 @@ class JamDB:
       deleteDB (bool): remove database
       kwargs (dict): additional parameter
     """
+    import os, time, logging
     if deleteDB:
       #uninit / delete everything of git-annex and datalad
       for root, dirs, files in os.walk(self.basePath):
@@ -124,7 +111,6 @@ class JamDB:
           os.chmod(os.path.join(root, momo), 0o755)
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
-    time.sleep(2)
     self.alive     = False
     logging.info('\nEND JAMS')
     logging.shutdown()
@@ -149,6 +135,15 @@ class JamDB:
     Returns:
         bool: success
     """
+    import logging, sys, os, json
+    from urllib import request
+    import pypandoc
+    import datalad.api as datalad
+    from commonTools import commonTools as cT
+    from miscTools import createDirName, generic_hash
+    if sys.platform=='win32':
+      import win32con, win32api
+
     if hierStack is None: hierStack=[]
     logging.debug('addData beginning doc: '+docType+' | hierStack'+str(hierStack))
     callback = kwargs.get('callback', None)
@@ -343,6 +338,7 @@ class JamDB:
         dirName (string): use this name to change into
         kwargs (dict): additional parameter
     """
+    import os, logging
     if docID is None or docID in self.hierList:  # none, 'project', 'step', 'task' are given: close
       self.hierStack.pop()
       if self.cwd is not None:
@@ -381,6 +377,10 @@ class JamDB:
     Raises:
       ValueError: could not add new measurement to database
     """
+    import logging, os, shutil
+    import datalad.api as datalad
+    from datalad.support import annexrepo
+    from miscTools import bcolors, generic_hash
     logging.info('scanTree started')
     if len(self.hierStack) == 0:
       print(f'{bcolors.FAIL}Warning - scan directory: No project selected{bcolors.ENDC}')
@@ -498,6 +498,8 @@ class JamDB:
     Returns:
         bool: success
     """
+    import os, json
+    from zipfile import ZipFile, ZIP_DEFLATED
     if zipFileName is None and self.cwd is None:
       print("Specify zip file name")
       return False
@@ -572,6 +574,12 @@ class JamDB:
           - maxSize of image
           - extractorTest: test the extractor and show image
     """
+    import logging, os, importlib, base64, shutil
+    from io import StringIO, BytesIO
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from PIL.Image import Image
+    import datalad.api as datalad
     logging.debug('getMeasurement started for path '+filePath)
     maxSize = kwargs.get('maxSize', 600)
     extractorTest    = kwargs.get('extractorTest', False)
@@ -598,7 +606,7 @@ class JamDB:
       module = importlib.import_module(pyFile[:-3])
       image, imgType, meta = module.getMeasurement(absFilePath, doc)
       if extractorTest:
-        if isinstance(image, PIL.Image.Image):
+        if isinstance(image, Image):
           image.show()
         else:
           plt.show()
@@ -692,6 +700,7 @@ class JamDB:
         removeAtStart (bool): remove remote DB before starting new
         kwargs (dict): additional parameter
     """
+    from miscTools import upOut
     if remoteDB is not None:
       self.remoteDB['database'] = remoteDB
     self.remoteDB['user'],self.remoteDB['password'] = upOut(self.remoteDB['cred']).split(':')
@@ -711,6 +720,8 @@ class JamDB:
     Returns:
         string: output incl. \n
     """
+    import os, logging
+    from datalad.support import annexrepo
     ### check database itself for consistency
     output = self.db.checkDB(mode=mode, verbose=verbose, **kwargs)
     ### check if datalad status is clean for all projects
@@ -875,6 +886,8 @@ class JamDB:
     Returns:
         string: output incl. \n
     """
+    import re, logging
+    from commonTools import commonTools as cT
     if len(self.hierStack) == 0:
       logging.warning('jams.outputHierarchy No project selected')
       return 'Warning: jams.outputHierarchy No project selected'
@@ -924,6 +937,10 @@ class JamDB:
     Returns:
        success of function: true/false
     """
+    import re, os, logging, tempfile
+    import datalad.api as datalad
+    from commonTools import commonTools as cT
+    from miscTools import createDirName
     # write backup
     with open(tempfile.gettempdir()+os.sep+'tempSetEditString.txt','w') as fOut:
       fOut.write(text)
@@ -1050,6 +1067,7 @@ class JamDB:
     Returns:
         list: list of names, list of document-ids
     """
+    from commonTools import commonTools as cT
     hierTree = self.outputHierarchy(True,True,False)
     if hierTree is None:
       print('No hierarchy tree')
