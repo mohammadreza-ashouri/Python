@@ -52,7 +52,7 @@ class Database:
       magicTags (list): magic tags used for view creation
     """
     # for the individual docTypes
-    jsDefault = "if ($docType$ && !('current_rev' in doc)) {emit($key$, [$outputList$]);}"
+    jsDefault = "if ($docType$) {emit($key$, [$outputList$]);}"
     viewCode = {}
     for docType, docLabel in docTypesLabels:
       view = 'view'+docLabel
@@ -81,21 +81,21 @@ class Database:
     self.saveView('viewDocType', viewCode)
     # general views: Hierarchy, Identify
     jsHierarchy  = '''
-      if ('type' in doc && !('current_rev' in doc)) {
+      if ('type' in doc) {
         doc.branch.forEach(function(branch) {emit(branch.stack.concat([doc._id]).join(' '),[branch.child,doc.type,doc.name]);});
       }
     '''
     jsPath = '''
-      if ('type' in doc && 'branch' in doc && !('current_rev' in doc)){
+      if ('type' in doc && 'branch' in doc){
         if ('shasum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,doc.shasum]);}});}
         else                {doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,''        ]);}});}
       }
     '''
     self.saveView('viewHierarchy',{'viewHierarchy':jsHierarchy,'viewPaths':jsPath})
-    jsSHA= "if (doc.type[0]==='measurement' && !('current_rev' in doc)){emit(doc.shasum, doc.name);}"
-    jsQR = "if (doc.qrCode.length > 0 && !('current_rev' in doc))"
+    jsSHA= "if (doc.type[0]==='measurement'){emit(doc.shasum, doc.name);}"
+    jsQR = "if (doc.qrCode.length > 0)"
     jsQR+= '{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}'
-    jsTags=str(magicTags)+".forEach(function(tag){if(doc.tags.indexOf('#'+tag)>-1 && !('current_rev' in doc)) emit('#'+tag, doc.name);});"
+    jsTags=str(magicTags)+".forEach(function(tag){if(doc.tags.indexOf('#'+tag)>-1) emit('#'+tag, doc.name);});"
     views = {'viewQR':jsQR, 'viewSHAsum':jsSHA, 'viewTags':jsTags}
     self.saveView('viewIdentify', views)
     return
@@ -348,7 +348,7 @@ class Database:
     return
 
 
-  def checkDB(self, mode=None, verbose=True, **kwargs):
+  def checkDB(self, verbose=True, **kwargs):
     """
     Check database for consistencies by iterating through all documents
     - slow since no views used
@@ -358,7 +358,6 @@ class Database:
     - no interaction with harddisk
 
     Args:
-        mode (string): [None, "delRevisions"], del-revisions removes all revisions in database
         verbose (bool): print more or only issues
         kwargs (dict): additional parameter
 
@@ -388,6 +387,19 @@ class Database:
         if verbose:
           outstring+= f'{bcolors.OKGREEN}..info: ontology exists{bcolors.ENDC}\n'
         continue
+      #only normal documents after this line
+
+      ###custom temporary changes: keep few as examples;
+      # BE CAREFUL: PRINT FIRST, delete second run
+      # if 'revisions' in doc:
+      #   del doc['revisions']
+      #   doc.save()
+      # if len(doc['_id'].split('-'))==3:
+      #   print('id',doc['_id'])
+      #   doc.delete()
+      #   continue
+      ## output size of document
+      # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
 
       #branch test
       if 'branch' not in doc:
@@ -440,17 +452,6 @@ class Database:
         elif 'type' in doc and doc['type'][0] == 'measurement':
           if 'shasum' not in doc:
             outstring+= f'{bcolors.FAIL}**ERROR shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
-
-        ###custom temporary changes: keep few as examples
-        # if 'revisions' in doc:
-        #   del doc['revisions']
-        #   doc.save()
-        # if "nextRevision" not in doc:
-        #   doc['nextRevision'] = 0
-        #   doc.save()
-
-        ## output size of document
-        # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
 
     ##TEST views
     if verbose:
