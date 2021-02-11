@@ -1,8 +1,11 @@
 @echo off
 REM print content line. No " '
 echo Installer for jamDB on Windows Systems
-echo IMPORTANT: always select to adjust the path in the started programs.
+echo IMPORTANT: Please start this script by using cmd.exe and cd-ing into the correct directory (Helps me debug).
+echo IMPORTANT: always select to adjust the PATH VARIABLE during installation.
+echo IMPORTANT: Often a restart incl. cmd.exe restart helps. If this script stops twice at the same point, then it is time to read next line.
 echo IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/jamdb-python/-/wikis/notesUser
+echo IMPORTANT: if problems persist, contact Steffen and send the output of the cmd.exe file.
 echo -- use 64-bit programs --
 echo -- 3GB on C: are required --
 echo the following actions are executed (only install if item does not exist)"
@@ -73,16 +76,16 @@ echo %PATH% | findstr "jamdb-python">nul
 REM echo with preceeding space
 REM chain commands, use & at beginning of new line
 if errorlevel==1 (echo.  setting path now^
-  echo CANNOT DO THIS AUTOMATICALLY. Please do manually:^
+  & echo CANNOT DO THIS AUTOMATICALLY. Please do manually:^
   & echo.  Adopt the Environment Variables. Click start-button and type^
   & echo.  "Enviro" and select "Edit environmenal variables for your account"^
-  & echo.  from the search results. In the window, click on "Path" and "Edit..."^
-  & echo.  Click new three times and enter each time with copy-paste^
-  & echo.    if content is already inside, skip it
+  & echo.  from the search results. In the window for USER-VARIABLES, click^
+  & echo.  on "Path" and "Edit...". Click new three times and enter each time^
+  & echo.  with copy-paste if content is already inside, skip it^
   & echo.  - C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38^
   & echo.  - C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38\Scripts^
   & echo.  - %softwareDir%\jamdb-python^
-  & echo.
+  & echo.^
   & pause
   ) else (echo.  no need to set path variable as it seems to be correct)
 echo.
@@ -194,17 +197,18 @@ if not defined CDB_USER (set CDB_USER=admin)
 REM Clone source from repository; set PYTHONPATH
 echo Clone files from repositories
 cd %softwareDir%
-git clone https://jugit.fz-juelich.de/s.brinckmann/experimetal-micromechanics
+git clone https://jugit.fz-juelich.de/s.brinckmann/experimental-micromechanics
 git clone https://jugit.fz-juelich.de/s.brinckmann/jamdb-python.git
 git clone https://jugit.fz-juelich.de/s.brinckmann/jamdb-reactelectron.git
 
 echo Set environment variables: PYTHONPATH
-setx PYTHONPATH "%softwareDir%\experimetal-micromechanics\src;%softwareDir%\jamdb-python"
+setx PYTHONPATH "%softwareDir%\experimental-micromechanics\src;%softwareDir%\jamdb-python"
 echo.
 
 echo Install python libraries for backend
 cd %softwareDir%\jamdb-python
 pip.exe install --disable-pip-version-check -r requirements.txt
+pip.exe install --disable-pip-version-check pywin32 pywin32-ctypes
 echo.
 
 echo Create basic jamDB.json configuration
@@ -220,7 +224,7 @@ echo   "jamDB_tutorial": {>> .jamDB.json
 echo     "user": "%CDB_USER%",>> .jamDB.json
 echo     "password": "%CDB_PASSW%",>> .jamDB.json
 echo     "database": "jamdb_tutorial",>> .jamDB.json
-echo     "path": "Documents\%jamDB%">> .jamDB.json
+echo     "path": "Documents\\%jamDB%">> .jamDB.json
 echo   },>> .jamDB.json
 echo.  >> .jamDB.json
 echo   "remote": {>> .jamDB.json
