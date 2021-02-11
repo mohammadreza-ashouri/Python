@@ -348,7 +348,7 @@ class Database:
     return
 
 
-  def checkDB(self, mode=None, verbose=True, **kwargs):
+  def checkDB(self, verbose=True, **kwargs):
     """
     Check database for consistencies by iterating through all documents
     - slow since no views used
@@ -358,7 +358,6 @@ class Database:
     - no interaction with harddisk
 
     Args:
-        mode (string): [None, "delRevisions"], del-revisions removes all revisions in database
         verbose (bool): print more or only issues
         kwargs (dict): additional parameter
 
@@ -388,6 +387,19 @@ class Database:
         if verbose:
           outstring+= f'{bcolors.OKGREEN}..info: ontology exists{bcolors.ENDC}\n'
         continue
+      #only normal documents after this line
+
+      ###custom temporary changes: keep few as examples;
+      # BE CAREFUL: PRINT FIRST, delete second run
+      # if 'revisions' in doc:
+      #   del doc['revisions']
+      #   doc.save()
+      # if len(doc['_id'].split('-'))==3:
+      #   print('id',doc['_id'])
+      #   doc.delete()
+      #   continue
+      ## output size of document
+      # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
 
       #branch test
       if 'branch' not in doc:
@@ -440,17 +452,6 @@ class Database:
         elif 'type' in doc and doc['type'][0] == 'measurement':
           if 'shasum' not in doc:
             outstring+= f'{bcolors.FAIL}**ERROR shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
-
-        ###custom temporary changes: keep few as examples
-        # if 'revisions' in doc:
-        #   del doc['revisions']
-        #   doc.save()
-        # if "nextRevision" not in doc:
-        #   doc['nextRevision'] = 0
-        #   doc.save()
-
-        ## output size of document
-        # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
 
     ##TEST views
     if verbose:

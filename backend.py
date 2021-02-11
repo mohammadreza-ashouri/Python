@@ -734,12 +734,11 @@ class JamDB:
     return
 
 
-  def checkDB(self,  mode=None, verbose=True, **kwargs):
+  def checkDB(self, verbose=True, **kwargs):
     """
     Wrapper of check database for consistencies by iterating through all documents
 
     Args:
-        mode (string): mode for checking database, e.g. delete revisions
         verbose (bool): print more or only issues
         kwargs (dict): additional parameter, i.e. callback
 
@@ -749,7 +748,7 @@ class JamDB:
     import os, logging
     from datalad.support import annexrepo
     ### check database itself for consistency
-    output = self.db.checkDB(mode=mode, verbose=verbose, **kwargs)
+    output = self.db.checkDB(verbose=verbose, **kwargs)
     ### check if datalad status is clean for all projects
     if verbose:
       output += "--- DataLad status ---\n"

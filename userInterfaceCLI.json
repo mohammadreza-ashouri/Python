@@ -18,19 +18,18 @@
    {"Output hierarchy":    "function_outputHierarchy"},
    {"Output all tags":     "function_outputTags"},
    {"Output TODO tag":     "function_outputTags_TODO"},
-   {"Output WAIT tag":    "function_outputTags_WAIT"}
+   {"Output WAIT tag":     "function_outputTags_WAIT"}
 ],
 "automate": [ "How to scan directories?",
    {"Find new measurements"             :"function_scanTree"},
    {"Compare procedures database-files" :"function_compareProcedures"},
    {"Replicate database":                "function_replicateDB"},
    {"Check database integrity":          "function_checkDB"},
-   {"Backup and advanced cleaning":      "menu_advancedAutomate"}
+   {"Backup functions":                  "menu_backup"}
 ],
-"advancedAutomate": [ "How to scan directories?",
+"backup": [ "What type of backup function?",
    {"Create  backup":               "function_backup_backup"},
    {"Compare backup to database":   "function_backup_compare"},
-   {"Restore backup":               "function_backup_restore"},
-   {"Check database and delete old revisions (DANGER)":     "function_checkDB_delRevisions"}
+   {"Restore backup":               "function_backup_restore"}
 ]
 }
