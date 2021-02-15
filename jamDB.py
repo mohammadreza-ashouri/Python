@@ -92,8 +92,10 @@ else:
       print(output)
       if '**ERROR' in output:
         success = False
-    elif args.command=='sync':
-      print('sync not implemented yet')
+    elif args.command=='syncLR':
+      success = be.replicateDB()
+    elif args.command=='syncRL':
+      print('syncRL not implemented yet')
     elif args.command=='print':
       print(be.output(args.label,True))
     elif args.command=='saveBackup':   #save to backup file.zip

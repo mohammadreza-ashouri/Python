@@ -725,13 +725,16 @@ class JamDB:
         remoteDB (string): if given, use this name for external db
         removeAtStart (bool): remove remote DB before starting new
         kwargs (dict): additional parameter
+
+    Returns:
+        bool: replication success
     """
     from miscTools import upOut
     if remoteDB is not None:
       self.remoteDB['database'] = remoteDB
     self.remoteDB['user'],self.remoteDB['password'] = upOut(self.remoteDB['cred']).split(':')
-    self.db.replicateDB(self.remoteDB, removeAtStart)
-    return
+    success = self.db.replicateDB(self.remoteDB, removeAtStart)
+    return success
 
 
   def checkDB(self, verbose=True, **kwargs):

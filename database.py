@@ -307,6 +307,9 @@ class Database:
     Args:
         dbInfo (dict): info on the remote database
         removeAtStart (bool): remove remote DB before starting new
+
+    Returns:
+        dict: json of document
     """
     import time
     from cloudant.client import CouchDB
@@ -317,7 +320,7 @@ class Database:
         client2 = CouchDB(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
       except:
         print('Could not connect to remote server: Abort replication.')
-        return
+        return False
       try:
         listAllDataBases = client2.all_dbs()
         if dbInfo['database'] in listAllDataBases and removeAtStart:
@@ -328,7 +331,7 @@ class Database:
         pass
       db2 = client2[dbInfo['database']]
       replResult = rep.create_replication(self.db, db2, create_target=False, continuous=False)
-      print('Start replication '+replResult['_id']+'. Wait max. 5min to see if successful.')
+      print('Start replication '+replResult['_id']+'.')
       logging.info('database:replicateDB Replication started '+replResult['_id'])
       #try every 10sec whether replicaton success. Do that for max. of 5min
       startTime = time.time()
@@ -336,16 +339,17 @@ class Database:
         if (time.time()-startTime)/60.>5.:
           print("Waited for 5min. No replication success in that time")
           logging.info("Waited for 5min. No replication success in that time")
-          break
+          return True
         replResult.fetch()        # get updated, latest version from the server
         if '_replication_state' in replResult:
           print("Replication success state: "+replResult['_replication_state'])
           logging.info("Replication success state: "+replResult['_replication_state'])
-          break
+          return True
         time.sleep(10)
     except:
       print("**ERROR** replicate\n",traceback.format_exc())
-    return
+      return False
+    return False  #should not reach here
 
 
   def checkDB(self, verbose=True, **kwargs):
