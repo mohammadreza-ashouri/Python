@@ -140,7 +140,7 @@ class Database:
         dict: json representation of submitted document
     """
     tracebackString = traceback.format_stack()
-    tracebackString = [item for item in tracebackString if 'backend.py' in item or 'database.py' in item or 'Tests' in item or 'jamDB' in item]
+    tracebackString = [item for item in tracebackString if 'backend.py' in item or 'database.py' in item or 'Tests' in item or 'pasta' in item]
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString])  #| separated list of stack excluding last
     doc['client'] = tracebackString
     if 'branch' in doc and 'op' in doc['branch']:
@@ -172,7 +172,7 @@ class Database:
     """
     import json
     tracebackString = traceback.format_stack()
-    tracebackString = [item for item in tracebackString if 'backend.py' in item or 'database.py' in item or 'Tests' in item or 'jamDB' in item]
+    tracebackString = [item for item in tracebackString if 'backend.py' in item or 'database.py' in item or 'Tests' in item or 'pasta' in item]
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString])  #| separated list of stack excluding last
     change['client'] = tracebackString
     newDoc = self.db[docID]  #this is the document that stays live

@@ -2,7 +2,7 @@
 import os, shutil, traceback, logging, subprocess
 import warnings, json
 import unittest
-from backend import JamDB
+from backend import Pasta
 
 class TestStringMethods(unittest.TestCase):
   def test_main(self):
@@ -14,13 +14,13 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ImportWarning)
     warnings.filterwarnings('ignore', module='js2py')
 
-    configName = 'jamDB_tutorial'
-    self.be = JamDB(configName)
+    configName = 'pasta_tutorial'
+    self.be = Pasta(configName)
     self.dirName = self.be.basePath
     self.be.exit(deleteDB=True)
     shutil.rmtree(self.dirName)
     os.makedirs(self.dirName)
-    self.be = JamDB(configName, initViews=True)
+    self.be = Pasta(configName, initViews=True)
 
     try:
       ### CREATE PROJECTS AND SHOW
@@ -77,15 +77,15 @@ class TestStringMethods(unittest.TestCase):
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', indentDirName)
       self.be.scanTree()
       # TEST THAT LOCAL FILES/THUMBNAILS EXIST
-      self.assertTrue(os.path.exists(semDirName+'Zeiss_tif_jamDB.jpg'),'Zeiss jamDB not created')
-      self.assertTrue(os.path.exists(indentDirName+'1500nmXX 5 7074 -4594_txt_jamDB.svg'),'Micromaterials jamDB not created')
-      self.assertTrue(os.path.exists(indentDirName+'RobinSteel0000LC_txt_jamDB.svg'),'Hysitron jamDB not created')
+      self.assertTrue(os.path.exists(semDirName+'Zeiss_tif_pasta.jpg'),'Zeiss PASTA not created')
+      self.assertTrue(os.path.exists(indentDirName+'1500nmXX 5 7074 -4594_txt_pasta.svg'),'Micromaterials PASTA not created')
+      self.assertTrue(os.path.exists(indentDirName+'RobinSteel0000LC_txt_pasta.svg'),'Hysitron PASTA not created')
 
       ### USE GLOBAL FILES
       print('*** USE GLOBAL FILES ***')
       self.be.changeHierarchy(semStepID)
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Misc_pollen.jpg'})
-      self.assertTrue(os.path.exists(semDirName+'Misc_pollen_jamDB.jpg'),'Wikipedia jamDB not created')
+      self.assertTrue(os.path.exists(semDirName+'Misc_pollen_pasta.jpg'),'Wikipedia PASTA not created')
 
       ### VERIFY DATABASE INTEGRITY
       print("\n*** VERIFY DATABASE INTEGRITY ***")
@@ -119,7 +119,7 @@ class TestStringMethods(unittest.TestCase):
       newOntology.save()
       # restart
       self.be.exit()
-      self.be = JamDB(configName, initViews=True)
+      self.be = Pasta(configName, initViews=True)
       # add data
       self.be.addData('instrument', {'name': 'XP', 'vendor':'MTS', 'model':'Nanoindenter XP', 'comment':':room:10: #TODO'})
       self.be.addData('instrument', {'name': 'Fischer', 'vendor':'Fischer', 'model':'Fischer Scope 300mN', 'comment':':room:12: #TODO'})

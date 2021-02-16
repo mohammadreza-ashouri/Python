@@ -2,7 +2,7 @@
 """ Python Backend: all operations with the filesystem are here
 """
 
-class JamDB:
+class Pasta:
   """
   PYTHON BACKEND
   """
@@ -21,8 +21,8 @@ class JamDB:
     from miscTools import upIn, upOut
     from commonTools import commonTools as cT
     ## CONFIGURATION FOR DATALAD and GIT: has to move to dictionary
-    self.vanillaGit = ['*.md','*.rst','*.org','*.tex','*.py','.id_jamDB.json'] #tracked but in git;
-    #   .id_jamDB.json has to be tracked by git (if ignored: they don't appear on git-status; they have to change by jamDB)
+    self.vanillaGit = ['*.md','*.rst','*.org','*.tex','*.py','.id_pasta.json'] #tracked but in git;
+    #   .id_pasta.json has to be tracked by git (if ignored: they don't appear on git-status; they have to change by PASTA)
     self.gitIgnore = ['*.log','.vscode/','*.xcf','*.css'] #misc
     self.gitIgnore+= ['*.bcf','*.run.xml','*.synctex.gz','*.aux']#latex files
     self.gitIgnore+= ['*.pdf','*.png','*.svg','*.jpg']           #result figures
@@ -31,7 +31,7 @@ class JamDB:
     # open configuration file
     self.debug = True
     self.confirm = confirm
-    with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
+    with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
       configuration = json.load(f)
     changed = False
     for item in configuration:
@@ -41,7 +41,7 @@ class JamDB:
         del configuration[item]['password']
         changed = True
     if changed:
-      with open(os.path.expanduser('~')+'/.jamDB.json','w') as f:
+      with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
         f.write(json.dumps(configuration,indent=2))
     if configName is None:
       configName = configuration['-defaultLocal']
@@ -64,14 +64,14 @@ class JamDB:
       sys.exit(1)
     sys.path.append(self.softwarePath+os.sep+'extractors')  #allow extractors
     # start logging
-    logging.basicConfig(filename=self.softwarePath+os.sep+'jamDB.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
+    logging.basicConfig(filename=self.softwarePath+os.sep+'pasta.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)
     logging.getLogger('asyncio').setLevel(logging.WARNING)
     logging.getLogger('datalad').setLevel(logging.WARNING)
     logging.getLogger('PIL').setLevel(logging.WARNING)
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
-    logging.info('\nSTART JAMS '+configName)
+    logging.info('\nSTART PASTA '+configName)
     # decipher configuration and store
     self.userID   = configuration['-userID']
     self.remoteDB = configuration[remoteName]
@@ -112,7 +112,7 @@ class JamDB:
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
     self.alive     = False
-    logging.info('\nEND JAMS')
+    logging.info('\nEND PASTA')
     logging.shutdown()
     return
 
@@ -189,10 +189,10 @@ class JamDB:
 
     # find path name on local file system; name can be anything
     if self.cwd is not None and 'name' in doc:
-      if (doc['name'].endswith('_jamDB.jpg') or
-          doc['name'].endswith('_jamDB.svg') or
-          doc['name'].endswith('.id_jamDB.json') ):
-        print("**WARNING** DO NOT ADD _jamDB. files to database")
+      if (doc['name'].endswith('_pasta.jpg') or
+          doc['name'].endswith('_pasta.svg') or
+          doc['name'].endswith('.id_pasta.json') ):
+        print("**WARNING** DO NOT ADD _pasta. files to database")
         return False
       if doc['type'][0] == 'text':
         #project, step, task
@@ -305,19 +305,19 @@ class JamDB:
           dlDataset.save(path='.',message='changed gitattributes')
         else:
           os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
-      if os.path.exists(self.basePath+path+os.sep+'.id_jamDB.json') and sys.platform=='win32':
-        if win32api.GetFileAttributes(self.basePath+path+os.sep+'.id_jamDB.json')==win32con.FILE_ATTRIBUTE_HIDDEN:
-          win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_jamDB.json',win32con.FILE_ATTRIBUTE_ARCHIVE)
-      with open(self.basePath+path+os.sep+'.id_jamDB.json','w') as f:  #local path, update in any case
+      if os.path.exists(self.basePath+path+os.sep+'.id_pasta.json') and sys.platform=='win32':
+        if win32api.GetFileAttributes(self.basePath+path+os.sep+'.id_pasta.json')==win32con.FILE_ATTRIBUTE_HIDDEN:
+          win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_pasta.json',win32con.FILE_ATTRIBUTE_ARCHIVE)
+      with open(self.basePath+path+os.sep+'.id_pasta.json','w') as f:  #local path, update in any case
         f.write(json.dumps(doc))
       if sys.platform=='win32':
-        win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_jamDB.json',win32con.FILE_ATTRIBUTE_HIDDEN)
+        win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_pasta.json',win32con.FILE_ATTRIBUTE_HIDDEN)
       projectPath = path.split(os.sep)[0]
       # datalad api version
       dataset = datalad.Dataset(self.basePath+projectPath)
-      dataset.save(path=self.basePath+path+os.sep+'.id_jamDB.json', message='Added new subfolder with .id_jamDB.json')
+      dataset.save(path=self.basePath+path+os.sep+'.id_pasta.json', message='Added new subfolder with .id_pasta.json')
       ## shell command
-      # cmd = ['datalad','save','-m','Added new subfolder with .id_jamDB.json', '-d', self.basePath+projectPath ,self.basePath+path+os.sep+'.id_jamDB.json']
+      # cmd = ['datalad','save','-m','Added new subfolder with .id_pasta.json', '-d', self.basePath+projectPath ,self.basePath+path+os.sep+'.id_pasta.json']
       # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       # print("datalad save",output.stdout.decode('utf-8'))
     self.currentID = doc['_id']
@@ -365,7 +365,7 @@ class JamDB:
   def scanTree(self, **kwargs):
     """ Scan directory tree recursively from project/...
     - find changes on file system and move those changes to DB
-    - use .id_jamDB.json to track changes of directories, aka projects/steps/tasks
+    - use .id_pasta.json to track changes of directories, aka projects/steps/tasks
     - use shasum to track changes of measurements etc. (one file=one shasum=one entry in DB)
     - create database entries for measurements in directory
     - move/copy/delete allowed as the doc['path'] = list of all copies
@@ -461,9 +461,9 @@ class JamDB:
           dlDataset.save(path=origin, message='Moved file from here to '+self.cwd+target   )
           dlDataset.save(path=target, message='Moved file from '+self.cwd+origin+' to here')
         #get docID
-        if origin.endswith('.id_jamDB.json'):
+        if origin.endswith('.id_pasta.json'):
           origin = os.path.split(origin)[0]
-        if target.endswith('.id_jamDB.json'):
+        if target.endswith('.id_pasta.json'):
           target = os.path.split(target)[0]
         view = self.db.getView('viewHierarchy/viewPaths', preciseKey=self.cwd+origin )
         if len(view)==1:
@@ -479,7 +479,7 @@ class JamDB:
                                           'child':itemTarget['value'][2],\
                                           'op':'u'}}, docID)
         else:
-          if not '_jamDB.' in origin:
+          if not '_pasta.' in origin:
             print("file not in database",self.cwd+origin)
     return
 
@@ -504,7 +504,7 @@ class JamDB:
     if zipFileName is None and self.cwd is None:
       print("Specify zip file name")
       return False
-    if zipFileName is None: zipFileName="jamDB_backup.zip"
+    if zipFileName is None: zipFileName="pasta_backup.zip"
     if os.sep not in zipFileName:
       zipFileName = self.basePath+zipFileName
     if method=='backup':  mode = 'w'
@@ -613,7 +613,7 @@ class JamDB:
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = filePath
-      outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_jamDB'
+      outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_pasta'
       projectDB = self.cwd.split(os.sep)[0]
       dataset = datalad.Dataset(self.basePath+projectDB)
     else:
@@ -624,8 +624,8 @@ class JamDB:
         if exitAfterDataLad:
           return
       absFilePath = self.basePath + filePath
-      outFile = self.basePath + filePath.replace('.','_')+'_jamDB'
-    pyFile = 'jamDB_'+extension+'.py'
+      outFile = self.basePath + filePath.replace('.','_')+'_pasta'
+    pyFile = 'pasta_'+extension+'.py'
     pyPath = self.softwarePath+os.sep+'extractors'+os.sep+pyFile
     if os.path.exists(pyPath):
       # import module and use to get data
@@ -772,12 +772,12 @@ class JamDB:
           clean = False
         #test if file exists
         relPath = os.path.relpath(str(posixPath),self.basePath)
-        if relPath.endswith('.id_jamDB.json'): #if project,step,task
+        if relPath.endswith('.id_pasta.json'): #if project,step,task
           relPath, _ = os.path.split(relPath)
         if relPath in listPaths:
           listPaths.remove(relPath)
           continue
-        if '_jamDB.' in relPath or '/.datalad/' in relPath or \
+        if '_pasta.' in relPath or '/.datalad/' in relPath or \
            relPath.endswith('.gitattributes') or os.path.isdir(self.basePath+relPath) or \
            relPath.endswith('.gitignore'):
           continue
@@ -917,8 +917,8 @@ class JamDB:
     import re, logging
     from commonTools import commonTools as cT
     if len(self.hierStack) == 0:
-      logging.warning('jams.outputHierarchy No project selected')
-      return 'Warning: jams.outputHierarchy No project selected'
+      logging.warning('pasta.outputHierarchy No project selected')
+      return 'Warning: pasta.outputHierarchy No project selected'
     hierString = ' '.join(self.hierStack)
     view = self.db.getView('viewHierarchy/viewHierarchy', startKey=hierString)
     nativeView = {}

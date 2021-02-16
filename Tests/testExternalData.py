@@ -5,7 +5,7 @@ TEST IF EXTERNAL DATA CAN BE READ,...
 import os, shutil, traceback, time
 import warnings, subprocess
 import unittest
-from backend import JamDB
+from backend import Pasta
 
 class TestStringMethods(unittest.TestCase):
   def test_main(self):
@@ -17,13 +17,13 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ImportWarning)
     warnings.filterwarnings('ignore', module='js2py')
 
-    configName = 'jamDB_tutorial'
-    self.be = JamDB(configName)
+    configName = 'pasta_tutorial'
+    self.be = Pasta(configName)
     self.dirName = self.be.basePath
     self.be.exit(deleteDB=True)
     shutil.rmtree(self.dirName)
     os.makedirs(self.dirName)
-    self.be = JamDB(configName, initViews=True)
+    self.be = Pasta(configName, initViews=True)
 
     try:
       ### create some project and move into it

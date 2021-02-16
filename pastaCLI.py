@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image
 from questionary import prompt, Separator
 #the package
-from backend import JamDB
+from backend import Pasta
 from miscTools import bcolors
 
 
@@ -71,11 +71,11 @@ def curate(doc):
   print(f'\n{bcolors.BOLD}=> Curate measurement:'+doc['name']+f' <={bcolors.ENDC}')
   #show image
   if doc['image'].startswith('<?xml'):
-    with open(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg','w') as outFile:
+    with open(tempfile.gettempdir()+os.sep+'tmpFilePASTA.svg','w') as outFile:
       outFile.write(doc['image'])
     # optional code if viewer (mac/windows) cannot display svg
-    # cairosvg.svg2png(bytestring=doc['image'], write_to=tempfile.gettempdir()+os.sep+'tmpFilejamsDB.png')
-    viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg' ])
+    # cairosvg.svg2png(bytestring=doc['image'], write_to=tempfile.gettempdir()+os.sep+'tmpFilePASTA.png')
+    viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilePASTA.svg' ])
   elif doc['image'].startswith('data:image'):  #for jpg and png
     imgdata = base64.b64decode(doc['image'][22:])
     image = Image.open(io.BytesIO(imgdata))
@@ -84,8 +84,8 @@ def curate(doc):
       warnings.simplefilter("ignore")  #some images might have transparency which is would trigger warning
       image = image.convert('RGB')
       warnings.simplefilter('default')
-    image.save(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg', format='JPEG')
-    viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg' ])
+    image.save(tempfile.gettempdir()+os.sep+'tmpFilePASTA.jpg', format='JPEG')
+    viewer = subprocess.Popen(['display',tempfile.gettempdir()+os.sep+'tmpFilePASTA.jpg' ])
   #prepare question and ask question and use answer
   for itemJ in questionsLocal:
     if itemJ['name']=='comment' and 'comment' in doc:
@@ -104,10 +104,10 @@ def curate(doc):
   viewer.terminate()
   viewer.kill() #on windows could be skiped
   viewer.wait() #wait for process to close
-  if os.path.exists(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg'):
-    os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.svg')
-  if os.path.exists(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg'):
-    os.unlink(tempfile.gettempdir()+os.sep+'tmpFilejamsDB.jpg')
+  if os.path.exists(tempfile.gettempdir()+os.sep+'tmpFilePASTA.svg'):
+    os.unlink(tempfile.gettempdir()+os.sep+'tmpFilePASTA.svg')
+  if os.path.exists(tempfile.gettempdir()+os.sep+'tmpFilePASTA.jpg'):
+    os.unlink(tempfile.gettempdir()+os.sep+'tmpFilePASTA.jpg')
   if len(answerJ)==0:  #ctrl-c hit
     return False
   if not answerJ['use_file']:
@@ -136,7 +136,7 @@ pathSoftware = os.path.dirname(os.path.abspath(__file__))
 menuOutline = json.load(open(pathSoftware+'/userInterfaceCLI.json', 'r')) # keep menus separate from dataDictionary since only CLI needs menu
 if len(sys.argv)>1: configName=sys.argv[1]
 else:               configName=None
-be = JamDB(configName=configName, confirm=confirm)
+be = Pasta(configName=configName, confirm=confirm)
 print('Start in directory',os.path.abspath(os.path.curdir))
 nextMenu = 'main'
 while be.alive:
@@ -280,10 +280,10 @@ while be.alive:
       res = None
       if answer[1] == 'edit': #direct
         if len(answer)==3: #edit project/step/task
-          tmpFileName = tempfile.gettempdir()+os.sep+'tmpFilejamsDB'+be.eargs['ext']
+          tmpFileName = tempfile.gettempdir()+os.sep+'tmpFilePASTA'+be.eargs['ext']
           inputString = be.getEditString()
         else:              #edit sample/procedure/measurements
-          tmpFileName = tempfile.gettempdir()+os.sep+'tmpFilejamsDB.json'
+          tmpFileName = tempfile.gettempdir()+os.sep+'tmpFilePASTA.json'
           inputString = json.dumps(be.getDoc(answer[-1]))
         with open(tmpFileName,'w') as fOut:
           fOut.write(inputString)

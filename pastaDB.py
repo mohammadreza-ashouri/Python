@@ -6,17 +6,17 @@ are required by frontend. Otherwise, make only temporary changes
 """
 import os, json, sys, subprocess
 import argparse, traceback
-from backend import JamDB
+from backend import Pasta
 from miscTools import upOut
 
 argparser = argparse.ArgumentParser(usage='''
-jamDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
+pasta.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
 
 Possible commands are:
     help: help information
-    test: test jamDB setup
-    updateJamDB: git pull in source
-    verifyDB: test jamDB database
+    test: test PASTA setup
+    updatePASTA: git pull in source
+    verifyDB: test PASTA database
     saveBackup,loadBackup: save to file.zip / load from file.zip
     sync: synchronize / replicate with remote server
     print: print overview
@@ -31,21 +31,21 @@ Possible commands are:
     extractorTest: test the extractor of this file
         -p should be specified is the path to file from base folder
 ''')
-argparser.add_argument('command', help='help, test, updateJamDB, verifyDB, saveBackup, loadBackup, print, scanHierarchy, saveHierarchy, addDoc, hierarchy, newDB, extractorTest')
+argparser.add_argument('command', help='help, test, updatePASTA, verifyDB, saveBackup, loadBackup, print, scanHierarchy, saveHierarchy, addDoc, hierarchy, newDB, extractorTest')
 argparser.add_argument('-i','--docID',   help='docID of project', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
 argparser.add_argument('-l','--label',   help='label used for printing', default='Projects')
 argparser.add_argument('-p','--path',    help='path for extractor test', default='')
-argparser.add_argument('-d','--database',help='name of database configuration', default='') #required for be = JamDB(args.database)
+argparser.add_argument('-d','--database',help='name of database configuration', default='') #required for be = Pasta(args.database)
 args = argparser.parse_args()
 if args.command=='newDB':
   #use new database configuration and store in local-config file
   newDB = json.loads(args.item)
   label = list(newDB.keys()).pop()
-  with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
+  with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
     configuration = json.load(f)
   configuration[label] = newDB[label]
-  with open(os.path.expanduser('~')+'/.jamDB.json','w') as f:
+  with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
     f.write(json.dumps(configuration, indent=2))
 elif args.command=='help':
   print("HELP:")
@@ -53,17 +53,17 @@ elif args.command=='help':
 elif args.command=='up':
   print('up:',upOut(args.docID))
 else:
-  #other commands require open jamDB database
+  #other commands require open PASTA database
   try:
     if args.database=='':
-      with open(os.path.expanduser('~')+'/.jamDB.json','r') as f:
+      with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
         config = json.load(f)
         args.database = config['-defaultLocal']
     success = True
     initViews = False
     if args.command=='test':
       initViews = True
-    be = JamDB(args.database, initViews=initViews)
+    be = Pasta(args.database, initViews=initViews)
     # depending on choices
     if args.command=='test':
       print('database server:',be.db.db.client.server_url)
@@ -79,7 +79,7 @@ else:
       cmd = ['git','show','-s','--format=%ci']
       output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       print('software version:',' '.join(output.stdout.decode('utf-8').split()[0:2]))
-    elif args.command=='updateJamDB':
+    elif args.command=='updatePASTA':
       os.chdir(be.softwarePath)
       cmd = ['git','pull']
       output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)

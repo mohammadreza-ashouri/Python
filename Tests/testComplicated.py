@@ -2,7 +2,7 @@
 import os, shutil, traceback, logging, subprocess
 import warnings, time
 import unittest
-from backend import JamDB
+from backend import Pasta
 
 class TestStringMethods(unittest.TestCase):
   def test_main(self):
@@ -14,13 +14,13 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ImportWarning)
     warnings.filterwarnings('ignore', module='js2py')
 
-    configName = 'jamDB_tutorial'
-    self.be = JamDB(configName)
+    configName = 'pasta_tutorial'
+    self.be = Pasta(configName)
     self.dirName = self.be.basePath
     self.be.exit(deleteDB=True)
     shutil.rmtree(self.dirName)
     os.makedirs(self.dirName)
-    self.be = JamDB(configName, initViews=True)
+    self.be = Pasta(configName, initViews=True)
 
     try:
       ### create some projects and show them
@@ -197,7 +197,7 @@ class TestStringMethods(unittest.TestCase):
       # self.be.replicateDB(configName,True)
       print('\n*** DONE WITH VERIFY ***')
       self.backup()
-      with open(self.be.softwarePath+'/jamDB.log','r') as fIn:
+      with open(self.be.softwarePath+'/pasta.log','r') as fIn:
         text = fIn.read()
         self.assertFalse(text.count('**WARNING')==7,'WARNING string !=7 in log-file')
         self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
@@ -209,13 +209,13 @@ class TestStringMethods(unittest.TestCase):
 
   def backup(self):
     print("BACKUP TEST")
-    if os.path.exists(self.be.basePath+'jamDB_backup.zip'):
-      os.unlink(self.be.basePath+'jamDB_backup.zip')
+    if os.path.exists(self.be.basePath+'pasta_backup.zip'):
+      os.unlink(self.be.basePath+'pasta_backup.zip')
     warnings.simplefilter("ignore")
     self.be.backup() #throws an "Exception ignored in SSL Socket"
     warnings.simplefilter("default")
-    if not os.path.exists(self.be.basePath+'jamDB_backup.zip'):
-      print("Backup did not create zip file",self.be.basePath+'jamDB_backup.zip')
+    if not os.path.exists(self.be.basePath+'pasta_backup.zip'):
+      print("Backup did not create zip file",self.be.basePath+'pasta_backup.zip')
       raise NameError('zip file was not created')
     success = self.be.backup('compare')
     if not success:

@@ -1,5 +1,5 @@
 {
-"__comment__most menus follow jamDB structure":"",
+"__comment__most menus follow PASTA structure":"",
 "main":[ "Main menu",
    {"Open":                "menu_change",               "append":"nextLevel"},
    {"Add new":             "form_",                     "append":"nextLevel"},

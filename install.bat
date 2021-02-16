@@ -1,10 +1,10 @@
 @echo off
 REM print content line. No " '
-echo Installer for jamDB on Windows Systems
+echo Installer for PASTA database on Windows Systems
 echo IMPORTANT: Please start this script by using cmd.exe and cd-ing into the correct directory (Helps me debug).
 echo IMPORTANT: always select to adjust the PATH VARIABLE during installation.
 echo IMPORTANT: Often a restart incl. cmd.exe restart helps. If this script stops twice at the same point, then it is time to read next line.
-echo IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/jamdb-python/-/wikis/notesUser
+echo IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/pasta_python/-/wikis/notesUser
 echo IMPORTANT: if problems persist, contact Steffen and send the output of the cmd.exe file.
 echo -- use 64-bit programs --
 echo -- 3GB on C: are required --
@@ -16,13 +16,13 @@ echo - install git and git-annex; if git is not configured it will be
 echo - install couchDB
 echo - adopt PYTHONPATH
 echo - clone python programs for micromechanics
-echo - clone python backend of jamDB
-echo - clone graphical frontend of jamDB
-echo - install python requirements for jamDB
-echo - adopt .jamDB.json file in home directory
+echo - clone python backend of PASTA
+echo - clone graphical frontend of PASTA
+echo - install python requirements for PASTA
+echo - adopt .pasta.json file in home directory
 echo - run a short test
 echo - install npm (node package manager)
-echo - install node requirements for jamDB
+echo - install node requirements for PASTA
 echo - start graphical user interface (GUI)
 echo.
 REM print empty line
@@ -31,20 +31,20 @@ REM ask for user input
 echo Two empty (for safety) directories are required. One for the source code
 echo and the other as central place to store data, work in.
 set softwareDir=
-set jamDB=
-set jamDB_user=
-set /p softwareDir="Which subdirectory of 'My Documents' should the software be installed to [e.g. jamDB_source]? "
-set /p jamDB="Which subdirectory of 'My Documents' should the data be stored [e.g. jamDB]? "
-set /p jamDB_user=" What is your user id, e.g. orcid-id. Only small letters [random_user] "
+set pasta=
+set pasta_user=
+set /p softwareDir="Which subdirectory of 'My Documents' should the software be installed to [e.g. pasta_source]? "
+set /p pasta="Which subdirectory of 'My Documents' should the data be stored [e.g. pasta]? "
+set /p pasta_user=" What is your user id, e.g. orcid-id. Only small letters [random_user] "
 REM check for empty line
-if not defined softwareDir (set softwareDir=jamDB_source)
-if not defined jamDB (set jamDB=jamDB)
-if not defined jamDB_user (set jamDB_user=random_user)
+if not defined softwareDir (set softwareDir=pasta_source)
+if not defined pasta (set pasta=pasta)
+if not defined pasta_user (set pasta_user=random_user)
 set softwareDir=%HOMEDRIVE%%HOMEPATH%\Documents\%softwareDir%
 set downloadDir=%softwareDir%\tempDownload
 mkdir %softwareDir%
 mkdir %downloadDir%
-mkdir %HOMEDRIVE%%HOMEPATH%\Documents\%jamDB%
+mkdir %HOMEDRIVE%%HOMEPATH%\Documents\%pasta%
 echo.
 
 
@@ -72,7 +72,7 @@ echo.
 
 
 echo Set environment variables: PATH
-echo %PATH% | findstr "jamdb-python">nul
+echo %PATH% | findstr "pasta_python">nul
 REM echo with preceeding space
 REM chain commands, use & at beginning of new line
 if errorlevel==1 (echo.  setting path now^
@@ -84,13 +84,13 @@ if errorlevel==1 (echo.  setting path now^
   & echo.  with copy-paste if content is already inside, skip it^
   & echo.  - C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38^
   & echo.  - C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38\Scripts^
-  & echo.  - %softwareDir%\jamdb-python^
+  & echo.  - %softwareDir%\pasta_python^
   & echo.^
   & pause
   ) else (echo.  no need to set path variable as it seems to be correct)
 echo.
 REM this does not work in a reproducable fashion
-REM  setx PATH "%PATH%;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38\Scripts;%softwareDir%\jamdb-python"^
+REM  setx PATH "%PATH%;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38\Scripts;%softwareDir%\pasta_python"^
 
 echo Verify that python works
 FOR /F "tokens=* USEBACKQ" %%F in (`python --version`) do (set var=%%F)
@@ -198,59 +198,59 @@ REM Clone source from repository; set PYTHONPATH
 echo Clone files from repositories
 cd %softwareDir%
 git clone https://jugit.fz-juelich.de/s.brinckmann/experimental-micromechanics
-git clone https://jugit.fz-juelich.de/s.brinckmann/jamdb-python.git
-git clone https://jugit.fz-juelich.de/s.brinckmann/jamdb-reactelectron.git
+git clone https://jugit.fz-juelich.de/s.brinckmann/pasta_python.git
+git clone https://jugit.fz-juelich.de/s.brinckmann/pasta_electron.git
 
 echo Set environment variables: PYTHONPATH
-setx PYTHONPATH "%softwareDir%\experimental-micromechanics\src;%softwareDir%\jamdb-python"
+setx PYTHONPATH "%softwareDir%\experimental-micromechanics\src;%softwareDir%\pasta_python"
 echo.
 
 echo Install python libraries for backend
-cd %softwareDir%\jamdb-python
+cd %softwareDir%\pasta_python
 pip.exe install --disable-pip-version-check -r requirements.txt
 pip.exe install --disable-pip-version-check pywin32 pywin32-ctypes
 echo.
 
-echo Create basic jamDB.json configuration
+echo Create basic .pasta.json configuration
 cd %HOMEDRIVE%%HOMEPATH%
-echo { > .jamDB.json
-echo   "-userID": "%jamDB_user%",>> .jamDB.json
-echo   "-defaultLocal": "jamDB_tutorial",>> .jamDB.json
-echo   "-defaultRemote": "remote",>> .jamDB.json
-echo   "-eargs": {"editor": "emacs", "ext": ".org", "style": "all"},>> .jamDB.json
-echo   "-magicTags": ["P1","P2","P3","TODO","WAIT","DONE"],>> .jamDB.json
-echo.  >> .jamDB.json
-echo   "jamDB_tutorial": {>> .jamDB.json
-echo     "user": "%CDB_USER%",>> .jamDB.json
-echo     "password": "%CDB_PASSW%",>> .jamDB.json
-echo     "database": "jamdb_tutorial",>> .jamDB.json
-echo     "path": "Documents\\%jamDB%">> .jamDB.json
-echo   },>> .jamDB.json
-echo.  >> .jamDB.json
-echo   "remote": {>> .jamDB.json
-echo     "user": "____",>> .jamDB.json
-echo     "password": "____",>> .jamDB.json
-echo     "url": "https://____",>> .jamDB.json
-echo     "database": "____">> .jamDB.json
-echo   },>> .jamDB.json
-echo.  >> .jamDB.json
-echo   "-tableFormat-": {>> .jamDB.json
-echo     "project":{"-label-":"Projects","-default-": [22,6,50,22]},>> .jamDB.json
-echo     "measurement":{"-default-": [24,7,23,23,-5,-6,-6,-6]},>> .jamDB.json
-echo     "sample":{"-default-": [23,23,23,23,-5]},>> .jamDB.json
-echo     "procedure":{"-default-": [20,20,20,40]}>> .jamDB.json
-echo   }>> .jamDB.json
-echo }>> .jamDB.json
+echo { > .pasta.json
+echo   "-userID": "%pasta_user%",>> .pasta.json
+echo   "-defaultLocal": "pasta_tutorial",>> .pasta.json
+echo   "-defaultRemote": "remote",>> .pasta.json
+echo   "-eargs": {"editor": "emacs", "ext": ".org", "style": "all"},>> .pasta.json
+echo   "-magicTags": ["P1","P2","P3","TODO","WAIT","DONE"],>> .pasta.json
+echo.  >> .pasta.json
+echo   "pasta_tutorial": {>> .pasta.json
+echo     "user": "%CDB_USER%",>> .pasta.json
+echo     "password": "%CDB_PASSW%",>> .pasta.json
+echo     "database": "pasta_tutorial",>> .pasta.json
+echo     "path": "Documents\\%pasta%">> .pasta.json
+echo   },>> .pasta.json
+echo.  >> .pasta.json
+echo   "remote": {>> .pasta.json
+echo     "user": "____",>> .pasta.json
+echo     "password": "____",>> .pasta.json
+echo     "url": "https://____",>> .pasta.json
+echo     "database": "____">> .pasta.json
+echo   },>> .pasta.json
+echo.  >> .pasta.json
+echo   "-tableFormat-": {>> .pasta.json
+echo     "project":{"-label-":"Projects","-default-": [22,6,50,22]},>> .pasta.json
+echo     "measurement":{"-default-": [24,7,23,23,-5,-6,-6,-6]},>> .pasta.json
+echo     "sample":{"-default-": [23,23,23,23,-5]},>> .pasta.json
+echo     "procedure":{"-default-": [20,20,20,40]}>> .pasta.json
+echo   }>> .pasta.json
+echo }>> .pasta.json
 echo.
 
 
 REM Run a two short tests of the python backend
 echo Run a very short (5sec) test of the python backend
-cd %softwareDir%\jamdb-python
-python jamDB.py test
+cd %softwareDir%\pasta_python
+python pasta.py test
 echo.
 echo If this test is not successful, it is likely that you entered the wrong username
-echo.  and password. Open the file %HOMEDRIVE%%HOMEPATH%\.jamDB.json in an editor and
+echo.  and password. Open the file %HOMEDRIVE%%HOMEPATH%\.pasta.json in an editor and
 echo.  correct the entries after "user" and "password". "-userID" does not matter.
 echo.  Entries under "remote" do not matter.
 echo.
@@ -273,14 +273,14 @@ echo.
 
 echo install graphical user interface (GUI) requirements
 echo Don't care about vulnerablies right now in this test.
-cd %softwareDir%\jamdb-reactelectron
+cd %softwareDir%\pasta_electron
 cmd /c "npm install"
 
 echo.
 echo ==========================================================
 echo Start the graphical user interface. If you want to do that in
 echo the future:
-echo.  cd %softwareDir%\jamdb-reactelectron
+echo.  cd %softwareDir%\pasta_electron
 echo.  npm start
 echo Enjoy this test version. Ctrl-C stops the command-prompt,
 echo.  sometimes multiple are required.

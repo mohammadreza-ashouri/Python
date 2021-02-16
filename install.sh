@@ -1,6 +1,6 @@
 #!/bin/bash
-echo "Installer for jamDB on Ubuntu Systems"
-echo "IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/jamdb-python/-/wikis/notesUser"
+echo "Installer for PASTA database on Ubuntu Systems"
+echo "IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/pasta_python/-/wikis/notesUser"
 echo "The following actions are executed in this script (only install if item does not exist)"
 echo "  - install Python 3"
 echo "  - install Python extensions: openCV, pip"
@@ -10,13 +10,13 @@ echo "  - ensure that xv command exists"
 echo "  - install couchDB"
 echo "  - adopt PATH and PYTHONPATH"
 echo "  - clone python programs for micromechanics"
-echo "  - clone python backend of jamDB"
-echo "  - clone graphical frontend of jamDB"
-echo "  - install python requirements for jamDB"
-echo "  - adopt .jamDB.json file in home directory"
+echo "  - clone python backend of PASTA"
+echo "  - clone graphical frontend of PASTA"
+echo "  - install python requirements for PASTA"
+echo "  - adopt .pasta.json file in home directory"
 echo "  - run a short test"
 echo "  - install npm (node package manager)"
-echo "  - install node requirements for jamDB"
+echo "  - install node requirements for PASTA"
 echo "  - start graphical user interface (GUI)"
 echo
 read -p "Do you wish to install all these items now [Y/n] ? " yesno
@@ -147,100 +147,100 @@ echo
 
 echo "Two empty (for safety) directories are required. One for the source code"
 echo "and the other as central place to store data, work in."
-read -p "  Where to store the source code? [jamDB_Source, i.e. /home/${THEUSER}/jamDB_Source] " jamDB_src
-read -p "  Where to store the data? [jamDB, i.e. /home/${THEUSER}/jamDB] " jamDB
-read -p "  What is your user id, e.g. orcid-id. Only small letters [random_user] ? " jamDB_user
-if [ -z $jamDB_src ]
+read -p "  Where to store the source code? [pasta_source, i.e. /home/${THEUSER}/pasta_source] " pasta_src
+read -p "  Where to store the data? [pasta, i.e. /home/${THEUSER}/pasta] " pasta
+read -p "  What is your user id, e.g. orcid-id. Only small letters [random_user] ? " pasta_user
+if [ -z $pasta_src ]
 then
-  jamDB_src="jamDB_Source"
+  pasta_src="pasta_source"
 fi
-if [ -z $jamDB ]
+if [ -z $pasta ]
 then
-  jamDB="jamDB"
+  pasta="pasta"
 fi
-if [ -z $jamDB_user ]
+if [ -z $pasta_user ]
 then
-  jamDB_user="random_user"
+  pasta_user="random_user"
 fi
-sudo -u $THEUSER mkdir /home/$THEUSER/$jamDB_src
-sudo -u $THEUSER mkdir /home/$THEUSER/$jamDB_src/jamDB_tutorial
-sudo -u $THEUSER mkdir /home/$THEUSER/$jamDB
+sudo -u $THEUSER mkdir /home/$THEUSER/$pasta_src
+sudo -u $THEUSER mkdir /home/$THEUSER/$pasta_src/pasta_tutorial
+sudo -u $THEUSER mkdir /home/$THEUSER/$pasta
 echo
 
 
 echo "Start cloning the git repositories: tools, python-backend, javascript-frontend"
-cd /home/$THEUSER/$jamDB_src
+cd /home/$THEUSER/$pasta_src
 sudo -u $THEUSER git clone https://jugit.fz-juelich.de/s.brinckmann/experimental-micromechanics.git
-sudo -u $THEUSER git clone https://jugit.fz-juelich.de/s.brinckmann/jamdb-python.git
-sudo -u $THEUSER git clone https://jugit.fz-juelich.de/s.brinckmann/jamdb-reactelectron.git
+sudo -u $THEUSER git clone https://jugit.fz-juelich.de/s.brinckmann/pasta_python.git
+sudo -u $THEUSER git clone https://jugit.fz-juelich.de/s.brinckmann/pasta_electron.git
 echo
 
 
 echo "Adopt path and python-path in your environment"
-sudo -u $THEUSER echo "#jamDB changes" >> /home/$THEUSER/.bashrc
-sudo -u $THEUSER echo "export PATH=\$PATH:/home/${THEUSER}/${jamDB_src}/jamdb-python" >> /home/$THEUSER/.bashrc
-sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${jamDB_src}/jamdb-python" >> /home/$THEUSER/.bashrc
-sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${jamDB_src}/experimental-micromechanics" >> /home/$THEUSER/.bashrc
+sudo -u $THEUSER echo "#PASTA changes" >> /home/$THEUSER/.bashrc
+sudo -u $THEUSER echo "export PATH=\$PATH:/home/${THEUSER}/${pasta_src}/pasta_python" >> /home/$THEUSER/.bashrc
+sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${pasta_src}/pasta_python" >> /home/$THEUSER/.bashrc
+sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${pasta_src}/experimental-micromechanics" >> /home/$THEUSER/.bashrc
 echo
 
 
 echo "Install python requirements"
-cd /home/$THEUSER/$jamDB_src/jamdb-python
-cd /home/$THEUSER/$jamDB_src/jamdb-python
+cd /home/$THEUSER/$pasta_src/pasta_python
+cd /home/$THEUSER/$pasta_src/pasta_python
 sudo -H pip3 install -r requirements.txt
 echo
 
 
-echo "Create jamDB configuration file .jamDB.json in home directory"
-sudo -u $THEUSER echo "{" > /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  \"-userID\": \"${jamDB_user}\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  \"-defaultLocal\": \"jamDB_tutorial\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  \"-defaultRemote\": \"remote\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  \"-eargs\": {\"editor\": \"emacs\", \"ext\": \".org\", \"style\": \"all\"}," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  \"-magicTags\": [\"P1\",\"P2\",\"P3\",\"TODO\",\"WAIT\",\"DONE\"]," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  \"local\": {" >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"database\": \"${jamDB_user}\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"path\": \"${jamDB}\"" >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  \"jamDB_tutorial\": {" >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"database\": \"jamdb_tutorial\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"path\": \"${jamDB_src}/jamDB_tutorial\"" >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  \"remote\": {" >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"user\": \"____\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"password\": \"____\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"url\": \"https://____\"," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"database\": \"____\"" >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  " >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  \"-tableFormat-\": {" >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"project\":{\"-label-\":\"Projects\",\"-default-\": [22,6,50,22]}," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"measurement\":{\"-default-\": [24,7,23,23,-5,-6,-6,-6]}," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"sample\":{\"-default-\": [23,23,23,23,-5]}," >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "    \"procedure\":{\"-default-\": [20,20,20,40]}" >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "  }" >> /home/$THEUSER/.jamDB.json
-sudo -u $THEUSER echo "}" >> /home/$THEUSER/.jamDB.json
+echo "Create PASTA configuration file .pasta.json in home directory"
+sudo -u $THEUSER echo "{" > /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"-userID\": \"${pasta_user}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"-defaultLocal\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"-defaultRemote\": \"remote\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"-eargs\": {\"editor\": \"emacs\", \"ext\": \".org\", \"style\": \"all\"}," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"-magicTags\": [\"P1\",\"P2\",\"P3\",\"TODO\",\"WAIT\",\"DONE\"]," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"local\": {" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"database\": \"${pasta_user}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"path\": \"${pasta}\"" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"pasta_tutorial\": {" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"database\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"path\": \"${pasta_src}/pasta_tutorial\"" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"remote\": {" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"user\": \"____\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"password\": \"____\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"url\": \"https://____\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"database\": \"____\"" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"-tableFormat-\": {" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"project\":{\"-label-\":\"Projects\",\"-default-\": [22,6,50,22]}," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"measurement\":{\"-default-\": [24,7,23,23,-5,-6,-6,-6]}," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"sample\":{\"-default-\": [23,23,23,23,-5]}," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"procedure\":{\"-default-\": [20,20,20,40]}" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  }" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "}" >> /home/$THEUSER/.pasta.json
 echo
 
 
 echo "Run a very short test for 5sec?"
-cd /home/$THEUSER/$jamDB_src/jamdb-python
-sudo PYTHONPATH=/home/$THEUSER/$jamDB_src/jamdb-python:/home/$THEUSER/$jamDB_src/experimental-micromechanics/src -u $THEUSER python3 jamDB.py test
+cd /home/$THEUSER/$pasta_src/pasta_python
+sudo PYTHONPATH=/home/$THEUSER/$pasta_src/pasta_python:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 pasta.py test
 echo
 echo 'If this test is not successful, it is likely that you entered the wrong username'
-echo "  and password. Open the file /home/$THEUSER/.jamDB.json with an editor and correct"
+echo "  and password. Open the file /home/$THEUSER/.pasta.json with an editor and correct"
 echo '  the entries after "user" and "password". "-userID" does not matter. Entries under'
 echo '  "remote" do not matter, either.'
 echo
 echo "Run a short test for 20-40sec?"
-sudo PYTHONPATH=/home/$THEUSER/$jamDB_src/jamdb-python:/home/$THEUSER/$jamDB_src/experimental-micromechanics/src -u $THEUSER python3 Tests/testTutorial.py
+sudo PYTHONPATH=/home/$THEUSER/$pasta_src/pasta_python:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 Tests/testTutorial.py
 echo
 
 
@@ -254,18 +254,18 @@ else
   sudo apt-get install -y npm
 fi
 echo
-cd /home/$THEUSER/$jamDB_src/jamdb-reactelectron
+cd /home/$THEUSER/$pasta_src/pasta_electron
 sudo -u $THEUSER npm install
 
 
 echo -e "\033[0;31m=========================================================="
 echo -e "Last step: Start the graphical user interface. If you want to do that in "
 echo -e "the future:"
-echo -e "  cd /home/$THEUSER/$jamDB_src/jamdb-reactelectron"
+echo -e "  cd /home/$THEUSER/$pasta_src/pasta_electron"
 echo -e "  npm start"
 echo -e "During the first run of the GUI, click 'Test Backend' in CONFIGURATION. It"
 echo -e "is good to start with Projects, then Samples and Procedures and finally"
 echo -e "Measurements."
 echo -e "==========================================================\033[0m"
 echo
-sudo PATH=$PATH:/home/$THEUSER/$jamDB_src/jamdb-python -u $THEUSER npm start
+sudo PATH=$PATH:/home/$THEUSER/$pasta_src/pasta_python -u $THEUSER npm start
