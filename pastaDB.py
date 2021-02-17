@@ -10,7 +10,7 @@ from backend import Pasta
 from miscTools import upOut
 
 argparser = argparse.ArgumentParser(usage='''
-pasta.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
+pastaDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
 
 Possible commands are:
     help: help information

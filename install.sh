@@ -232,7 +232,7 @@ echo
 
 echo "Run a very short test for 5sec?"
 cd /home/$THEUSER/$pasta_src/pasta_python
-sudo PYTHONPATH=/home/$THEUSER/$pasta_src/pasta_python:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 pasta.py test
+sudo PYTHONPATH=/home/$THEUSER/$pasta_src/pasta_python:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 pastaDB.py test
 echo
 echo 'If this test is not successful, it is likely that you entered the wrong username'
 echo "  and password. Open the file /home/$THEUSER/.pasta.json with an editor and correct"

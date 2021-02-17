@@ -247,7 +247,7 @@ echo.
 REM Run a two short tests of the python backend
 echo Run a very short (5sec) test of the python backend
 cd %softwareDir%\pasta_python
-python pasta.py test
+python pastaDB.py test
 echo.
 echo If this test is not successful, it is likely that you entered the wrong username
 echo.  and password. Open the file %HOMEDRIVE%%HOMEPATH%\.pasta.json in an editor and
