@@ -1,25 +1,8 @@
 #!/bin/bash
 echo "Installer for PASTA database on Ubuntu Systems"
-echo "IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/pasta_python/-/wikis/notesUser"
-echo "The following actions are executed in this script (only install if item does not exist)"
-echo "  - install Python 3"
-echo "  - install Python extensions: openCV, pip"
-echo "  - install pandoc"
-echo "  - install git and git-annex; if git is not configured it will be"
-echo "  - ensure that xv command exists"
-echo "  - install couchDB"
-echo "  - adopt PATH and PYTHONPATH"
-echo "  - clone python programs for micromechanics"
-echo "  - clone python backend of PASTA"
-echo "  - clone graphical frontend of PASTA"
-echo "  - install python requirements for PASTA"
-echo "  - adopt .pasta.json file in home directory"
-echo "  - run a short test"
-echo "  - install npm (node package manager)"
-echo "  - install node requirements for PASTA"
-echo "  - start graphical user interface (GUI)"
+echo "IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/pasta_python/-/wikis/notesUser#help"
 echo
-read -p "Do you wish to install all these items now [Y/n] ? " yesno
+read -p "Do you wish to start installing now [Y/n] ? " yesno
 if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
 then
   echo "  Did not install anything"

@@ -1,30 +1,8 @@
 @echo off
 REM print content line. No " '
 echo Installer for PASTA database on Windows Systems
-echo IMPORTANT: Please start this script by using cmd.exe and cd-ing into the correct directory (Helps me debug).
 echo IMPORTANT: always select to adjust the PATH VARIABLE during installation.
-echo IMPORTANT: Often a restart incl. cmd.exe restart helps. If this script stops twice at the same point, then it is time to read next line.
-echo IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/pasta_python/-/wikis/notesUser
-echo IMPORTANT: if problems persist, contact Steffen and send the output of the cmd.exe file.
-echo -- use 64-bit programs --
-echo -- 3GB on C: are required --
-echo the following actions are executed (only install if item does not exist)"
-echo - install Python 3
-echo - adopt PATH
-echo - install pandoc
-echo - install git and git-annex; if git is not configured it will be
-echo - install couchDB
-echo - adopt PYTHONPATH
-echo - clone python programs for micromechanics
-echo - clone python backend of PASTA
-echo - clone graphical frontend of PASTA
-echo - install python requirements for PASTA
-echo - adopt .pasta.json file in home directory
-echo - run a short test
-echo - install npm (node package manager)
-echo - install node requirements for PASTA
-echo - start graphical user interface (GUI)
-echo.
+echo IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/pasta_python/-/wikis/notesUser#help
 REM print empty line
 echo.
 REM ask for user input
@@ -55,7 +33,8 @@ echo.  conda-framework which makes it difficult to
 echo.  (1) install custom packages, (2) run your own
 echo.  python programs from windows. It basically
 echo.  creates a bubble, which is difficult to
-echo.  penetrate.
+echo.  penetrate. If you have it installed, stop here,
+echo.  uninstall Anaconda and restart this script.
 pause
 FOR /F "tokens=* USEBACKQ" %%F in (`python --version`) do (set var=%%F)
 echo %var% | findstr /C:"Python 3" 1>nul
