@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "Installer for PASTA database on Ubuntu Systems"
-echo "IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/pasta_python/-/wikis/notesUser#help"
+echo "IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/pasta_python/-/wikis/home#installation-scripts"
 echo
 read -p "Do you wish to start installing now [Y/n] ? " yesno
 if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]

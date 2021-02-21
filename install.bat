@@ -2,7 +2,7 @@
 REM print content line. No " '
 echo Installer for PASTA database on Windows Systems
 echo IMPORTANT: always select to adjust the PATH VARIABLE during installation.
-echo IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/pasta_python/-/wikis/notesUser#help
+echo IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/pasta_python/-/wikis/home#installation-scripts
 REM print empty line
 echo.
 REM ask for user input
