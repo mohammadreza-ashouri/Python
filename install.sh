@@ -37,9 +37,9 @@ if dpkg --get-selections | grep -q "^python3-opencv[[:space:]]*install$" >/dev/n
 then
   echo "  python3-opencv is installed"
 else
-  echo "  Info: Python-OpenCV will be installed."
-  sudo add-apt-repository universe >/dev/null
-  sudo apt-get install -y python3-opencv >/dev/null
+  echo "  Info: Python-OpenCV will be installed. This takes a few minutes."
+  sudo add-apt-repository universe       >> installLog.txt
+  sudo apt-get install -y python3-opencv >> installLog.txt
 fi
 echo
 echo "Ensure pip for python is installed"
@@ -48,18 +48,17 @@ then
   echo "  python3-pip is installed"
 else
   echo "  Info: Python3-pip will be installed."
-  sudo apt-get install -y python3-pip >/dev/null
+  sudo apt-get install -y python3-pip     >/dev/null
 fi
 echo
-
 
 echo "Ensure pandoc is installed"
 if command -v pandoc &> /dev/null
 then
   echo "  pandoc installed."
 else
-  echo "  Info: pandoc will be installed."
-  sudo apt-get install -y pandoc >/dev/null
+  echo "  Info: pandoc will be installed. This takes a few minutes."
+  sudo apt-get install -y pandoc          >> installLog.txt
 fi
 echo
 echo "Ensure git is installed"
@@ -67,8 +66,8 @@ if command -v git &> /dev/null
 then
   echo "  git installed."
 else
-  echo "  Info: git will be installed."
-  sudo apt-get install -y git >/dev/null
+  echo "  Info: git will be installed. This takes a few minutes"
+  sudo apt-get install -y git             >> installLog.txt
 fi
 echo
 echo "Ensure git-annex is installed"
@@ -102,11 +101,11 @@ else
   if ! command -v display &> /dev/null
   then
     echo "  xv and display are NOT installed. Imagemagick will be installed."
-    sudo apt-get install -y imagemagick >/dev/null
+    sudo apt-get install -y imagemagick                         >> installLog.txt
   fi
   if [ -f "/usr/bin/xv" ]; then
     echo "xv exists now."
-  else 
+  else
     echo "  Create link from display to xv."
     sudo ln -s /usr/bin/display /usr/bin/xv
   fi
@@ -121,14 +120,21 @@ then
 else
   echo "Install instructions:"
   echo "  choose Standalone installation. Rest: choose OK"
-  echo "  The password and username are scrambled at first usage, hence not stored as plain-text. Both are in a vault."
-  sudo apt-get install -y gnupg ca-certificates
-  echo "deb https://apache.bintray.com/couchdb-deb focal main" | sudo tee /etc/apt/sources.list.d/couchdb.list
-  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8756C4F765C9AC3CB6B85D62379CE192D401AB61
-  sudo apt update >/dev/null
-  sudo apt install -y couchdb >/dev/null
+  read -p "  Continue [Y/n] ? " yesno
+  if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
+  then
+    echo "  Did not install anything"
+    exit
+  fi
+  echo
+  sudo apt-get install -y gnupg ca-certificates                   >> installLog.txt
+  echo "deb https://apache.bintray.com/couchdb-deb focal main" | sudo tee /etc/apt/sources.list.d/couchdb.list  >> installLog.txt
+  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8756C4F765C9AC3CB6B85D62379CE192D401AB61        >> installLog.txt
+  sudo apt update                                                 >> installLog.txt
+  sudo apt install -y couchdb
 fi
 CDB_USER="admin"
+echo "  The password and username are scrambled at first usage, hence not stored as plain-text. Both are in a vault."
 read -p "  Which password did you enter? " CDB_PASSW
 echo
 
@@ -168,14 +174,15 @@ echo "Adopt path and python-path in your environment"
 sudo -u $THEUSER echo "#PASTA changes" >> /home/$THEUSER/.bashrc
 sudo -u $THEUSER echo "export PATH=\$PATH:/home/${THEUSER}/${pasta_src}/pasta_python" >> /home/$THEUSER/.bashrc
 sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${pasta_src}/pasta_python" >> /home/$THEUSER/.bashrc
-sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${pasta_src}/experimental-micromechanics" >> /home/$THEUSER/.bashrc
+sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${pasta_src}/experimental-micromechanics/src" >> /home/$THEUSER/.bashrc
 echo
 
 
 echo "Install python requirements"
 cd /home/$THEUSER/$pasta_src/pasta_python
 cd /home/$THEUSER/$pasta_src/pasta_python
-sudo -H pip3 install -r requirements.txt >/dev/null
+sudo -H pip3 install -r requirements.txt           >> installLog.txt
+sudo -H pip3 install js2py                         >> installLog.txt
 echo
 
 
@@ -215,7 +222,7 @@ sudo -u $THEUSER echo "    \"sample\":{\"-default-\": [23,23,23,23,-5]}," >> /ho
 sudo -u $THEUSER echo "    \"procedure\":{\"-default-\": [20,20,20,40]}" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  }" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "}" >> /home/$THEUSER/.pasta.json
-sudo chown $THEUSER .pasta.json
+sudo chown $THEUSER:$THEUSER /home/$THEUSER/.pasta.json
 echo
 
 

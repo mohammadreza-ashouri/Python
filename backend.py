@@ -7,7 +7,7 @@ class Pasta:
   PYTHON BACKEND
   """
 
-  def __init__(self, configName=None, confirm=None, initViews=False):
+  def __init__(self, configName=None, confirm=None, initViews=False, initConfig=True):
     """
     open server and define database
 
@@ -15,6 +15,7 @@ class Pasta:
         configName (string): name of configuration used; if not given, use the one defined by '-defaultLocal' in config file
         confirm (function): confirm changes to database and file-tree
         initViews (bool): initialize views at startup
+        initConfig (bool): skip initialization of .pasta.json configuration file
     """
     import os, logging, json, sys
     from database import Database
@@ -34,19 +35,24 @@ class Pasta:
     with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
       configuration = json.load(f)
     changed = False
-    for item in configuration:
-      if 'user' in configuration[item] and 'password' in configuration[item]:
-        configuration[item]['cred'] = upIn(configuration[item]['user']+':'+configuration[item]['password'])
-        del configuration[item]['user']
-        del configuration[item]['password']
-        changed = True
-    if changed:
-      with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
-        f.write(json.dumps(configuration,indent=2))
+    if initConfig:
+      for item in configuration:
+        if 'user' in configuration[item] and 'password' in configuration[item]:
+          configuration[item]['cred'] = upIn(configuration[item]['user']+':'+configuration[item]['password'])
+          del configuration[item]['user']
+          del configuration[item]['password']
+          changed = True
+      if changed:
+        with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
+          f.write(json.dumps(configuration,indent=2))
     if configName is None:
       configName = configuration['-defaultLocal']
     remoteName= configuration['-defaultRemote']
-    n, s      = upOut(configuration[configName]['cred']).split(':')
+    n,s       = None,None
+    if 'user' in configuration[configName]:
+      n,s     = configuration[configName]['user'], configuration[configName]['password']
+    else:
+      n, s      = upOut(configuration[configName]['cred']).split(':')
     databaseName = configuration[configName]['database']
     self.configName=configName
     # directories
@@ -646,7 +652,7 @@ class Pasta:
         outFileFull = outFile+'.svg'
       elif imgType == 'jpg':
         ratio = maxSize / image.size[np.argmax(image.size)]
-        image = image.resize((np.array(image.size)*ratio).astype(np.int)).convert('RGB')
+        image = image.resize((np.array(image.size)*ratio).astype(int)).convert('RGB')
         figfile = BytesIO()
         image.save(figfile, format='JPEG')
         imageData = base64.b64encode(figfile.getvalue()).decode()
@@ -654,7 +660,7 @@ class Pasta:
         outFileFull = outFile+'.jpg'
       elif imgType == 'png':
         ratio = maxSize / image.size[np.argmax(image.size)]
-        image = image.resize((np.array(image.size)*ratio).astype(np.int))
+        image = image.resize((np.array(image.size)*ratio).astype(int))
         figfile = BytesIO()
         image.save(figfile, format='PNG')
         imageData = base64.b64encode(figfile.getvalue()).decode()

@@ -15,12 +15,12 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', module='js2py')
 
     configName = 'pasta_tutorial'
-    self.be = Pasta(configName)
+    self.be = Pasta(configName, initConfig=False)
     self.dirName = self.be.basePath
     self.be.exit(deleteDB=True)
     shutil.rmtree(self.dirName)
     os.makedirs(self.dirName)
-    self.be = Pasta(configName, initViews=True)
+    self.be = Pasta(configName, initViews=True, initConfig=False)
 
     try:
       ### CREATE PROJECTS AND SHOW
@@ -119,7 +119,7 @@ class TestStringMethods(unittest.TestCase):
       newOntology.save()
       # restart
       self.be.exit()
-      self.be = Pasta(configName, initViews=True)
+      self.be = Pasta(configName, initViews=True, initConfig=False)
       # add data
       self.be.addData('instrument', {'name': 'XP', 'vendor':'MTS', 'model':'Nanoindenter XP', 'comment':':room:10: #TODO'})
       self.be.addData('instrument', {'name': 'Fischer', 'vendor':'Fischer', 'model':'Fischer Scope 300mN', 'comment':':room:12: #TODO'})
