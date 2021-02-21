@@ -60,10 +60,10 @@ else:
         config = json.load(f)
         args.database = config['-defaultLocal']
     success = True
-    initViews = False
+    initViews, initConfig = False, True
     if args.command=='test':
-      initViews = True
-    be = Pasta(args.database, initViews=initViews)
+      initViews, initConfig = True, False
+    be = Pasta(args.database, initViews=initViews, initConfig=initConfig)
     # depending on choices
     if args.command=='test':
       print('database server:',be.db.db.client.server_url)
