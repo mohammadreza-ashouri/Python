@@ -87,7 +87,10 @@ def upOut(key):
   key (bool): key
   """
   key = cred.get_password('pastaDB',key)
-  key = ':'.join(key.split('bcA:Maw'))
+  if key is None:
+    key = ':'
+  else:
+    key = ':'.join(key.split('bcA:Maw'))
   return key
 
 def upIn(key):

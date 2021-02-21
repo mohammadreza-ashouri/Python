@@ -29,7 +29,7 @@ then
   echo "  Python installed in version 3."
 else
   echo "  Info: Python 3 will be installed."
-  sudo apt-get install -y python3
+  sudo apt-get install -y python3 >/dev/null
 fi
 echo
 echo "Ensure openCV for python is installed"
@@ -38,7 +38,8 @@ then
   echo "  python3-opencv is installed"
 else
   echo "  Info: Python-OpenCV will be installed."
-  sudo apt-get install -y python3-opencv
+  sudo add-apt-repository universe >/dev/null
+  sudo apt-get install -y python3-opencv >/dev/null
 fi
 echo
 echo "Ensure pip for python is installed"
@@ -47,7 +48,7 @@ then
   echo "  python3-pip is installed"
 else
   echo "  Info: Python3-pip will be installed."
-  sudo apt-get install -y python3-pip
+  sudo apt-get install -y python3-pip >/dev/null
 fi
 echo
 
@@ -58,7 +59,7 @@ then
   echo "  pandoc installed."
 else
   echo "  Info: pandoc will be installed."
-  sudo apt-get install -y pandoc
+  sudo apt-get install -y pandoc >/dev/null
 fi
 echo
 echo "Ensure git is installed"
@@ -67,7 +68,7 @@ then
   echo "  git installed."
 else
   echo "  Info: git will be installed."
-  sudo apt-get install -y git
+  sudo apt-get install -y git >/dev/null
 fi
 echo
 echo "Ensure git-annex is installed"
@@ -76,7 +77,7 @@ then
   echo "  git-annex installed."
 else
   echo "  Info: git-annex will be installed."
-  sudo apt-get install -y git-annex
+  sudo apt-get install -y git-annex >/dev/null
 fi
 OUTPUT=$(sudo -u $THEUSER git config -l | grep "user")
 if [[ -n $OUTPUT ]]
@@ -101,10 +102,14 @@ else
   if ! command -v display &> /dev/null
   then
     echo "  xv and display are NOT installed. Imagemagick will be installed."
-    sudo apt-get install -y imagemagick
+    sudo apt-get install -y imagemagick >/dev/null
   fi
-  echo "  Create link from display to xv."
-  sudo ln -s /usr/bin/display /usr/bin/xv
+  if [ -f "/usr/bin/xv" ]; then
+    echo "xv exists now."
+  else 
+    echo "  Create link from display to xv."
+    sudo ln -s /usr/bin/display /usr/bin/xv
+  fi
 fi
 echo
 
@@ -120,8 +125,8 @@ else
   sudo apt-get install -y gnupg ca-certificates
   echo "deb https://apache.bintray.com/couchdb-deb focal main" | sudo tee /etc/apt/sources.list.d/couchdb.list
   sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8756C4F765C9AC3CB6B85D62379CE192D401AB61
-  sudo apt update
-  sudo apt install -y couchdb
+  sudo apt update >/dev/null
+  sudo apt install -y couchdb >/dev/null
 fi
 CDB_USER="admin"
 read -p "  Which password did you enter? " CDB_PASSW
@@ -170,7 +175,7 @@ echo
 echo "Install python requirements"
 cd /home/$THEUSER/$pasta_src/pasta_python
 cd /home/$THEUSER/$pasta_src/pasta_python
-sudo -H pip3 install -r requirements.txt
+sudo -H pip3 install -r requirements.txt >/dev/null
 echo
 
 
@@ -210,6 +215,7 @@ sudo -u $THEUSER echo "    \"sample\":{\"-default-\": [23,23,23,23,-5]}," >> /ho
 sudo -u $THEUSER echo "    \"procedure\":{\"-default-\": [20,20,20,40]}" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  }" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "}" >> /home/$THEUSER/.pasta.json
+sudo chown $THEUSER .pasta.json
 echo
 
 
@@ -234,11 +240,11 @@ then
   echo "  npm installed."
 else
   echo "  Info: npm will be installed."
-  sudo apt-get install -y npm
+  sudo apt-get install -y npm >/dev/null
 fi
 echo
 cd /home/$THEUSER/$pasta_src/pasta_electron
-sudo -u $THEUSER npm install
+sudo -u $THEUSER npm install >/dev/null
 
 
 echo -e "\033[0;31m=========================================================="
