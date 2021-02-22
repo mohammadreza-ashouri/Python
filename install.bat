@@ -60,7 +60,7 @@ if errorlevel==1 (echo.  setting path now^
   & echo.  "Enviro" and select "Edit environmenal variables for your account"^
   & echo.  from the search results. In the window for USER-VARIABLES, click^
   & echo.  on "Path" and "Edit...". Click new three times and enter each time^
-  & echo.  with copy-paste if content is already inside, skip it^
+  & echo.  with copy [select+Return] - paste. If content is already inside, skip it.^
   & echo.  - C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38^
   & echo.  - C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38\Scripts^
   & echo.  - %softwareDir%\pasta_python^
@@ -71,14 +71,24 @@ echo.
 REM this does not work in a reproducable fashion
 REM  setx PATH "%PATH%;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38\Scripts;%softwareDir%\pasta_python"^
 
+REM set PYTHONPATH already. Possible restarts will take this already into account
+echo Set environment variables: PYTHONPATH
+setx PYTHONPATH "%softwareDir%\experimental-micromechanics\src;%softwareDir%\pasta_python"
+echo.
+
+
 echo Verify that python works
 FOR /F "tokens=* USEBACKQ" %%F in (`python --version`) do (set var=%%F)
 echo Output: %var%
-echo.
+echo If python does not work, updates were not registered yet. 
+echo.   - STOP (ctrl-c and Y) script here and close cmd.exe window
+echo.   - START new cmd.exe window
+echo.   - restart install.bat
+pause
 
 echo Install basic python packages
-pip.exe install --disable-pip-version-check win-unicode-console
-pip.exe install --disable-pip-version-check matplotlib pandas wget spyder opencv-python
+pip.exe install --disable-pip-version-check win-unicode-console pywin32 pywin32-ctypes >nul
+pip.exe install --disable-pip-version-check matplotlib pandas wget spyder opencv-python >nul
 echo.
 
 echo Test if python is fully working: plot a sine-curve
@@ -118,10 +128,11 @@ set var=void void
 FOR /F "tokens=* USEBACKQ" %%F in (`where git`) do (set var=%%F)
 echo %var% | findstr "void">nul
 if errorlevel==1 (echo. Git is installed) else (^
-  echo.  Download git now^
+    echo.  Download git now^
   & python.exe -m wget -o %downloadDir% https://github.com/git-for-windows/git/releases/download/v2.30.0.windows.1/Git-2.30.0-64-bit.exe^
-  & echo IMPORTANT: In "Adjusting your path environment" select: "Run Git from the Windows Command Prompt"
-  & pause
+  & echo Keep all the default options including...^
+  & echo In "Adjusting your PATH environment" keep recommended: "Git from the command line and also ..."^
+  & pause^
   & start /WAIT %downloadDir%\Git-2.30.0-64-bit.exe^
   )
 echo.
@@ -135,6 +146,16 @@ if errorlevel==1 (echo. Git-annex is installed) else (^
   & start /WAIT %downloadDir%\git-annex-installer.exe^
   )
 echo.
+
+echo Verify that git works
+FOR /F "tokens=* USEBACKQ" %%F in (`git --version`) do (set var=%%F)
+echo Output: %var%
+echo If git does not work, updates were not registered yet. 
+echo.   - STOP (ctrl-c and Y) script here and close cmd.exe window
+echo.   - START new cmd.exe window
+echo.   - restart install.bat
+pause
+
 echo Check git credentials
 set var=void void
 FOR /F "tokens=* USEBACKQ" %%F in (`git config --global --get user.name`) do (set var=%%F)
@@ -173,21 +194,16 @@ set /p CDB_PASSW="Which password did you enter? "
 if not defined CDB_USER (set CDB_USER=admin)
 
 
-REM Clone source from repository; set PYTHONPATH
+REM Clone source from repository
 echo Clone files from repositories
 cd %softwareDir%
 git clone https://jugit.fz-juelich.de/s.brinckmann/experimental-micromechanics
 git clone https://jugit.fz-juelich.de/s.brinckmann/pasta_python.git
 git clone https://jugit.fz-juelich.de/s.brinckmann/pasta_electron.git
 
-echo Set environment variables: PYTHONPATH
-setx PYTHONPATH "%softwareDir%\experimental-micromechanics\src;%softwareDir%\pasta_python"
-echo.
-
 echo Install python libraries for backend
 cd %softwareDir%\pasta_python
-pip.exe install --disable-pip-version-check -r requirements.txt
-pip.exe install --disable-pip-version-check pywin32 pywin32-ctypes
+pip.exe install --disable-pip-version-check -r requirements.txt  >nul
 echo.
 
 echo Create basic .pasta.json configuration
@@ -257,12 +273,12 @@ cmd /c "npm install"
 
 echo.
 echo ==========================================================
-echo Start the graphical user interface. If you want to do that in
-echo the future:
+echo Start the graphical user interface, which might take a bit. 
+echo Afterwards, stop the script with Ctrl-C (multiple times)
+echo If you want to do that in the future:
 echo.  cd %softwareDir%\pasta_electron
 echo.  npm start
-echo Enjoy this test version. Ctrl-C stops the command-prompt,
-echo.  sometimes multiple are required.
+echo Enjoy the PASTA database. 
 echo ==========================================================
 echo.
 npm start
