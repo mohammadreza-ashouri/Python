@@ -32,7 +32,7 @@ else
   sudo apt-get install -y python3 >/dev/null
 fi
 echo
-echo "Ensure openCV for python is installed"
+echo "Ensure openCV (as an example downstream package) for python is installed"
 if dpkg --get-selections | grep -q "^python3-opencv[[:space:]]*install$" >/dev/null
 then
   echo "  python3-opencv is installed"
@@ -178,7 +178,7 @@ sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${pasta_s
 echo
 
 
-echo "Install python requirements"
+echo "Install python requirements. This takes a few minutes."
 cd /home/$THEUSER/$pasta_src/pasta_python
 cd /home/$THEUSER/$pasta_src/pasta_python
 sudo -H pip3 install -r requirements.txt           >> installLog.txt
@@ -247,11 +247,11 @@ then
   echo "  npm installed."
 else
   echo "  Info: npm will be installed."
-  sudo apt-get install -y npm >/dev/null
+  sudo apt-get install -y npm                         >> installLog.txt
 fi
 echo
 cd /home/$THEUSER/$pasta_src/pasta_electron
-sudo -u $THEUSER npm install >/dev/null
+sudo -u $THEUSER npm install                          >> installLog.txt
 
 
 echo -e "\033[0;31m=========================================================="
