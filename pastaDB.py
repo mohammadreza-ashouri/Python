@@ -112,7 +112,7 @@ else:
         print("SUCCESS")
       else:
         print("**ERROR**")
-    elif args.command=='addDoc':
+    elif args.command=='createDoc':
       content = args.content.replace("'",'"')
       doc = json.loads(content)
       docType = doc['docType']
