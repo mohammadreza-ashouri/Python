@@ -13,11 +13,11 @@ set pasta=
 set pasta_user=
 set /p softwareDir="Which subdirectory of 'My Documents' should the software be installed to [e.g. pasta_source]? "
 set /p pasta="Which subdirectory of 'My Documents' should the data be stored [e.g. pasta]? "
-set /p pasta_user=" What is your user id, e.g. orcid-id. Only small letters [random_user] "
+set /p pasta_user=" How do you want to be known in workgroup (leave empty for more privacy)? only small letters [_] "
 REM check for empty line
 if not defined softwareDir (set softwareDir=pasta_source)
 if not defined pasta (set pasta=pasta)
-if not defined pasta_user (set pasta_user=random_user)
+if not defined pasta_user (set pasta_user=_)
 set softwareDir=%HOMEDRIVE%%HOMEPATH%\Documents\%softwareDir%
 set downloadDir=%softwareDir%\tempDownload
 mkdir %softwareDir%
@@ -80,7 +80,7 @@ echo.
 echo Verify that python works
 FOR /F "tokens=* USEBACKQ" %%F in (`python --version`) do (set var=%%F)
 echo Output: %var%
-echo If python does not work, updates were not registered yet. 
+echo If python does not work, updates were not registered yet.
 echo.   - STOP (ctrl-c and Y) script here and close cmd.exe window
 echo.   - START new cmd.exe window
 echo.   - restart install.bat
@@ -150,7 +150,7 @@ echo.
 echo Verify that git works
 FOR /F "tokens=* USEBACKQ" %%F in (`git --version`) do (set var=%%F)
 echo Output: %var%
-echo If git does not work, updates were not registered yet. 
+echo If git does not work, updates were not registered yet.
 echo.   - STOP (ctrl-c and Y) script here and close cmd.exe window
 echo.   - START new cmd.exe window
 echo.   - restart install.bat
@@ -273,12 +273,12 @@ cmd /c "npm install"
 
 echo.
 echo ==========================================================
-echo Start the graphical user interface, which might take a bit. 
+echo Start the graphical user interface, which might take a bit.
 echo Afterwards, stop the script with Ctrl-C (multiple times)
 echo If you want to do that in the future:
 echo.  cd %softwareDir%\pasta_electron
 echo.  npm start
-echo Enjoy the PASTA database. 
+echo Enjoy the PASTA database.
 echo ==========================================================
 echo.
 npm start

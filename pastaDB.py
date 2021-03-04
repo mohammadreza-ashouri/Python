@@ -132,9 +132,10 @@ else:
           content = content[1:-1]
         elif content[0]=='"' or content[-1]=='"':
           print('SOMETHING STRANGE occurs with content string')
-        print('---- Ensure beginning & end are correct ----')
-        print(content)
-        print('---- Ensure beginning & end are correct ----')
+        ## FOR DEBUGGING OF CONTENT STRING
+        # print('---- Ensure beginning & end are correct ----')
+        # print(content)
+        # print('---- Ensure beginning & end are correct ----')
         success = be.setEditString(content)
       elif args.command=='hierarchy':
         print(be.outputHierarchy(True,True))

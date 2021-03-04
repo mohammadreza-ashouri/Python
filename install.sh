@@ -143,7 +143,7 @@ echo "Two empty (for safety) directories are required. One for the source code"
 echo "and the other as central place to store data, work in."
 read -p "  Where to store the source code? [pasta_source, i.e. /home/${THEUSER}/pasta_source] " pasta_src
 read -p "  Where to store the data? [pasta, i.e. /home/${THEUSER}/pasta] " pasta
-read -p "  What is your user id, e.g. orcid-id. Only small letters [random_user] ? " pasta_user
+read -p "  How do you want to be known in workgroup (leave empty for more privacy)? only small letters [_]? " pasta_user
 if [ -z $pasta_src ]
 then
   pasta_src="pasta_source"
@@ -154,7 +154,7 @@ then
 fi
 if [ -z $pasta_user ]
 then
-  pasta_user="random_user"
+  pasta_user="_"
 fi
 sudo -u $THEUSER mkdir /home/$THEUSER/$pasta_src
 sudo -u $THEUSER mkdir /home/$THEUSER/$pasta_src/pasta_tutorial
