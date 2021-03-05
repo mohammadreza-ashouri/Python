@@ -8,7 +8,7 @@ var = Scope( JS_BUILTINS )
 set_global_object(var)
 
 # Code follows:
-var.registers(['uuidv4', 'ontology2FullObjects', 'ontology2Labels', 'editString2Docs', 'hierarchy2String', 'fillDocBeforeCreate', 'getChildren', 'doc2SortedDoc', 'camelCase'])
+var.registers(['getChildren', 'camelCase', 'hierarchy2String', 'fillDocBeforeCreate', 'ontology2Labels', 'editString2Docs', 'doc2SortedDoc', 'ontology2FullObjects', 'uuidv4'])
 @Js
 def PyJsHoisted_uuidv4_(this, arguments, var=var):
     var = Scope({'this':this, 'arguments':arguments}, var)
@@ -16,7 +16,7 @@ def PyJsHoisted_uuidv4_(this, arguments, var=var):
     @Js
     def PyJs_anonymous_0_(c, this, arguments, var=var):
         var = Scope({'c':c, 'this':this, 'arguments':arguments}, var)
-        var.registers(['c', 'v', 'r'])
+        var.registers(['v', 'r', 'c'])
         var.put('r', ((var.get('Math').callprop('random')*Js(16.0))|Js(0.0)))
         var.put('v', (var.get('r') if PyJsStrictEq(var.get('c'),Js('x')) else (var.get('r')&(Js(3)|Js(8)))))
         return var.get('v').callprop('toString', Js(16.0))
@@ -27,7 +27,7 @@ var.put('uuidv4', PyJsHoisted_uuidv4_)
 @Js
 def PyJsHoisted_fillDocBeforeCreate_(data, docType, prefix, this, arguments, var=var):
     var = Scope({'data':data, 'docType':docType, 'prefix':prefix, 'this':this, 'arguments':arguments}, var)
-    var.registers(['now', 'prefixJ', 'text', 'fields', 'rating', 'i', 'docType', 'otherTags', 'line', 'keys', 'data', 'prefix', 'initSpaces'])
+    var.registers(['i', 'line', 'initSpaces', 'data', 'prefix', 'otherTags', 'rating', 'keys', 'prefixJ', 'docType', 'now', 'fields', 'text'])
     var.put('keys', var.get('Object').callprop('keys', var.get('data')))
     if var.get('data').get('type').neg():
         if PyJsStrictEq(var.get('docType'),Js('project')):
@@ -119,7 +119,7 @@ var.put('fillDocBeforeCreate', PyJsHoisted_fillDocBeforeCreate_)
 @Js
 def PyJsHoisted_ontology2Labels_(ontology, tableFormat, this, arguments, var=var):
     var = Scope({'ontology':ontology, 'tableFormat':tableFormat, 'this':this, 'arguments':arguments}, var)
-    var.registers(['hierarchyList', 'dataList', 'outList', 'ontology', 'tableFormat'])
+    var.registers(['tableFormat', 'ontology', 'hierarchyList', 'outList', 'dataList'])
     @Js
     def PyJs_anonymous_3_(key, this, arguments, var=var):
         var = Scope({'key':key, 'this':this, 'arguments':arguments}, var)
@@ -160,7 +160,7 @@ var.put('ontology2Labels', PyJsHoisted_ontology2Labels_)
 @Js
 def PyJsHoisted_ontology2FullObjects_(scheme, colWidth, this, arguments, var=var):
     var = Scope({'scheme':scheme, 'colWidth':colWidth, 'this':this, 'arguments':arguments}, var)
-    var.registers(['colWidth', 'scheme', 'addZeros'])
+    var.registers(['colWidth', 'addZeros', 'scheme'])
     if var.get('colWidth'):
         var.put('colWidth', var.get('colWidth').get('-default-'))
     else:
@@ -170,7 +170,7 @@ def PyJsHoisted_ontology2FullObjects_(scheme, colWidth, this, arguments, var=var
     @Js
     def PyJs_anonymous_7_(item, idx, this, arguments, var=var):
         var = Scope({'item':item, 'idx':idx, 'this':this, 'arguments':arguments}, var)
-        var.registers(['item', 'idx'])
+        var.registers(['idx', 'item'])
         var.get('item').put('colWidth', var.get('colWidth').get(var.get('idx')))
         if var.get('item').get('unit').neg():
             var.get('item').put('unit', Js(''))
@@ -187,7 +187,7 @@ var.put('ontology2FullObjects', PyJsHoisted_ontology2FullObjects_)
 @Js
 def PyJsHoisted_hierarchy2String_(data, addID, callback, detail, magicTags, this, arguments, var=var):
     var = Scope({'data':data, 'addID':addID, 'callback':callback, 'detail':detail, 'magicTags':magicTags, 'this':this, 'arguments':arguments}, var)
-    var.registers(['key', 'outString', 'i', 'dataList', 'childNum', 'compare', 'detail', 'value', 'addID', 'callback', 'keys', 'hierarchyIDs', 'data', 'j', 'hierString', 'id', 'magicTags'])
+    var.registers(['i', 'hierString', 'compare', 'data', 'key', 'hierarchyIDs', 'outString', 'dataList', 'keys', 'j', 'value', 'childNum', 'addID', 'callback', 'detail', 'magicTags', 'id'])
     @Js
     def PyJsHoisted_compare_(a, b, this, arguments, var=var):
         var = Scope({'a':a, 'b':b, 'this':this, 'arguments':arguments}, var)
@@ -233,7 +233,7 @@ def PyJsHoisted_hierarchy2String_(data, addID, callback, detail, magicTags, this
     @Js
     def PyJs_anonymous_8_(item, this, arguments, var=var):
         var = Scope({'item':item, 'this':this, 'arguments':arguments}, var)
-        var.registers(['item', 'i1', 'i', 'docID', 'i3', 'doc', 'partString', 'i2', 'spaces', 'prefix', 'hierarchyArray'])
+        var.registers(['i', 'i2', 'partString', 'i1', 'prefix', 'i3', 'item', 'spaces', 'docID', 'doc', 'hierarchyArray'])
         var.put('hierarchyArray', var.get('item').get('hierarchy').callprop('split', Js(' ')))
         var.put('spaces', ((var.get('hierarchyArray').get('length')/Js(2.0))-Js(0.5)))
         #for JS loop
@@ -297,11 +297,11 @@ var.put('hierarchy2String', PyJsHoisted_hierarchy2String_)
 @Js
 def PyJsHoisted_editString2Docs_(text, magicTags, this, arguments, var=var):
     var = Scope({'text':text, 'magicTags':magicTags, 'this':this, 'arguments':arguments}, var)
-    var.registers(['title', 'docs', 'text', 'i', 'objective', 'tags', 'docType', 'parts', 'comment', 'line', 'docID', 'j', 'magicTags'])
+    var.registers(['magicTags', 'i', 'objective', 'line', 'tags', 'docs', 'docID', 'comment', 'j', 'docType', 'parts', 'title', 'text'])
     var.put('docs', Js([]))
     var.put('objective', var.get(u"null"))
-    var.put('tags', Js(''))
-    var.put('comment', Js(''))
+    var.put('tags', var.get(u"null"))
+    var.put('comment', var.get(u"null"))
     var.put('title', Js(''))
     var.put('docID', Js(''))
     var.put('docType', Js(''))
@@ -312,7 +312,8 @@ def PyJsHoisted_editString2Docs_(text, magicTags, this, arguments, var=var):
         try:
             var.put('line', var.get('text').get(var.get('i')))
             if ((PyJsStrictEq(var.get('line').callprop('substring', Js(0.0), Js(2.0)),Js('* ')) or PyJsStrictEq(var.get('line').callprop('substring', Js(0.0), Js(3.0)),Js('** '))) or PyJsStrictEq(var.get('line').callprop('substring', Js(0.0), Js(4.0)),Js('*** '))):
-                var.put('comment', var.get('comment').callprop('trim'))
+                if var.get('comment'):
+                    var.put('comment', var.get('comment').callprop('trim'))
                 if PyJsStrictNeq(var.get('title'),Js('')):
                     if PyJsStrictEq(var.get('docID'),Js('')):
                         var.get('docs').callprop('push', Js({'edit':Js('-new-'),'name':var.get('title'),'objective':var.get('objective'),'tags':var.get('tags'),'comment':var.get('comment'),'_id':var.get('docID'),'type':var.get('docType')}))
@@ -322,8 +323,8 @@ def PyJsHoisted_editString2Docs_(text, magicTags, this, arguments, var=var):
                     if (var.get('docID')!=Js('')):
                         var.get('docs').callprop('push', Js({'edit':Js('-delete-'),'name':var.get('title'),'objective':var.get('objective'),'tags':var.get('tags'),'comment':var.get('comment'),'_id':var.get('docID'),'type':var.get('docType')}))
                 var.put('objective', var.get(u"null"))
-                var.put('tags', Js(''))
-                var.put('comment', Js(''))
+                var.put('tags', var.get(u"null"))
+                var.put('comment', var.get(u"null"))
                 var.put('title', Js(''))
                 var.put('docID', Js(''))
                 var.put('docType', Js(''))
@@ -338,7 +339,8 @@ def PyJsHoisted_editString2Docs_(text, magicTags, this, arguments, var=var):
                             var.put('tags', ((Js('#')+var.get('magicTags').get(var.get('j')))+Js(' ')), '+')
                     finally:
                             (var.put('j',Js(var.get('j').to_number())-Js(1))+Js(1))
-                var.put('tags', var.get('tags').callprop('trim'))
+                if var.get('tags'):
+                    var.put('tags', var.get('tags').callprop('trim'))
                 if (var.get('parts').get('length')>Js(1.0)):
                     var.put('docID', var.get('parts').get((var.get('parts').get('length')-Js(1.0))))
                 var.put('docType', (var.get('line').callprop('split', Js(' ')).get('0').get('length')-Js(1.0)))
@@ -352,7 +354,8 @@ def PyJsHoisted_editString2Docs_(text, magicTags, this, arguments, var=var):
                         var.put('comment', (var.get('line')+Js('\n')), '+')
         finally:
                 (var.put('i',Js(var.get('i').to_number())+Js(1))-Js(1))
-    var.put('comment', var.get('comment').callprop('trim'))
+    if var.get('comment'):
+        var.put('comment', var.get('comment').callprop('trim'))
     if PyJsStrictNeq(var.get('title'),Js('')):
         if PyJsStrictEq(var.get('docID'),Js('')):
             var.get('docs').callprop('push', Js({'edit':Js('-new-'),'name':var.get('title'),'objective':var.get('objective'),'tags':var.get('tags'),'comment':var.get('comment'),'_id':var.get('docID'),'type':var.get('docType')}))
@@ -367,7 +370,7 @@ var.put('editString2Docs', PyJsHoisted_editString2Docs_)
 @Js
 def PyJsHoisted_getChildren_(data, docID, this, arguments, var=var):
     var = Scope({'data':data, 'docID':docID, 'this':this, 'arguments':arguments}, var)
-    var.registers(['nStars', 'saveLine', 'ids', 'i', 'names', 'docID', 'items', 'numStarsParent', 'data', 'lines'])
+    var.registers(['i', 'saveLine', 'data', 'nStars', 'items', 'lines', 'docID', 'numStarsParent', 'ids', 'names'])
     var.put('names', Js([]))
     var.put('ids', Js([]))
     var.put('saveLine', Js(False))
@@ -399,7 +402,7 @@ var.put('getChildren', PyJsHoisted_getChildren_)
 @Js
 def PyJsHoisted_doc2SortedDoc_(doc, tableMeta, this, arguments, var=var):
     var = Scope({'doc':doc, 'tableMeta':tableMeta, 'this':this, 'arguments':arguments}, var)
-    var.registers(['valuesDetail', 'tableMeta', 'keysMain', 'valuesDB', 'keysDetail', 'metaUser', 'metaVendor', 'doc', 'keysDB', 'valuesMain', 'valuesImage'])
+    var.registers(['valuesDB', 'metaUser', 'keysDB', 'keysMain', 'valuesDetail', 'tableMeta', 'keysDetail', 'doc', 'metaVendor', 'valuesMain', 'valuesImage'])
     var.put('valuesImage', var.get('doc').get('image'))
     var.get('doc').delete('image')
     @Js
@@ -457,7 +460,7 @@ var.put('doc2SortedDoc', PyJsHoisted_doc2SortedDoc_)
 @Js
 def PyJsHoisted_camelCase_(str, this, arguments, var=var):
     var = Scope({'str':str, 'this':this, 'arguments':arguments}, var)
-    var.registers(['outString', 'str'])
+    var.registers(['str', 'outString'])
     @Js
     def PyJs_anonymous_13_(match, this, arguments, var=var):
         var = Scope({'match':match, 'this':this, 'arguments':arguments}, var)

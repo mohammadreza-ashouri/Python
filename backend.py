@@ -1100,6 +1100,10 @@ class Pasta:
             del docDB['childNum']
             break
         docDB = cT.fillDocBeforeCreate(docDB, '--', '--').to_dict()
+        #since js2py cannot distinguish between null and undefined, repair docDB
+        for item in docDB:
+          if item in doc and doc[item] is None:
+            docDB[item] = None
         self.db.updateDoc(docDB,docDB['_id'])
       else:
         self.addData(edit, doc, self.hierStack)
