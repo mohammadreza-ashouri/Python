@@ -220,7 +220,9 @@ class Database:
           continue
         if item=='type' and change['type']=='--':          #skip non-set type
           continue
-        if item=='image' and change['image']=='':
+        if item=='image' and change['image']=='':          #skip if non-change in image
+          continue
+        if change[item]==None:                             #skip empty entrances
           continue
         ## What if content only differs by whitespace changes?
         # These changes should occur in the database, the user wanted it so
