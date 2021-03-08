@@ -196,12 +196,11 @@ class Database:
             newDoc['branch'] += [change['branch']]
             nothingChanged = False
           elif op=='u':  #update=remove current at zero
-            if 'oldpath' in change['branch']:
+            if oldpath is not None:
               for branch in newDoc['branch']:
-                if branch['path'].startswith(change['branch']['oldpath']):
-                  branch['path'] = branch['path'].replace(change['branch']['oldpath'] ,change['branch']['path'])
+                if branch['path'].startswith(oldpath):
+                  branch['path'] = branch['path'].replace(oldpath ,change['branch']['path'])
                   branch['stack']= change['branch']['stack']
-                  del change['branch']['oldpath']
                   break
             else:
               newDoc['branch'][0] = change['branch'] #change the initial one
@@ -222,7 +221,7 @@ class Database:
           continue
         if item=='image' and change['image']=='':          #skip if non-change in image
           continue
-        if change[item]==None:                             #skip empty entrances
+        if change[item] is None:                             #skip empty entrances
           continue
         ## What if content only differs by whitespace changes?
         # These changes should occur in the database, the user wanted it so
