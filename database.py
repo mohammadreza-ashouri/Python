@@ -190,12 +190,15 @@ class Database:
       if 'branch' in change and len(change['branch']['stack'])>0 and change['branch']['path'] is not None:
         op = change['branch'].pop('op')
         oldpath = change['branch'].pop('oldpath',None)
-        if not change['branch'] in newDoc['branch']:       #skip if new path already in path
+        if not change['branch'] in newDoc['branch']:       #skip if new branch is already in branch
           oldDoc['branch'] = newDoc['branch'].copy()
+          for branch in newDoc['branch']:
+            if op=='c' and branch['path']==change['branch']['path']:
+              op='u'
           if op=='c':    #create, append
             newDoc['branch'] += [change['branch']]
             nothingChanged = False
-          elif op=='u':  #update=remove current at zero
+          elif op=='u':  #update
             if oldpath is not None:
               for branch in newDoc['branch']:
                 if branch['path'].startswith(oldpath):

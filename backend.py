@@ -154,21 +154,19 @@ class Pasta:
     logging.debug('addData beginning doc: '+docType+' | hierStack'+str(hierStack))
     callback = kwargs.get('callback', None)
     forceNewImage=kwargs.get('forceNewImage',False)
-    doc['user']   = self.userID
-    childNum       = None
-    if 'childNum' in doc:
-      childNum = doc['childNum']
-      del doc['childNum']
-    path           = None
-    operation      = 'c'
+    doc['user']  = self.userID
+    childNum     = doc.pop('childNum',None)
+    path         = None
+    operation    = 'c'  #operation of branch/path
     if docType == '-edit-':
       edit = True
       if 'type' not in doc:
         doc['type'] = ['text',self.hierList[len(self.hierStack)-1]]
-      if len(hierStack) == 0:  hierStack = self.hierStack
+      if len(hierStack) == 0:
+        hierStack = self.hierStack
       if '_id' not in doc:
         doc['_id'] = hierStack[-1]
-      if len(hierStack)>0:
+      if len(hierStack)>0 and doc['type'][0]=='text':
         hierStack   = hierStack[:-1]
       elif 'branch' in doc:
         hierStack   = doc['branch'][0]['stack']
@@ -181,16 +179,15 @@ class Pasta:
       if len(hierStack) == 0:  hierStack = self.hierStack
 
     # collect text-doc and prepare
-    if doc['type'][0] == 'text' and ( doc['type'][1]!='project' or 'childNum' in doc):
-      if childNum is None:
-        #should not have childnumber in other cases
-        thisStack = ' '.join(self.hierStack)
-        view = self.db.getView('viewHierarchy/viewHierarchy', startKey=thisStack) #not faster with cT.getChildren
-        childNum = 0
-        for item in view:
-          if item['value'][1]=='project': continue
-          if thisStack == ' '.join(item['key'].split(' ')[:-1]): #remove last item from string
-            childNum += 1
+    if doc['type'][0] == 'text' and doc['type'][1]!='project' and childNum is None:
+      #should not have childnumber in other cases
+      thisStack = ' '.join(self.hierStack)
+      view = self.db.getView('viewHierarchy/viewHierarchy', startKey=thisStack) #not faster with cT.getChildren
+      childNum = 0
+      for item in view:
+        if item['value'][1]=='project': continue
+        if thisStack == ' '.join(item['key'].split(' ')[:-1]): #remove last item from string
+          childNum += 1
     prefix = doc['type'][0][0]
 
     # find path name on local file system; name can be anything
@@ -202,10 +199,12 @@ class Pasta:
         return False
       if doc['type'][0] == 'text':
         #project, step, task
-        if doc['type'][0]=='project': childNum = 0
+        if doc['type'][0]=='project':
+          childNum = 0
         if edit:      #edit: cwd of the project/step/task: remove last directory from cwd (since cwd contains a / at end: remove two)
           parentDirectory = os.sep.join(self.cwd.split(os.sep)[:-2])
-          if len(parentDirectory)>2: parentDirectory += os.sep
+          if len(parentDirectory)>2:
+            parentDirectory += os.sep
         else:         #new: below the current project/step/task
           parentDirectory = self.cwd
         path = parentDirectory + createDirName(doc['name'],doc['type'][1],childNum) #update,or create (if new doc, update ignored anyhow)
@@ -274,7 +273,10 @@ class Pasta:
     doc['branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
     if edit:
       #update document
-      doc = cT.fillDocBeforeCreate(doc, '--', '--').to_dict()
+      keysNone = [key for key in doc if doc[key] is None]
+      doc = cT.fillDocBeforeCreate(doc, '--', '--').to_dict()  #store None entries and save back since js2py gets equalizes undefined and null
+      for key in keysNone:
+        doc[key]=None
       doc = self.db.updateDoc(doc, doc['_id'])
     else:
       # add doc to database
@@ -915,7 +917,7 @@ class Pasta:
     Args:
        onlyHierarchy (bool): only print project,steps,tasks or print all (incl. measurements...)[default print all]
        addID (bool): add docID to output
-       addTags (bool): add tags, comments, objective to output
+       addTags (string): add tags, comments, objective to output ['all','tags',None]
        kwargs (dict): additional parameter, i.e. callback
 
     Returns:
@@ -1018,7 +1020,7 @@ class Pasta:
       if doc['_id'] in deletedDocs:  #skip if doc was deleted
         continue
       # identify docType
-      if '_id' in doc:
+      if doc['_id']!='':
         docDB = self.db.getDoc(doc['_id'])
       levelNew     = doc['type']
       if '_id' not in doc or docDB['type'][0]=='text':
@@ -1088,25 +1090,8 @@ class Pasta:
       if edit=='-edit-':
         docDB = dict(docDB)
         docDB.update(doc)
-        for idx, branch in enumerate(docDB['branch']):
-          if branch['path'] is None or \
-             self.cwd[:-1] in branch['path'] or \
-             '://' in branch['path'] or \
-             idx == len(docDB['branch'])-1:
-            docDB['branch'] = {'path':branch['path'], 'oldpath':branch['path'],\
-                               'stack':self.hierStack[:-1],\
-                               'child':doc['childNum'],\
-                               'op':'u'}
-            del docDB['childNum']
-            break
-        docDB = cT.fillDocBeforeCreate(docDB, '--', '--').to_dict()
-        #since js2py cannot distinguish between null and undefined, repair docDB
-        for item in docDB:
-          if item in doc and doc[item] is None:
-            docDB[item] = None
-        self.db.updateDoc(docDB,docDB['_id'])
-      else:
-        self.addData(edit, doc, self.hierStack)
+        doc = docDB
+      self.addData(edit, doc, self.hierStack)
       #update variables for next iteration
       if edit!="-edit-" and levelOld is not None:
         self.changeHierarchy(self.currentID)   #'cd directory'
