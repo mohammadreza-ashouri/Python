@@ -2,7 +2,7 @@
 REM print content line. No " '
 echo Installer for PASTA database on Windows Systems
 echo IMPORTANT: always select to adjust the PATH VARIABLE during installation.
-echo IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/s.brinckmann/pasta_python/-/wikis/home#installation-scripts
+echo IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/pasta/main/-/wikis/home#installation-scripts
 REM print empty line
 echo.
 REM ask for user input
@@ -198,8 +198,8 @@ REM Clone source from repository
 echo Clone files from repositories
 cd %softwareDir%
 git clone https://jugit.fz-juelich.de/s.brinckmann/experimental-micromechanics
-git clone https://jugit.fz-juelich.de/s.brinckmann/pasta_python.git
-git clone https://jugit.fz-juelich.de/s.brinckmann/pasta_electron.git
+git clone https://jugit.fz-juelich.de/pasta/main.git
+git clone https://jugit.fz-juelich.de/pasta/gui.git
 
 echo Install python libraries for backend
 cd %softwareDir%\pasta_python
