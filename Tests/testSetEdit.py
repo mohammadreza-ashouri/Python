@@ -120,6 +120,20 @@ class TestStringMethods(unittest.TestCase):
       self.assertEqual(myString,newString,'Hierarchy did not change correctly.')
       print(" === STATE 2D ===\n"+self.be.checkDB(verbose=False))
 
+      # print('Promote last measurement')
+      # ## Requires move of measurement into different folder: not supported yet/ever
+      # ##   measurements should be moved by user on disk and then recorded
+      # ##   #TODO Change in future? Requires recoding of most everything
+      # myString = self.be.outputHierarchy(False,True,None)
+      # myString = myString.split('\n')
+      # myString[-1] = myString[-1].replace('** ','* ')
+      # myString = '\n'.join(myString)
+      # self.be.setEditString(myString)
+      # newString = self.be.outputHierarchy(False,True,None)
+      # print(newString)
+      # self.assertEqual(myString,newString,'Promotion of last measurement correctly.')
+      # print(" === STATE 2E ===\n"+self.be.checkDB(verbose=False))
+
       print('\n*** DONE WITH VERIFY ***')
     except:
       print('ERROR OCCURRED IN TESTING\n'+ traceback.format_exc() )
