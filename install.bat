@@ -273,7 +273,8 @@ cmd /c "npm install"
 
 echo.
 echo ==========================================================
-echo Start the graphical user interface, which might take a bit.
+echo Start the graphical user interface, which might take a while (1 min).
+echo   Please ignore: Error installing REDUX_DEVTOOLS extension
 echo Afterwards, stop the script with Ctrl-C (multiple times)
 echo If you want to do that in the future:
 echo.  cd %softwareDir%\gui
