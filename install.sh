@@ -172,15 +172,14 @@ echo
 
 echo "Adopt path and python-path in your environment"
 sudo -u $THEUSER echo "#PASTA changes" >> /home/$THEUSER/.bashrc
-sudo -u $THEUSER echo "export PATH=\$PATH:/home/${THEUSER}/${pasta_src}/pasta_python" >> /home/$THEUSER/.bashrc
-sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${pasta_src}/pasta_python" >> /home/$THEUSER/.bashrc
+sudo -u $THEUSER echo "export PATH=\$PATH:/home/${THEUSER}/${pasta_src}/main" >> /home/$THEUSER/.bashrc
+sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${pasta_src}/main" >> /home/$THEUSER/.bashrc
 sudo -u $THEUSER echo "export PYTHONPATH=\$PYTHONPATH:/home/${THEUSER}/${pasta_src}/experimental-micromechanics/src" >> /home/$THEUSER/.bashrc
 echo
 
 
 echo "Install python requirements. This takes a few minutes."
-cd /home/$THEUSER/$pasta_src/pasta_python
-cd /home/$THEUSER/$pasta_src/pasta_python
+cd /home/$THEUSER/$pasta_src/main
 sudo -H pip3 install -r requirements.txt           >> installLog.txt
 sudo -H pip3 install js2py                         >> installLog.txt
 echo
@@ -227,8 +226,8 @@ echo
 
 
 echo "Run a very short test for 5sec?"
-cd /home/$THEUSER/$pasta_src/pasta_python
-sudo PYTHONPATH=/home/$THEUSER/$pasta_src/pasta_python:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 pastaDB.py test
+cd /home/$THEUSER/$pasta_src/main
+sudo PYTHONPATH=/home/$THEUSER/$pasta_src/main:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 pastaDB.py test
 echo
 echo 'If this test is not successful, it is likely that you entered the wrong username'
 echo "  and password. Open the file /home/$THEUSER/.pasta.json with an editor and correct"
@@ -236,7 +235,7 @@ echo '  the entries after "user" and "password". "-userID" does not matter. Entr
 echo '  "remote" do not matter, either.'
 echo
 echo "Run a short test for 20-40sec?"
-sudo PYTHONPATH=/home/$THEUSER/$pasta_src/pasta_python:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 Tests/testTutorial.py
+sudo PYTHONPATH=/home/$THEUSER/$pasta_src/main:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 Tests/testTutorial.py
 echo
 
 
@@ -250,18 +249,18 @@ else
   sudo apt-get install -y npm                         >> installLog.txt
 fi
 echo
-cd /home/$THEUSER/$pasta_src/pasta_electron
+cd /home/$THEUSER/$pasta_src/gui
 sudo -u $THEUSER npm install                          >> installLog.txt
 
 
 echo -e "\033[0;31m=========================================================="
 echo -e "Last step: Start the graphical user interface. If you want to do that in "
 echo -e "the future:"
-echo -e "  cd /home/$THEUSER/$pasta_src/pasta_electron"
+echo -e "  cd /home/$THEUSER/$pasta_src/gui"
 echo -e "  npm start"
 echo -e "During the first run of the GUI, click 'Test Backend' in CONFIGURATION. It"
 echo -e "is good to start with Projects, then Samples and Procedures and finally"
 echo -e "Measurements."
 echo -e "==========================================================\033[0m"
 echo
-sudo PATH=$PATH:/home/$THEUSER/$pasta_src/pasta_python -u $THEUSER npm start
+sudo PATH=$PATH:/home/$THEUSER/$pasta_src/main -u $THEUSER npm start

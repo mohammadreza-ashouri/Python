@@ -51,7 +51,7 @@ echo.
 
 
 echo Set environment variables: PATH
-echo %PATH% | findstr "pasta_python">nul
+echo %PATH% | findstr "main">nul
 REM echo with preceeding space
 REM chain commands, use & at beginning of new line
 if errorlevel==1 (echo.  setting path now^
@@ -63,17 +63,17 @@ if errorlevel==1 (echo.  setting path now^
   & echo.  with copy [select+Return] - paste. If content is already inside, skip it.^
   & echo.  - C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38^
   & echo.  - C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38\Scripts^
-  & echo.  - %softwareDir%\pasta_python^
+  & echo.  - %softwareDir%\main^
   & echo.^
   & pause
   ) else (echo.  no need to set path variable as it seems to be correct)
 echo.
 REM this does not work in a reproducable fashion
-REM  setx PATH "%PATH%;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38\Scripts;%softwareDir%\pasta_python"^
+REM  setx PATH "%PATH%;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python38\Scripts;%softwareDir%\main"^
 
 REM set PYTHONPATH already. Possible restarts will take this already into account
 echo Set environment variables: PYTHONPATH
-setx PYTHONPATH "%softwareDir%\experimental-micromechanics\src;%softwareDir%\pasta_python"
+setx PYTHONPATH "%softwareDir%\experimental-micromechanics\src;%softwareDir%\main"
 echo.
 
 
@@ -202,7 +202,7 @@ git clone https://jugit.fz-juelich.de/pasta/main.git
 git clone https://jugit.fz-juelich.de/pasta/gui.git
 
 echo Install python libraries for backend
-cd %softwareDir%\pasta_python
+cd %softwareDir%\main
 pip.exe install --disable-pip-version-check -r requirements.txt  >nul
 echo.
 
@@ -241,7 +241,7 @@ echo.
 
 REM Run a two short tests of the python backend
 echo Run a very short (5sec) test of the python backend
-cd %softwareDir%\pasta_python
+cd %softwareDir%\main
 python pastaDB.py test
 echo.
 echo If this test is not successful, it is likely that you entered the wrong username
@@ -268,7 +268,7 @@ echo.
 
 echo install graphical user interface (GUI) requirements
 echo Don't care about vulnerablies right now in this test.
-cd %softwareDir%\pasta_electron
+cd %softwareDir%\gui
 cmd /c "npm install"
 
 echo.
@@ -276,7 +276,7 @@ echo ==========================================================
 echo Start the graphical user interface, which might take a bit.
 echo Afterwards, stop the script with Ctrl-C (multiple times)
 echo If you want to do that in the future:
-echo.  cd %softwareDir%\pasta_electron
+echo.  cd %softwareDir%\gui
 echo.  npm start
 echo Enjoy the PASTA database.
 echo ==========================================================
