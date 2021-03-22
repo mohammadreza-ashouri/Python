@@ -463,24 +463,26 @@ class Database:
             outstring+= f'{bcolors.FAIL}**ERROR qrCode not in sample '+doc['_id']+f'{bcolors.ENDC}\n'
         elif 'type' in doc and doc['type'][0] == 'measurement':
           if 'shasum' not in doc:
-            outstring+= f'{bcolors.FAIL}**ERROR shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
+            outstring+= f'{bcolors.FAIL}**ERROR: shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
           if 'image' not in doc:
-            outstring+= f'{bcolors.FAIL}**ERROR image not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
+            outstring+= f'{bcolors.FAIL}**ERROR: image not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
           else:
             if doc['image'].startswith('data:image'):  #for jpg and png
               try:
                 imgdata = base64.b64decode(doc['image'][22:])
-                image = Image.open(io.BytesIO(imgdata))  #can convert, that is all that needs to be tested
+                Image.open(io.BytesIO(imgdata))  #can convert, that is all that needs to be tested
               except:
-                outstring+= f'{bcolors.FAIL}**ERROR jpg-image not valid '+doc['_id']+f'{bcolors.ENDC}\n'
+                outstring+= f'{bcolors.FAIL}**ERROR: jpg-image not valid '+doc['_id']+f'{bcolors.ENDC}\n'
             elif doc['image'].startswith('<?xml'):
               #from https://stackoverflow.com/questions/63419010/check-if-an-image-file-is-a-valid-svg-file-in-python
               SVG_R = r'(?:<\?xml\b[^>]*>[^<]*)?(?:<!--.*?-->[^<]*)*(?:<svg|<!DOCTYPE svg)\b'
               SVG_RE = re.compile(SVG_R, re.DOTALL)
               if SVG_RE.match(doc['image']) is None:
-                outstring+= f'{bcolors.FAIL}**ERROR svg-image not valid '+doc['_id']+f'{bcolors.ENDC}\n'
+                outstring+= f'{bcolors.FAIL}**ERROR: svg-image not valid '+doc['_id']+f'{bcolors.ENDC}\n'
+            elif doc['image']=='':
+              outstring+= f'{bcolors.OKBLUE}**warning: image not valid '+doc['_id']+' '+doc['image']+f'{bcolors.ENDC}\n'
             else:
-              outstring+= f'{bcolors.FAIL}**ERROR image not valid '+doc['_id']+' '+doc['image']+f'{bcolors.ENDC}\n'
+              outstring+= f'{bcolors.FAIL}**ERROR: image not valid '+doc['_id']+' '+doc['image']+f'{bcolors.ENDC}\n'
 
 
     ##TEST views
