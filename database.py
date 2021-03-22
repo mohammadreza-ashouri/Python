@@ -217,6 +217,7 @@ class Database:
             logging.error('database:updateDoc: op(eration) unknown, exit update')
             return newDoc
       #handle other items
+      # change has to be dict, not Document
       for item in change:
         if item in ['_id','_rev','branch']:                #skip items cannot do not result in change
           continue
@@ -226,7 +227,7 @@ class Database:
           continue
         if change[item] is None:                             #skip empty entrances
           continue
-        ## What if content only differs by whitespace changes?
+        ## Discussion: What if content only differs by whitespace changes?
         # These changes should occur in the database, the user wanted it so
         # Do these changes justify a new revision?
         # Hence one could update the doc and previous-revision(with the current _rev)
@@ -240,7 +241,9 @@ class Database:
         if change[item]!=newDoc[item]:
           if item not in ['date','client']:      #if only date/client change, no significant change
             nothingChanged = False
-          if item != 'image':
+          if item == 'image':
+            oldDoc[item] = 'image changed'       #don't backup images: makes database big and are only thumbnails anyhow
+          else:
             oldDoc[item] = newDoc[item]
           newDoc[item] = change[item]
       if nothingChanged:
@@ -372,7 +375,8 @@ class Database:
     Returns:
         bool: success of check
     """
-    import os
+    import os, re, base64, io
+    from PIL import Image
     from miscTools import bcolors
     if verbose:
       outstring = f'{bcolors.UNDERLINE}**** LEGEND ****{bcolors.ENDC}\n'
@@ -460,6 +464,24 @@ class Database:
         elif 'type' in doc and doc['type'][0] == 'measurement':
           if 'shasum' not in doc:
             outstring+= f'{bcolors.FAIL}**ERROR shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
+          if 'image' not in doc:
+            outstring+= f'{bcolors.FAIL}**ERROR image not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
+          else:
+            if doc['image'].startswith('data:image'):  #for jpg and png
+              try:
+                imgdata = base64.b64decode(doc['image'][22:])
+                image = Image.open(io.BytesIO(imgdata))  #can convert, that is all that needs to be tested
+              except:
+                outstring+= f'{bcolors.FAIL}**ERROR jpg-image not valid '+doc['_id']+f'{bcolors.ENDC}\n'
+            elif doc['image'].startswith('<?xml'):
+              #from https://stackoverflow.com/questions/63419010/check-if-an-image-file-is-a-valid-svg-file-in-python
+              SVG_R = r'(?:<\?xml\b[^>]*>[^<]*)?(?:<!--.*?-->[^<]*)*(?:<svg|<!DOCTYPE svg)\b'
+              SVG_RE = re.compile(SVG_R, re.DOTALL)
+              if SVG_RE.match(doc['image']) is None:
+                outstring+= f'{bcolors.FAIL}**ERROR svg-image not valid '+doc['_id']+f'{bcolors.ENDC}\n'
+            else:
+              outstring+= f'{bcolors.FAIL}**ERROR image not valid '+doc['_id']+' '+doc['image']+f'{bcolors.ENDC}\n'
+
 
     ##TEST views
     if verbose:

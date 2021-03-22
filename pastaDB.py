@@ -112,6 +112,12 @@ else:
         print("SUCCESS")
       else:
         print("**ERROR**")
+    elif args.command=='redo':
+      doc = dict(be.getDoc(args.docID))
+      doc['type'] = args.content.split('/')
+      be.getMeasurement(doc['branch'][0]['path'], doc['shasum'], doc, extractorRedo=True)  #any path is good since the file is the same everywhere; doc-changed by reference
+      be.db.updateDoc({'image':doc['image']},args.docID)
+      success=True
     elif args.command=='createDoc':
       content = args.content.replace("'",'"')
       doc = json.loads(content)

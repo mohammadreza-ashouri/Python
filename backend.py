@@ -675,6 +675,7 @@ class Pasta:
         logging.debug('getMeasurement should not read data; returned data void '+str(imgType))
       else:
         if self.cwd is not None and not extractorTest:
+          # write to file
           appendix = ''
           if os.path.exists(outFileFull):
              #all files are by default locked in git-annex
@@ -706,7 +707,7 @@ class Pasta:
     doc.update(document)
     if extractorTest:
       print("Measurement type:",document['type'])
-    if 'comment' not in doc: doc['comment']=''
+    ##if 'comment' not in doc: doc['comment']=''
     return
 
 
