@@ -55,29 +55,27 @@ class Database:
     jsDefault = "if ($docType$) {emit($key$, [$outputList$]);}"
     viewCode = {}
     for docType, docLabel in docTypesLabels:
-      view = 'view'+docLabel
-      if '_design/'+view not in self.db:
-        if docType=='project':
-          jsString = jsDefault.replace('$docType$', "doc.type[1]=='"+docType+"'").replace('$key$','doc._id')
-        else:     #only show first instance in list doc.branch[0]
-          jsString = jsDefault.replace('$docType$', "doc.type[0]=='"+docType+"'").replace('$key$','doc.branch[0].stack[0]')
-        outputList = []
-        for item in self.ontology[docType]:
-          if 'name' not in item: continue
-          if item['name'] == 'image':
-            outputList.append('(doc.image.length>3).toString()')
-          elif item['name'] == 'tags':
-            outputList.append('doc.tags.join(" ")')
-          elif item['name'] == 'type':
-            outputList.append('doc.type.slice(1).join("/")')
-          elif item['name'] == 'content':
-            outputList.append('doc.content.slice(0,100)')
-          else:
-            outputList.append('doc.'+item['name'])
-        outputList = ','.join(outputList)
-        jsString = jsString.replace('$outputList$', outputList)
-        logging.info('database:init '+view+' not defined. Use default one:'+jsString)
-        viewCode[view]=jsString
+      if docType=='project':
+        jsString = jsDefault.replace('$docType$', "doc.type[1]=='"+docType+"'").replace('$key$','doc._id')
+      else:     #only show first instance in list doc.branch[0]
+        jsString = jsDefault.replace('$docType$', "doc.type[0]=='"+docType+"'").replace('$key$','doc.branch[0].stack[0]')
+      outputList = []
+      for item in self.ontology[docType]:
+        if 'name' not in item: continue
+        if item['name'] == 'image':
+          outputList.append('(doc.image.length>3).toString()')
+        elif item['name'] == 'tags':
+          outputList.append('doc.tags.join(" ")')
+        elif item['name'] == 'type':
+          outputList.append('doc.type.slice(1).join("/")')
+        elif item['name'] == 'content':
+          outputList.append('doc.content.slice(0,100)')
+        else:
+          outputList.append('doc.'+item['name'])
+      outputList = ','.join(outputList)
+      jsString = jsString.replace('$outputList$', outputList)
+      logging.info('database:init view'+docLabel+' not defined. Use default one:'+jsString)
+      viewCode['view'+docLabel]=jsString
     self.saveView('viewDocType', viewCode)
     # general views: Hierarchy, Identify
     jsHierarchy  = '''

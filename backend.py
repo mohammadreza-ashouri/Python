@@ -59,7 +59,7 @@ class Pasta:
     #    self.basePath (root of directory tree) is root of all projects
     #    self.cwd changes during program
     self.softwarePath = os.path.dirname(os.path.abspath(__file__))
-    self.basePath     = os.path.expanduser('~')+os.sep+configuration[configName]['path']
+    self.basePath     = configuration[configName]['path']
     self.cwd          = ''
     if not self.basePath.endswith(os.sep):
       self.basePath += os.sep
