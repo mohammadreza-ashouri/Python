@@ -6,13 +6,12 @@ echo IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/pasta/ma
 REM print empty line
 echo.
 REM ask for user input
-echo Two empty (for safety) directories are required. One for the source code
-echo and the other as central place to store data, work in.
+echo One empty (for safety) directory is required for source code and test data.
+echo Your own data can be saved elsewhere.
 set softwareDir=
 set pasta=
 set pasta_user=
 set /p softwareDir="Which subdirectory of 'My Documents' should the software be installed to [e.g. pasta_source]? "
-set /p pasta="Which subdirectory of 'My Documents' should the data be stored [e.g. pasta]? "
 set /p pasta_user=" How do you want to be known in workgroup (leave empty for more privacy)? only small letters [_] "
 REM check for empty line
 if not defined softwareDir (set softwareDir=pasta_source)
@@ -22,9 +21,8 @@ set softwareDir=%HOMEDRIVE%%HOMEPATH%\Documents\%softwareDir%
 set downloadDir=%softwareDir%\tempDownload
 mkdir %softwareDir%
 mkdir %downloadDir%
-mkdir %HOMEDRIVE%%HOMEPATH%\Documents\%pasta%
+mkdir %softwareDir%\pasta_tutorial
 echo.
-
 
 REM Install Python, Set PAPTH, Set PYTHONPATH, Install some python-packages
 echo Ensure that the ordinary python is installed
@@ -208,6 +206,7 @@ echo.
 
 echo Create basic .pasta.json configuration
 cd %HOMEDRIVE%%HOMEPATH%
+set softwareDirString=%softwareDir:\=\\%
 echo { > .pasta.json
 echo   "-userID": "%pasta_user%",>> .pasta.json
 echo   "-defaultLocal": "pasta_tutorial",>> .pasta.json
@@ -219,7 +218,7 @@ echo   "pasta_tutorial": {>> .pasta.json
 echo     "user": "%CDB_USER%",>> .pasta.json
 echo     "password": "%CDB_PASSW%",>> .pasta.json
 echo     "database": "pasta_tutorial",>> .pasta.json
-echo     "path": "Documents\\%pasta%">> .pasta.json
+echo     "path": "%softwareDirString%\\pasta_tutorial">> .pasta.json
 echo   },>> .pasta.json
 echo.  >> .pasta.json
 echo   "remote": {>> .pasta.json
