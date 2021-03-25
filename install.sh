@@ -197,14 +197,14 @@ sudo -u $THEUSER echo "  \"local\": {" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"database\": \"${pasta_user}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"path\": \"${pasta}\"" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"path\": \"/home/${THEUSER}/${pasta}\"" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  \"pasta_tutorial\": {" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"database\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"path\": \"${pasta_src}/pasta_tutorial\"" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"path\": \"/home/${THEUSER}/${pasta_src}/pasta_tutorial\"" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  \"remote\": {" >> /home/$THEUSER/.pasta.json
