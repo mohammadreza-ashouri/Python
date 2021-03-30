@@ -1,6 +1,5 @@
 """create measurement data from random .jpeg file
 """
-import logging, traceback
 from io import BytesIO
 import requests
 from PIL import Image
@@ -12,19 +11,21 @@ def getMeasurement(fileName, doc):
      doc (dict): supplied to guide image creation doc['type']
 
   Returns:
-    list: image, ('png','jpg','svg'), dictionary of metadata
+    list: image, [('png'|'jpg'|'svg'), type, metaVendor, metaCustom]
   """
+  # plain jpeg
   try:
     if "://" in fileName:
       response = requests.get(fileName)
       image = Image.open(BytesIO(response.content))
     else:
       image = Image.open(fileName).convert("L").convert("P")
-    meta = {'measurementType':['unknown'],
-            'metaVendor':{},
-            'metaUser':{}}
-    return image, 'jpg', meta
+    return image, ['jpg', doc['type']+['image'], {}, {}]
   except:
-    logging.error('extractor jpeg: '+fileName+' not a measurement')
-    #logging.error(traceback.format_exc())
-    return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
+    pass
+
+  #other datatypes follow here
+  #...
+
+  #final return if nothing successful
+  return None, ['', [], {}, {}]

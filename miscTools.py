@@ -2,12 +2,6 @@
 """
 Misc methods and diffinitions for json, colors
 """
-import json, re, base64, io, os
-from urllib import request
-from hashlib import sha1
-import numpy as np
-from PIL import Image
-import keyring as cred
 
 class bcolors:
   """
@@ -64,6 +58,8 @@ def generic_hash(path, forceFile=False):
   Raises:
     ValueError: shasum of directory not supported
   """
+  import os
+  from urllib import request
   if os.path.isdir(path):
     raise ValueError('This seems to be a directory '+path)
   if forceFile:
@@ -86,6 +82,7 @@ def upOut(key):
   """
   key (bool): key
   """
+  import keyring as cred
   key = cred.get_password('pastaDB',key)
   if key is None:
     key = ':'
@@ -97,7 +94,8 @@ def upIn(key):
   """
   key (bool): key
   """
-  from commonTools import commonTools as cT
+  import keyring as cred
+  from commonTools import commonTools as cT  # don't import globally since it disturbs translation
   key = 'bcA:Maw'.join(key.split(':'))
   id_  = cT.uuidv4()
   cred.set_password('pastaDB',id_,key)
@@ -116,6 +114,8 @@ def symlink_hash(path):
   Returns:
     string: shasum of link, aka short string
   """
+  import os
+  from hashlib import sha1
   hasher = sha1()
   data = os.readlink(path).encode('utf8', 'surrogateescape')
   hasher.update(('blob %u\0' % len(data)).encode('ascii'))
@@ -138,6 +138,7 @@ def blob_hash(stream, size):
   Raises:
     ValueError: size given is not the size of the stream
   """
+  from hashlib import sha1
   hasher = sha1()
   hasher.update(('blob %u\0' % size).encode('ascii'))
   nread = 0
@@ -164,6 +165,7 @@ def jsonValidator(data):
   Returns:
     bool: is valid json string
   """
+  import json
   try:
     json.loads(json.dumps(data))
     return True
@@ -188,6 +190,7 @@ def imageToString(url):
   Returns:
     string: image as string
   """
+  import base64
   encoded = base64.b64encode(open(url, 'rb').read())
   aString = encoded.decode()
   return aString
@@ -206,11 +209,63 @@ def stringToImage(aString, show=True):
   Returns:
     Image: image of string
   """
+  import base64, io
+  from PIL import Image
   imgdata = base64.b64decode(aString)
   image = Image.open(io.BytesIO(imgdata))
   if show:
     image.show()
   return image
+
+
+def getExtractorConfig(directory):
+  """
+  Rules:
+  - each data-type in its own try-except
+  - inside try: raise ValueError exception on failure/None
+  - except empty: pass
+  - all descriptions in type have to be small letters
+  - if want to force to skip top datatypes and use one at bottom: if doctype... -> exception
+
+  Args:
+    directory (string): relative directory to scan
+
+  Returns:
+    list: list of [doctype-list, description]
+  """
+  import os
+  configuration = {}
+  for fileName in os.listdir(directory):
+    if fileName.endswith('.py') and fileName!='scanExtractors.py':
+      #start with file
+      with open(directory+os.sep+fileName,'r') as fIn:
+        lines = fIn.readlines()
+        extractors = []
+        baseType = ['measurement', fileName[6:-3]]
+        ifInFile, headerState, header = False, True, []
+        for idx,line in enumerate(lines):
+          line = line.rstrip()
+          if idx>0 and '"""' in line:
+            headerState = False
+          if headerState:
+            line = line.replace('"""','')
+            header.append(line)
+            continue
+          if "if doc['type'][2:] == [" in line and "#:" in line:
+            specialType = line.split('== [')[1].split(']:')[0]
+            specialType = [i.strip()[1:-1] for i in specialType.split(',')]
+            extractors.append([ baseType+specialType, line.split('#:')[1].strip() ])
+            ifInFile = True
+          elif "else:" in line and "#default:" in line:
+            extractors.append([ baseType+[specialType[0]], line.split('#default:')[1].strip() ])
+          elif "return" in line and not ifInFile:
+            try:
+              specialType = line.split("+['")[1].split("']")[0]
+              extractors.append([ baseType+[specialType], '' ])
+            except:
+              pass
+        configuration[fileName] = {'plots':extractors, 'header':'\n'.join(header)}
+  return configuration
 
 
 def createQRcodeSheet(fileName="../qrCodes.pdf"):
@@ -224,6 +279,8 @@ def createQRcodeSheet(fileName="../qrCodes.pdf"):
   - Page size 18x27cm; 6x9 = 54
   """
   import qrcode
+  import numpy as np
+  from PIL import Image
   from commonTools import commonTools as cT  # don't import globally since it disturbs translation
   img = qrcode.make(cT.uuidv4(),
                     error_correction=qrcode.constants.ERROR_CORRECT_M)
@@ -251,6 +308,7 @@ def translateJS2PY():
   Translate js-code to python-code using js2py lib
   - remove the last export-lines from commonTools.js
   """
+  import re, io
   import js2py
   jsString = open('./commonTools.js', "r").read()
   jsString = re.sub(r"export.+;", "", jsString)

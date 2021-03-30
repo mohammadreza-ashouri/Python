@@ -10,7 +10,7 @@ are required by frontend. Otherwise, make only temporary changes
 import os, json, sys, subprocess
 import argparse, traceback
 from backend import Pasta
-from miscTools import upOut
+from miscTools import upOut, getExtractorConfig
 
 argparser = argparse.ArgumentParser(usage='''
 pastaDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
@@ -33,14 +33,17 @@ Possible commands are:
         '{"test":{"user":"Peter","password":"Parker",...}}'
     extractorTest: test the extractor of this file
         -p should be specified is the path to file from base folder
+    extractorScan: get list of all extractors
 ''')
-argparser.add_argument('command', help='help, test, updatePASTA, verifyDB, saveBackup, loadBackup, print, scanHierarchy, saveHierarchy, addDoc, hierarchy, newDB, extractorTest')
+argparser.add_argument('command', help='help, test, updatePASTA, verifyDB, saveBackup, loadBackup, print, scanHierarchy, saveHierarchy, addDoc, hierarchy, newDB, extractorTest, extractorScan')
 argparser.add_argument('-i','--docID',   help='docID of project', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
 argparser.add_argument('-l','--label',   help='label used for printing', default='Projects')
 argparser.add_argument('-p','--path',    help='path for extractor test', default='')
 argparser.add_argument('-d','--database',help='name of database configuration', default='') #required for be = Pasta(args.database)
 args = argparser.parse_args()
+
+## general things that do not require open database
 if args.command=='newDB':
   #use new database configuration and store in local-config file
   newDB = json.loads(args.item)
@@ -55,9 +58,17 @@ elif args.command=='help':
   argparser.print_help()
 elif args.command=='up':
   print('up:',upOut(args.docID))
+elif args.command=='extractorScan':
+  config = getExtractorConfig('extractors')
+  config = [config[i]['plots'] for i in config if len(config[i]['plots'])>0 ]
+  config = [i for sublist in config for i in sublist]
+  for plot in config:
+    print(str(plot))
+  
+## Commands that require open PASTA database, but not specific project
 else:
-  #other commands require open PASTA database
   try:
+    # open database
     if args.database=='':
       with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
         config = json.load(f)
@@ -67,7 +78,8 @@ else:
     if args.command=='test':
       initViews, initConfig = True, False
     be = Pasta(args.database, initViews=initViews, initConfig=initConfig)
-    # depending on choices
+
+    # depending on commands
     if args.command=='test':
       print('database server:',be.db.db.client.server_url)
       print('configName:',be.configName)
@@ -82,6 +94,7 @@ else:
       cmd = ['git','show','-s','--format=%ci']
       output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       print('software version:',' '.join(output.stdout.decode('utf-8').split()[0:2]))
+
     elif args.command=='updatePASTA':
       os.chdir(be.softwarePath)
       cmd = ['git','pull']
@@ -90,21 +103,28 @@ else:
       cmd = ['pip3','install','-r','requirements.txt','--disable-pip-version-check']
       output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       print(output.stdout.decode('utf-8'))
+
     elif args.command=='verifyDB':
       output = be.checkDB(verbose=False)
       print(output)
       if '**ERROR' in output:
         success = False
+
     elif args.command=='syncLR':
       success = be.replicateDB()
+
     elif args.command=='syncRL':
       print('syncRL not implemented yet')
+
     elif args.command=='print':
       print(be.output(args.label,True))
+
     elif args.command=='saveBackup':   #save to backup file.zip
       be.backup('backup')
+
     elif args.command=='loadBackup':   #load from backup file.zip
       be.backup('restore')
+
     elif args.command=='extractorTest':
       if args.content is None:
         doc = {'type':['measurement', '']}
@@ -115,12 +135,14 @@ else:
         print("SUCCESS")
       else:
         print("**ERROR**")
+
     elif args.command=='redo':
       doc = dict(be.getDoc(args.docID))
       doc['type'] = args.content.split('/')
       be.getMeasurement(doc['branch'][0]['path'], doc['shasum'], doc, extractorRedo=True)  #any path is good since the file is the same everywhere; doc-changed by reference
       be.db.updateDoc({'image':doc['image']},args.docID)
       success=True
+
     elif args.command=='createDoc':
       content = args.content.replace("'",'"')
       doc = json.loads(content)
@@ -129,12 +151,16 @@ else:
       if len(args.docID)>1:
         be.changeHierarchy(args.docID)
       be.addData(docType,doc)
+
     else:
-      #all commands that require an open project
+
+      ## Commands that require open database and open project
       if args.docID!='':
         be.changeHierarchy(args.docID)
+
       if args.command=='scanHierarchy':
         be.scanTree()                 #there can not be a callback function
+
       elif args.command=='saveHierarchy':
         content = args.content.replace('\\n','\n')
         if content[0]=='"' and content[-1]=='"':
@@ -146,12 +172,16 @@ else:
         # print(content)
         # print('---- Ensure beginning & end are correct ----')
         success = be.setEditString(content)
+
       elif args.command=='hierarchy':
         print(be.outputHierarchy(True,True))
+
+      ## Default case for all: unknown
       else:
         print("Command does not exist:",args.command)
         be.exit()
         raise NameError('Wrong command: '+args.command)
+      
     be.exit()
     if success:
       print('SUCCESS')

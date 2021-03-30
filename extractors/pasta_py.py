@@ -1,5 +1,4 @@
 """create measurement data from .py file
-
 - python file
 """
 
@@ -10,6 +9,7 @@ def getMeasurement(fileName, doc):
      doc (dict): supplied to guide image creation doc['type']
 
   Returns:
-    list: image, ('png','jpg','svg'), dictionary of metadata
+    list: image, [('png'|'jpg'|'svg'), type, metaVendor, metaCustom]
   """
-  return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
+  #final return if nothing successful
+  return None, ['', [], {}, {}]

@@ -1,41 +1,48 @@
 """create measurement data from .tif file
 """
-import logging, traceback
 from Tif import Tif
 
-def getMeasurement(fileName, doc):
+def getMeasurement(fileName, doc): 
   """
   Args:
      fileName (string): full path file name
      doc (dict): supplied to guide image creation doc['type']
 
   Returns:
-    list: image, ('png','jpg','svg'), dictionary of metadata
+    list: image, [('png'|'jpg'|'svg'), type, metaVendor, metaCustom]
   """
+  # try Steffen's Tif library
   try:
-    # try Steffen's Tif library
     i = Tif(fileName)
-    if i is not None:
-      if not 'no_autoCrop' in doc['type'][-1]:
-        i.autoCrop()
-      if "adaptive" in doc['type'][-1]:
-        i.enhance("adaptive")
-      else:
-        i.enhance()
-      if not 'no_scale' in doc['type'][-1]:
-        i.addScaleBar()
-      measurementType = [i.meta.pop('measurementType')] + doc['type'][2:]
-      meta = {'measurementType':measurementType,
-              'metaVendor':i.meta,
-              'metaUser':{}}
-      return i.image, 'jpg', meta
-    # other data routines follow here
-    # .
-    # .
-    # .
-    # if nothing successful
-    return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
+    if i is None:
+      raise ValueError
+    if doc['type'][2:] == ['image', 'no_scale', 'adaptive']: #: plot with no scale bar, adaptive grayscales and crop bottom white databar
+      i.autoCrop()
+      i.enhance("adaptive")
+      return i.image, ['jpg', doc['type'], i.meta, {}]
+    if doc['type'][2:] == ['image', 'scale', 'adaptive']:   #: plot with scale bar, adaptive grayscales and crop bottom white databar
+      i.autoCrop()
+      i.enhance("adaptive")
+      i.addScaleBar()
+      return i.image, ['jpg', doc['type'], i.meta, {}]
+
+    if doc['type'][2:] == ['image', 'no_scale', 'rescale']: #: plot with no scale bar, rescale grayscales and crop bottom white databar
+      i.autoCrop()
+      i.enhance()
+      return i.image, ['jpg', doc['type'], i.meta, {}]
+    if doc['type'][2:] == ['image', 'scale', 'rescale']:    #: plot with scale bar, rescale grayscales and crop bottom white databar
+      i.autoCrop()
+      i.enhance()
+      i.addScaleBar()
+      return i.image, ['jpg', doc['type'], i.meta, {}]
+
+    else:                                                  #default: default image, no change
+      return i.image, ['jpg', doc['type']+['indentation'], i.meta, {}]
   except:
-    logging.error('extractor xls: '+fileName+' not a measurement')
-    #logging.error(traceback.format_exc())
-    return None, None, {'measurementType':[],'metaVendor':{},'metaUser':{}}
+    pass
+
+  # other data routines follow here
+  # ....
+
+  #final return if nothing successful
+  return None, ['', [], {}, {}]
