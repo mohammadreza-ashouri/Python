@@ -672,7 +672,7 @@ class Pasta:
         image = 'data:image/png;base64,' + imageData
         outFileFull = outFile+'.png'
       if outFileFull is None:
-        image, metaVendor, metaCustom, docType = '', {}, {}, []
+        image, metaVendor, metaUser, docType = '', {}, {}, []
         logging.debug('getMeasurement should not read data; returned data void '+str(imgType))
       else:
         if self.cwd is not None and not extractorTest:
@@ -695,7 +695,7 @@ class Pasta:
               shutil.copyfileobj(figfile, f)
           dataset.save(path=outFileFull, message='Added document '+appendix)
     else:
-      image, metaVendor, metaCustom, docType = '', {}, {}, []
+      image, metaVendor, metaUser, docType = '', {}, {}, []
       logging.warning('getMeasurement could not find pyFile to convert '+pyFile)
     #combine into document
     document = {'image': image, 'type': docType,

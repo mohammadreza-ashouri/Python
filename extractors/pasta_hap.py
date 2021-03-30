@@ -8,7 +8,7 @@ def getMeasurement(fileName, doc):
      fileName (string): full path file name
      doc (dict): supplied to guide image creation doc['type']
 
-  Returns
+  Returns:
     list: image, [('png'|'jpg'|'svg'), type, metaVendor, metaCustom]
   """
   #final return if nothing successful

@@ -135,6 +135,7 @@ else:
         print("SUCCESS")
       else:
         print("**ERROR**")
+        success = False
 
     elif args.command=='redo':
       doc = dict(be.getDoc(args.docID))

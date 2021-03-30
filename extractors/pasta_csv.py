@@ -14,7 +14,7 @@ def getMeasurement(fileName, doc):
   # VK-X1000 Series
   try:
     with open(fileName,'r') as inFile:
-      line1 = inFile.readline()
+      _     = inFile.readline()
       line2 = inFile.readline()
       line3 = inFile.readline()
       if line2 == '"Model";"VK-X1000 Series"\n' and line3 == '"Data type";"ImageDataCsv"\n':
@@ -22,7 +22,7 @@ def getMeasurement(fileName, doc):
         if s is None:
           raise ValueError
         s.createImage()
-        return img, ['jpg', doc['type']+['surface'], i.meta, {}]
+        return s.image, ['jpg', doc['type']+['surface'], s.meta, {}]
   except:
     pass
 

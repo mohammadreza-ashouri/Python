@@ -22,7 +22,7 @@ def getMeasurement(fileName, doc):
       image = Image.open(fileName)
     if 'Software' in image.info and 'matplotlib' in image.info['Software']:  #ignore python.matplotlib files since they are not measurements
       raise ValueError
-    return image.convert{'P'}, ['jpg', doc['type']+['image'], {}, {}]
+    return image.convert('P'), ['jpg', doc['type']+['image'], {}, {}]
   except:
     pass
 

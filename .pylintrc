@@ -144,7 +144,9 @@ disable=print-statement,
         fixme,
         import-error,
         unused-import,
-        dangerous-default-value
+        dangerous-default-value,
+        missing-raises-doc,
+        no-else-return
 
 #Reasons:
 # looks better: len-as-condition, multiple-statements, bad-whitespace, multiple-imports
