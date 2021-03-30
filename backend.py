@@ -636,10 +636,12 @@ class Pasta:
       outFile = self.basePath + filePath.replace('.','_')+'_pasta'
     pyFile = 'pasta_'+extension+'.py'
     pyPath = self.softwarePath+os.sep+'extractors'+os.sep+pyFile
+    if len(doc['type'])==1:
+      doc['type'] += [extension]
     if os.path.exists(pyPath):
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
-      image, imgType, meta = module.getMeasurement(absFilePath, doc)
+      image, [imgType, docType, metaVendor, metaUser] = module.getMeasurement(absFilePath, doc)
       if extractorTest:
         if isinstance(image, Image):
           image.show()
@@ -670,8 +672,7 @@ class Pasta:
         image = 'data:image/png;base64,' + imageData
         outFileFull = outFile+'.png'
       if outFileFull is None:
-        image = ''
-        meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
+        image, metaVendor, metaCustom, docType = '', {}, {}, []
         logging.debug('getMeasurement should not read data; returned data void '+str(imgType))
       else:
         if self.cwd is not None and not extractorTest:
@@ -694,14 +695,10 @@ class Pasta:
               shutil.copyfileobj(figfile, f)
           dataset.save(path=outFileFull, message='Added document '+appendix)
     else:
-      image = ''
-      meta  = {'measurementType':[],'metaVendor':{},'metaUser':{}}
+      image, metaVendor, metaCustom, docType = '', {}, {}, []
       logging.warning('getMeasurement could not find pyFile to convert '+pyFile)
     #combine into document
-    measurementType = meta['measurementType']
-    metaVendor      = meta['metaVendor']
-    metaUser        = meta['metaUser']
-    document = {'image': image, 'type': ['measurement']+measurementType,
+    document = {'image': image, 'type': docType,
                 'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
     logging.debug('getMeasurement: finished')
     doc.update(document)

@@ -64,7 +64,7 @@ elif args.command=='extractorScan':
   config = [i for sublist in config for i in sublist]
   for plot in config:
     print(str(plot))
-  
+
 ## Commands that require open PASTA database, but not specific project
 else:
   try:
@@ -127,9 +127,9 @@ else:
 
     elif args.command=='extractorTest':
       if args.content is None:
-        doc = {'type':['measurement', '']}
+        doc = {'type':['measurement']}
       else:
-        doc = {'type':['measurement', '', args.content]}
+        doc = {'type':args.content.split('/')}
       be.getMeasurement(args.path,"empty_md5sum",doc,extractorTest=True)
       if len(doc['type'])>1:
         print("SUCCESS")
@@ -181,7 +181,7 @@ else:
         print("Command does not exist:",args.command)
         be.exit()
         raise NameError('Wrong command: '+args.command)
-      
+
     be.exit()
     if success:
       print('SUCCESS')

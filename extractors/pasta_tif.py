@@ -2,7 +2,7 @@
 """
 from Tif import Tif
 
-def getMeasurement(fileName, doc): 
+def getMeasurement(fileName, doc):
   """
   Args:
      fileName (string): full path file name
@@ -37,7 +37,7 @@ def getMeasurement(fileName, doc):
       return i.image, ['jpg', doc['type'], i.meta, {}]
 
     else:                                                  #default: default image, no change
-      return i.image, ['jpg', doc['type']+['indentation'], i.meta, {}]
+      return i.image, ['jpg', doc['type']+['image'], i.meta, {}]
   except:
     pass
 
