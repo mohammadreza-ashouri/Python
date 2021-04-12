@@ -59,11 +59,17 @@ elif args.command=='help':
 elif args.command=='up':
   print('up:',upOut(args.docID))
 elif args.command=='extractorScan':
-  config = getExtractorConfig('extractors')
-  config = [config[i]['plots'] for i in config if len(config[i]['plots'])>0 ]
-  config = [i for sublist in config for i in sublist]
-  for plot in config:
-    print(str(plot))
+  pathToExtractors = os.path.dirname(os.path.abspath(__file__))+os.sep+'extractors'
+  extractors = getExtractorConfig(pathToExtractors)
+  extractors = [extractors[i]['plots'] for i in extractors if len(extractors[i]['plots'])>0 ] #remove empty entries
+  extractors = [i for sublist in extractors for i in sublist]   #flatten list
+  extractors = {'/'.join(i):j for (i,j) in extractors}
+  with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
+    configuration = json.load(f)
+  configuration['-extractors-'] = extractors
+  with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
+    f.write(json.dumps(configuration, indent=2))
+  print('SUCCESS')
 
 ## Commands that require open PASTA database, but not specific project
 else:
@@ -126,11 +132,18 @@ else:
       be.backup('restore')
 
     elif args.command=='extractorTest':
+      if args.path and not args.docID:
+        path = args.path
+      elif args.docID and not args.path:
+        doc = dict(be.getDoc(args.docID))
+        path = doc['branch'][0]['path']
+      else:
+        print("SOMETHING STRANGE",args.path,args.docID)
       if args.content is None:
         doc = {'type':['measurement']}
       else:
         doc = {'type':args.content.split('/')}
-      be.getMeasurement(args.path,"empty_md5sum",doc,extractorTest=True)
+      be.getMeasurement(path,"empty_md5sum",doc,extractorTest=True)
       if len(doc['type'])>1:
         print("SUCCESS")
       else:

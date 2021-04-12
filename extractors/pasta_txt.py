@@ -17,16 +17,21 @@ def getMeasurement(fileName, doc):
     i = Indentation(fileName, verbose=1)
     if i is None:
       raise ValueError
-    if doc['type'][2:] == ['indentation', 'all']:         #: plot all curves as force-depth
-      ax = plt.subplot(111)
-      while len(i.testList)>1:
-        ax.plot(i.h, i.p)
-        i.nextTest()
-      ax.set_xlabel(r"depth [$\mathrm{\mu m}$]")
-      ax.set_ylabel(r"force [$\mathrm{mN}$]")
-      return ax, ['svg', doc['type'],                  {}, i.meta]
+    if doc['type'][2:] == ['indentation', 'procedure']:#: plot indentation procedure
+      ax1 = plt.subplot(111)
+      ax2 = ax1.twinx()
+      ax1.plot(i.t, i.p, c='C0', label='force')
+      ax2.plot(i.t, i.h, c='C1', label='depth')
+      ax1.legend(loc=2)
+      ax2.legend(loc=1)
+      ax1.set_xlabel(r"time [$\mathrm{s}$]")
+      ax1.set_ylabel(r"force [$\mathrm{mN}$]")
+      ax2.set_ylabel(r"depth [$\mathrm{\mu m}$]")
+      ax1.set_ylim(bottom=0)
+      ax2.set_ylim(bottom=0)
+      return ax1, ['svg', doc['type'],                  {}, i.meta]
 
-    else:                                               #default: plot first force-depth curve
+    else:                                               #default: plot force-depth curve
       i.analyse()
       img = i.plot(False,False)
       return img, ['svg', doc['type']+['indentation'], {}, i.meta]
