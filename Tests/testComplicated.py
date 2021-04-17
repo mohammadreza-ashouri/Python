@@ -28,13 +28,13 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('project', {'name': 'Test project1', 'objective': 'Test objective1', 'status': 'active', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
       self.be.addData('project', {'name': 'Test project2', 'objective': 'Test objective2', 'status': 'passive', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
       self.be.addData('project', {'name': 'Test project3', 'objective': 'Test objective3', 'status': 'paused', 'comment': '#tag1 :field2:max: A random text'})
-      print(self.be.output('Projects'))
+      print(self.be.output('project'))
       print(" ====== STATE 1 ====\n"+self.be.checkDB(verbose=False))
 
       ### create some steps and tasks in the first (by id-number) project
       # add also some empty measurements
       print('*** TEST PROJECT HIERARCHY: no output ***')
-      viewProj = self.be.db.getView('viewDocType/viewProjects')
+      viewProj = self.be.db.getView('viewDocType/project')
       projID  = [i['id'] for i in viewProj if 'Test project1'==i['value'][0]][0]
       projID1 = [i['id'] for i in viewProj if 'Test project2'==i['value'][0]][0]
       self.be.changeHierarchy(projID)
@@ -80,7 +80,7 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('procedure', {'name': 'Test procedure 3', 'content': '1. polish, 2. microscope', 'comment': ''})
       self.be.changeHierarchy(None) #cd .. into root, to create procedure without project. Should not be done, but no harm
       self.be.addData('procedure', {'name': 'Test procedure without project', 'content': 'Secret potion for Asterix', 'comment': ''})
-      print(self.be.output('Procedures'))
+      print(self.be.output('procedure'))
 
       ### Samples
       print('*** TEST SAMPLES ***')
@@ -92,7 +92,7 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('sample',    {'name': 'Gummibären', 'chemistry': '???', 'qrCode': '', 'comment': '6 pieces'})
       self.be.addData('sample',    {'name': 'Lutscher', 'chemistry': '???', 'qrCode': '', 'comment': ''})
       self.be.addData('sample',    {'name': 'Taschentücher', 'chemistry': '???', 'qrCode': '', 'comment': ''})
-      print(self.be.output('Samples'))
+      print(self.be.output('sample'))
       print(self.be.outputQR())
 
       ### Add measurements by copying from somewhere into tree
@@ -119,7 +119,7 @@ class TestStringMethods(unittest.TestCase):
 
       ### Change plot-type
       print('\n*** TEST CHANGE PLOT-TYPE ***')
-      viewMeasurements = self.be.db.getView('viewDocType/viewMeasurements')
+      viewMeasurements = self.be.db.getView('viewDocType/measurement')
       for item in viewMeasurements:
         fileName = item['value'][0]
         if fileName == 'Zeiss.tif':
@@ -175,7 +175,7 @@ class TestStringMethods(unittest.TestCase):
       ### Output all the measurements and changes until now
       # output SHA-sum
       print('*** TEST OUTPUT MEASUREMENTS AND SHASUM ***')
-      print(self.be.output('Measurements'))
+      print(self.be.output('measurement'))
       print(self.be.outputSHAsum())
 
 

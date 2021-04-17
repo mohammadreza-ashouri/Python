@@ -90,14 +90,10 @@ def curate(doc):
   for itemJ in questionsLocal:
     if itemJ['name']=='comment' and 'comment' in doc:
       itemJ['default'] = doc['comment']
-    if itemJ['name']=='sample':
-      samples = be.output("Samples",printID=True).split("\n")[2:-1]
-      samples = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in samples]
-      itemJ['choices'] = ['--']+samples
-    if itemJ['name']=='procedure':
-      procedures = be.output("Procedures",printID=True).split("\n")[2:-1]
-      procedures = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in procedures]
-      itemJ['choices'] = ['--']+procedures
+    if itemJ['name']=='sample' or itemJ['name']=='procedure':
+      docs = be.output(itemJ['name'], printID=True).split("\n")[2:-1]
+      docs = [i.split('|')[0].strip()+' |'+i.split('|')[-1] for i in docs]
+      itemJ['choices'] = ['--']+docs
   asyncio.set_event_loop(asyncio.new_event_loop())
   answerJ = prompt(questionsLocal)
   #clean open windows
@@ -253,7 +249,6 @@ while be.alive:
           question['choices'] = itemList
         else:
           try:
-            itemList = [i[1] for i in be.dataLabels if i[0]==itemList][0]
             itemList = be.output(itemList,printID=True).split("\n")[2:-1]
             itemList = [i.split('|')[0].strip()+' || '+i.split('|')[-1] for i in itemList]
           except:

@@ -28,7 +28,7 @@ class TestStringMethods(unittest.TestCase):
     try:
       ### create some project and move into it
       self.be.addData('project', {'name': 'Test project1', 'objective': 'Test objective1', 'status': 'active', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
-      viewProj = self.be.db.getView('viewDocType/viewProjects')
+      viewProj = self.be.db.getView('viewDocType/project')
       projID  = [i['id'] for i in viewProj][0]
       self.be.changeHierarchy(projID)
 
@@ -40,7 +40,7 @@ class TestStringMethods(unittest.TestCase):
       projDirName = self.be.basePath+self.be.cwd
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
       self.be.scanTree()
-      print(self.be.output('Measurements'))
+      print(self.be.output('measurement'))
       print(self.be.outputSHAsum())
 
       ### check consistency of database and replicate to global server

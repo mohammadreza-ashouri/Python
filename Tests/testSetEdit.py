@@ -29,7 +29,7 @@ class TestStringMethods(unittest.TestCase):
 
       ### TEST PROJECT PLANING
       print('*** TEST PROJECT PLANING ***')
-      viewProj = self.be.db.getView('viewDocType/viewProjects')
+      viewProj = self.be.db.getView('viewDocType/project')
       projID1  = [i['id'] for i in viewProj if 'Intermetals at interfaces'==i['value'][0]][0]
       self.be.changeHierarchy(projID1)
       self.be.addData('step',    {'comment': 'This is hard! #TODO', 'name': 'Get steel and Al-powder'})

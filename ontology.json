@@ -23,7 +23,7 @@
     {"name":"name",       "query":"What is the file name?"},
     {"name":"tags"},
     {"name":"comment",    "query":"#tags comments :field:value:"},
-    {"name":"type",       "query":"Measurement type"},
+    {"name":"type"},
     {"name":"image"},
     {"name":"curate"},
     {"name":"sample",     "query":"Which sample was used?",     "list":"sample"},
@@ -34,7 +34,7 @@
     {"name":"chemistry",  "query":"What is its chemical composition?"},
     {"name":"tags"},
     {"name":"comment",    "query":"#tags comments :field:value:"},
-    {"name":"qrCode",     "query":"What is its QR-code?"}
+    {"name":"qrCode"}
   ],
   "procedure": [
     {"name":"name",       "query":"What is the name / path?"},

@@ -762,7 +762,7 @@ class Pasta:
     ### check if datalad status is clean for all projects
     if verbose:
       output += "--- DataLad status ---\n"
-    viewProjects   = self.db.getView('viewDocType/viewProjects')
+    viewProjects   = self.db.getView('viewDocType/project')
     viewPaths      = self.db.getView('viewHierarchy/viewPaths')
     listPaths = [item['key'] for item in viewPaths]
     curDirectory = os.path.abspath(os.path.curdir)
@@ -810,24 +810,20 @@ class Pasta:
   ######################################################
   ### OUTPUT COMMANDS and those connected to it      ###
   ######################################################
-  def output(self, docLabel, printID=False, **kwargs):
+  def output(self, docType, printID=False, **kwargs):
     """
     output view to screen
     - length of output 100 character
 
     Args:
-      docLabel (string): document label to output
+      docType (string): document type to output
       printID (bool):  include docID in output string
       kwargs (dict): additional parameter
 
     Returns:
         string: output incl. \n
     """
-    view = 'view'+docLabel
     outString = []
-    docList = self.dataLabels+self.hierarchyLabels
-    idx     = list(dict(docList).values()).index(docLabel)
-    docType = list(dict(docList).keys())[idx]
     widthArray = [25,25,25,25]
     if docType in self.tableFormat:
       widthArray = self.tableFormat[docType]['-default-']
@@ -841,7 +837,7 @@ class Pasta:
         outString.append(formatString.format(item['name']) )
     outString = '|'.join(outString)+'\n'
     outString += '-'*104+'\n'
-    for lineItem in self.db.getView('viewDocType/'+view):
+    for lineItem in self.db.getView('viewDocType/'+docType):
       rowString = []
       for idx, item in enumerate(self.db.ontology[docType]):
         if idx<len(widthArray):

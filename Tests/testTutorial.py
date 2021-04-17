@@ -28,11 +28,11 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('project', {'name': 'Intermetals at interfaces', 'objective': 'Does spray coating lead to intermetalic phase?', 'status': 'active', 'comment': '#intermetal #Fe #Al This is a test project'})
       self.be.addData('project', {'name': 'Surface evolution in tribology', 'objective': 'Why does the surface get rough during tribology?', 'status': 'passive', 'comment': '#tribology The answer is obvious'})
       self.be.addData('project', {'name': 'Steel', 'objective': 'Test strength of steel', 'status': 'paused', 'comment': '#Fe Obvious example without answer'})
-      print(self.be.output('Projects'))
+      print(self.be.output('project'))
 
       ### TEST PROJECT PLANING
       print('*** TEST PROJECT PLANING ***')
-      viewProj = self.be.db.getView('viewDocType/viewProjects')
+      viewProj = self.be.db.getView('viewDocType/project')
       projID1  = [i['id'] for i in viewProj if 'Intermetals at interfaces'==i['value'][0]][0]
       self.be.changeHierarchy(projID1)
       self.be.addData('step',    {'comment': 'This is hard! #TODO', 'name': 'Get steel and Al-powder'})
@@ -62,12 +62,12 @@ class TestStringMethods(unittest.TestCase):
         fOut.write('# Put sample in SEM\n# Do scanning\nDo not forget to\n- contact the pole-piece\n- **USE GLOVES**\n')
       self.be.addData('procedure', {'name': 'StandardOperatingProcedures'+os.sep+'SEM.md', 'comment': '#v1'})
       self.be.addData('procedure', {'name': 'StandardOperatingProcedures'+os.sep+'Nanoindentation.org', 'comment': '#v1'})
-      print(self.be.output('Procedures'))
+      print(self.be.output('procedure'))
 
       ### TEST SAMPLES
       print('*** TEST SAMPLES ***')
       self.be.addData('sample',    {'name': 'AlFe cross-section', 'chemistry': 'Al99.9; FeMnCr ', 'qrCode': '13214124 99698708', 'comment': 'after OPS polishing'})
-      print(self.be.output('Samples'))
+      print(self.be.output('sample'))
       print(self.be.outputQR())
 
       ###  TEST MEASUREMENTS AND SCANNING/CURATION
@@ -124,10 +124,10 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('instrument', {'name': 'XP', 'vendor':'MTS', 'model':'Nanoindenter XP', 'comment':':room:10: #TODO'})
       self.be.addData('instrument', {'name': 'Fischer', 'vendor':'Fischer', 'model':'Fischer Scope 300mN', 'comment':':room:12: #TODO'})
       # look at data
-      print(self.be.output('Instruments'))
+      print(self.be.output('instrument'))
       # look at one data-set
       print("One dataset")
-      view = self.be.db.getView('viewDocType/viewInstruments')
+      view = self.be.db.getView('viewDocType/instrument')
       for item in view:
         if (item['value'][0]=='XP'):
           doc = self.be.db.getDoc(item['id'])

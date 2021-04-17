@@ -38,7 +38,7 @@ Possible commands are:
 argparser.add_argument('command', help='help, test, updatePASTA, verifyDB, saveBackup, loadBackup, print, scanHierarchy, saveHierarchy, addDoc, hierarchy, newDB, extractorTest, extractorScan')
 argparser.add_argument('-i','--docID',   help='docID of project', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
-argparser.add_argument('-l','--label',   help='label used for printing', default='Projects')
+argparser.add_argument('-l','--label',   help='label used for printing', default='project')
 argparser.add_argument('-p','--path',    help='path for extractor test', default='')
 argparser.add_argument('-d','--database',help='name of database configuration', default='') #required for be = Pasta(args.database)
 args = argparser.parse_args()

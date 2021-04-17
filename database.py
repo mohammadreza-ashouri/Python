@@ -54,7 +54,7 @@ class Database:
     # for the individual docTypes
     jsDefault = "if ($docType$) {emit($key$, [$outputList$]);}"
     viewCode = {}
-    for docType, docLabel in docTypesLabels:
+    for docType, _ in docTypesLabels:
       if docType=='project':
         jsString = jsDefault.replace('$docType$', "doc.type[1]=='"+docType+"'").replace('$key$','doc._id')
       else:     #only show first instance in list doc.branch[0]
@@ -74,8 +74,8 @@ class Database:
           outputList.append('doc.'+item['name'])
       outputList = ','.join(outputList)
       jsString = jsString.replace('$outputList$', outputList)
-      logging.info('database:init view'+docLabel+' not defined. Use default one:'+jsString)
-      viewCode['view'+docLabel]=jsString
+      logging.info('database:init view '+docType+' not defined. Use default one:'+jsString)
+      viewCode[docType]=jsString
     self.saveView('viewDocType', viewCode)
     # general views: Hierarchy, Identify
     jsHierarchy  = '''
@@ -301,6 +301,7 @@ class Database:
     try:
       designDoc.save()
     except:
+      print('**Error** database:saveView something unexpected has happend: log-file has traceback')
       logging.error('database:saveView Something unexpected has happend'+traceback.format_exc())
     return
 
