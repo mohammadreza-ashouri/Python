@@ -1,9 +1,6 @@
 #!/usr/bin/python3
 """ Main function when command-line commands used
 
-Problem:
-pastaDB.py saveHierarchy --docID t-d4e64235040d232e1f7a71ca0564a9a1 --content "TestingNow||t-d4e64235040d232e1f7a71ca0564a9a1\n* Test\n* Hans\n** Wurst"
-
 Called by user or reactElectron frontend. Keep it simple: only functions that
 are required by frontend. Otherwise, make only temporary changes
 """

@@ -80,7 +80,7 @@ class TestStringMethods(unittest.TestCase):
       print('\n*** TEST SET_EDIT_STRING: change ***')
       print('Promote: Get quotes\n-----------------')
       myString = self.be.outputHierarchy(True,True,'tags')
-      myString = myString.replace('** Get quotes||t-','* Get quOtes||t-')
+      myString = myString.replace('** Get quotes||x-','* Get quOtes||x-')
       self.be.setEditString(myString)
       newString = self.be.outputHierarchy(True,True,None)
       print(newString)
@@ -90,7 +90,7 @@ class TestStringMethods(unittest.TestCase):
 
       print('Demote: Get spray machine\n-----------------')
       myString = self.be.outputHierarchy(False,True,'tags')
-      myString = myString.replace('* Get spray machine||t-','** Get spray machine||t-')
+      myString = myString.replace('* Get spray machine||x-','** Get spray machine||x-')
       self.be.setEditString(myString)
       newString = self.be.outputHierarchy(True,True,None)
       print(newString)
@@ -99,7 +99,7 @@ class TestStringMethods(unittest.TestCase):
 
       print('Demote: SEM images\n-----------------')
       myString = self.be.outputHierarchy(True,True,None)
-      myString = myString.replace('* SEM images||t-','** SEM images||t-')
+      myString = myString.replace('* SEM images||x-','** SEM images||x-')
       self.be.setEditString(myString)
       newString = self.be.outputHierarchy(True,True,None)
       print(newString)

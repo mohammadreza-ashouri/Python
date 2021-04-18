@@ -188,7 +188,6 @@ class Pasta:
         if item['value'][1]=='project': continue
         if thisStack == ' '.join(item['key'].split(' ')[:-1]): #remove last item from string
           childNum += 1
-    prefix = doc['type'][0][0]
 
     # find path name on local file system; name can be anything
     if self.cwd is not None and 'name' in doc:
@@ -274,13 +273,13 @@ class Pasta:
     if edit:
       #update document
       keysNone = [key for key in doc if doc[key] is None]
-      doc = cT.fillDocBeforeCreate(doc, '--', '--').to_dict()  #store None entries and save back since js2py gets equalizes undefined and null
+      doc = cT.fillDocBeforeCreate(doc, '--').to_dict()  #store None entries and save back since js2py gets equalizes undefined and null
       for key in keysNone:
         doc[key]=None
       doc = self.db.updateDoc(doc, doc['_id'])
     else:
       # add doc to database
-      doc = cT.fillDocBeforeCreate(doc, doc['type'], prefix).to_dict()
+      doc = cT.fillDocBeforeCreate(doc, doc['type']).to_dict()
       doc = self.db.saveDoc(doc)
 
     ## adaptation of directory tree, information on disk: documentID is required
@@ -926,7 +925,7 @@ class Pasta:
     view = self.db.getView('viewHierarchy/viewHierarchy', startKey=hierString)
     nativeView = {}
     for item in view:
-      if onlyHierarchy and not item['id'].startswith('t-'):
+      if onlyHierarchy and not item['id'].startswith('x-'):
         continue
       nativeView[item['id']] = [item['key']]+item['value']
     if addTags=='all':
