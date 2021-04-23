@@ -25,7 +25,7 @@
     {"name":"comment",    "query":"#tags comments :field:value:"},
     {"name":"type"},
     {"name":"image"},
-    {"name":"curate"},
+    {"name":"curated"},
     {"name":"sample",     "query":"Which sample was used?",     "list":"sample"},
     {"name":"procedure",  "query":"Which procedure was used?",  "list":"procedure"}
   ],

@@ -121,7 +121,7 @@ def curate(doc):
     doc['sample'] = answerJ['sample'].split('|')[-1].strip()
   if answerJ['procedure']!='--':
     doc['procedure'] = answerJ['procedure'].split('|')[-1].strip()
-  del doc['curate']
+  doc['curated'] = True
   return answerJ['measurementType']!=''  #True: rerun; False: no new scan is necessary
 
 

@@ -241,7 +241,6 @@ class Pasta:
               if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
                 doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: extractor does not exit
                 return False
-              doc['curate'] = False
               if callback is None or not callback(doc):
                 # if no more iterations of curation
                 if 'ignore' in doc:
