@@ -390,71 +390,76 @@ class Database:
       outstring = ''
     ## loop all documents
     for doc in self.db:
-      if '_design' in doc['_id']:
-        if verbose:
-          outstring+= f'{bcolors.OKGREEN}..info: Design document '+doc['_id']+f'{bcolors.ENDC}\n'
-        continue
-      if doc['_id'] == '-ontology-':
-        if verbose:
-          outstring+= f'{bcolors.OKGREEN}..info: ontology exists{bcolors.ENDC}\n'
-        continue
-      #only normal documents after this line
+      try:
+        if '_design' in doc['_id']:
+          if verbose:
+            outstring+= f'{bcolors.OKGREEN}..info: Design document '+doc['_id']+f'{bcolors.ENDC}\n'
+          continue
+        if doc['_id'] == '-ontology-':
+          if verbose:
+            outstring+= f'{bcolors.OKGREEN}..info: ontology exists{bcolors.ENDC}\n'
+          continue
+        #only normal documents after this line
 
-      ###custom temporary changes: keep few as examples;
-      # BE CAREFUL: PRINT FIRST, delete second run
-      # if 'revisions' in doc:
-      #   del doc['revisions']
-      #   doc.save()
-      # if len(doc['_id'].split('-'))==3:
-      #   print('id',doc['_id'])
-      #   doc.delete()
-      #   continue
-      ## output size of document
-      # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
+        ###custom temporary changes: keep few as examples;
+        # BE CAREFUL: PRINT FIRST, delete second run
+        # if 'revisions' in doc:
+        #   del doc['revisions']
+        #   doc.save()
+        # if len(doc['_id'].split('-'))==3:
+        #   print('id',doc['_id'])
+        #   doc.delete()
+        #   continue
+        ## output size of document
+        # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
 
-      #branch test
-      if 'branch' not in doc:
-        outstring+= f'{bcolors.FAIL}**ERROR branch does not exist '+doc['_id']+f'{bcolors.ENDC}\n'
-        continue
-      if len(doc['branch'])>1 and doc['type'] =='text':                 #text elements only one branch
-        outstring+= f'{bcolors.FAIL}**ERROR branch length >1 for text'+doc['_id']+' '+str(doc['type'])+f'{bcolors.ENDC}\n'
-      for branch in doc['branch']:
-        if len(branch['stack'])==0 and doc['type']!=['text','project']: #if no inheritance
-          if doc['type'][0] == 'procedure' or  doc['type'][0] == 'sample':
-            if verbose:
-              outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure/sample '+doc['_id']+'|'+doc['name']+f'{bcolors.ENDC}\n'
-          else:
-            if verbose:
-              outstring+= f'{bcolors.WARNING}**warning branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
-        if 'type' in doc and doc['type'][0]=='text':
-          try:
-            dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
-            if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
-              outstring+= f'{bcolors.FAIL}**ERROR child-number and dirName dont match '+doc['_id']+f'{bcolors.ENDC}\n'
-          except:
-            pass  #handled next lines
-        if branch['path'] is None:
-          if doc['type'][0] == 'procedure' or doc['type'][0] == 'sample':
-            if verbose:
-              outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'
-          elif doc['type'][0] == 'text':
-            outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
-          else:  #measurement and new docTypes
-            if verbose:
-              outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+f'{bcolors.ENDC}\n'
-        else:                                                            #if sensible path
-          if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):#check if length of path and stack coincide
-            if verbose:
-              outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths not equal: '+doc['_id']+'|'+branch['path']+f'{bcolors.ENDC}\n'
-          if branch['child'] != 9999:
-            for parentID in branch['stack']:                              #check if all parents in doc have a corresponding path
-              parentDocBranches = self.getDoc(parentID)['branch']
-              onePathFound = False
-              for parentBranch in parentDocBranches:
-                if parentBranch['path'] is not None and parentBranch['path'] in branch['path']:
-                  onePathFound = True
-              if not onePathFound:
-                outstring+= f'{bcolors.FAIL}**ERROR parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
+        #branch test
+        if 'branch' not in doc:
+          outstring+= f'{bcolors.FAIL}**ERROR branch does not exist '+doc['_id']+f'{bcolors.ENDC}\n'
+          continue
+        if len(doc['branch'])>1 and doc['type'] =='text':                 #text elements only one branch
+          outstring+= f'{bcolors.FAIL}**ERROR branch length >1 for text'+doc['_id']+' '+str(doc['type'])+f'{bcolors.ENDC}\n'
+        for branch in doc['branch']:
+          for item in branch['stack']:
+            if not item.startswith('x-'):
+              outstring+= f'{bcolors.FAIL}**ERROR non-text in stack '+doc['_id']+f'{bcolors.ENDC}\n'
+
+          if len(branch['stack'])==0 and doc['type']!=['text','project']: #if no inheritance
+            if doc['type'][0] == 'procedure' or  doc['type'][0] == 'sample':
+              if verbose:
+                outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure/sample '+doc['_id']+'|'+doc['name']+f'{bcolors.ENDC}\n'
+            else:
+              if verbose:
+                outstring+= f'{bcolors.WARNING}**warning branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
+          if 'type' in doc and doc['type'][0]=='text':
+            try:
+              dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
+              if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
+                outstring+= f'{bcolors.FAIL}**ERROR child-number and dirName dont match '+doc['_id']+f'{bcolors.ENDC}\n'
+            except:
+              pass  #handled next lines
+          if branch['path'] is None:
+            if doc['type'][0] == 'procedure' or doc['type'][0] == 'sample':
+              if verbose:
+                outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'
+            elif doc['type'][0] == 'text':
+              outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
+            else:  #measurement and new docTypes
+              if verbose:
+                outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+f'{bcolors.ENDC}\n'
+          else:                                                            #if sensible path
+            if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):#check if length of path and stack coincide
+              if verbose:
+                outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths not equal: '+doc['_id']+'|'+branch['path']+f'{bcolors.ENDC}\n'
+            if branch['child'] != 9999:
+              for parentID in branch['stack']:                              #check if all parents in doc have a corresponding path
+                parentDocBranches = self.getDoc(parentID)['branch']
+                onePathFound = False
+                for parentBranch in parentDocBranches:
+                  if parentBranch['path'] is not None and parentBranch['path'] in branch['path']:
+                    onePathFound = True
+                if not onePathFound:
+                  outstring+= f'{bcolors.FAIL}**ERROR parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
 
         #doc-type specific tests
         if 'type' in doc and doc['type'][0] == 'sample':
@@ -483,6 +488,9 @@ class Database:
             else:
               outstring+= f'{bcolors.FAIL}**ERROR: image not valid '+doc['_id']+' '+doc['image']+f'{bcolors.ENDC}\n'
 
+      except: #if test of document fails
+        outstring+= f'{bcolors.FAIL}**ERROR** critical error in '+doc['_id']+f'{bcolors.ENDC}\n'
+        outstring+= traceback.format_exc()
 
     ##TEST views
     if verbose:
