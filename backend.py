@@ -312,16 +312,19 @@ class Pasta:
           dlDataset.save(path='.',message='changed gitattributes')
         else:
           os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
-      if os.path.exists(self.basePath+path+os.sep+'.id_pasta.json') and sys.platform=='win32':
-        if win32api.GetFileAttributes(self.basePath+path+os.sep+'.id_pasta.json')==win32con.FILE_ATTRIBUTE_HIDDEN:
-          win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_pasta.json',win32con.FILE_ATTRIBUTE_ARCHIVE)
+      projectPath = path.split(os.sep)[0]
+      dataset = datalad.Dataset(self.basePath+projectPath)
+      if os.path.exists(self.basePath+path+os.sep+'.id_pasta.json'):
+        if sys.platform=='win32':
+          if win32api.GetFileAttributes(self.basePath+path+os.sep+'.id_pasta.json')==win32con.FILE_ATTRIBUTE_HIDDEN:
+            win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_pasta.json',win32con.FILE_ATTRIBUTE_ARCHIVE)
+        else:
+          dataset.unlock(path=self.basePath+path+os.sep+'.id_pasta.json')
       with open(self.basePath+path+os.sep+'.id_pasta.json','w') as f:  #local path, update in any case
         f.write(json.dumps(doc))
       if sys.platform=='win32':
         win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_pasta.json',win32con.FILE_ATTRIBUTE_HIDDEN)
-      projectPath = path.split(os.sep)[0]
       # datalad api version
-      dataset = datalad.Dataset(self.basePath+projectPath)
       dataset.save(path=self.basePath+path+os.sep+'.id_pasta.json', message='Added new subfolder with .id_pasta.json')
       ## shell command
       # cmd = ['datalad','save','-m','Added new subfolder with .id_pasta.json', '-d', self.basePath+projectPath ,self.basePath+path+os.sep+'.id_pasta.json']
@@ -1077,8 +1080,8 @@ class Pasta:
         doc['childNum'] = children[-1]
       # write change to database
       ## FOR DEBUGGING:
-      # print(doc['name'].strip()+'||'+doc['_id']+' #:',doc['childNum'])
-      # print('  children:',children,'   levelNew, levelOld',levelNew,levelOld,'   cwd:',self.cwd)
+      print(doc['name'].strip()+'||'+doc['_id']+' #:',doc['childNum'])
+      print('  children:',children,'   levelNew, levelOld',levelNew,levelOld,'   cwd:',self.cwd)
       if edit=='-edit-':
         docDB = dict(docDB)
         docDB.update(doc)

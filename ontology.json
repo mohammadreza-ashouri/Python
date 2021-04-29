@@ -15,8 +15,7 @@
   ],
   "task": [
       {"name":"name",     "query":"What is the name of task?"},
-      {"name":"comment",  "query":"#tags comments :field:value:"},
-      {"name":"procedure","query":"Which procedure to use"}
+      {"name":"comment",  "query":"#tags comments :field:value:"}
   ],
 
   "measurement": [
