@@ -233,6 +233,7 @@ echo 'If this test is not successful, it is likely that you entered the wrong us
 echo "  and password. Open the file /home/$THEUSER/.pasta.json with an editor and correct"
 echo '  the entries after "user" and "password". "-userID" does not matter. Entries under'
 echo '  "remote" do not matter, either.'
+sudo PYTHONPATH=/home/$THEUSER/$pasta_src/main:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 pastaDB.py extractorScan
 echo
 echo "Run a short test for 20-40sec?"
 sudo PYTHONPATH=/home/$THEUSER/$pasta_src/main:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 Tests/testTutorial.py

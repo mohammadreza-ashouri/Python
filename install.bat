@@ -247,6 +247,7 @@ echo If this test is not successful, it is likely that you entered the wrong use
 echo.  and password. Open the file %HOMEDRIVE%%HOMEPATH%\.pasta.json in an editor and
 echo.  correct the entries after "user" and "password". "-userID" does not matter.
 echo.  Entries under "remote" do not matter.
+python pastaDB.py extractorScan
 echo.
 echo Run a short (20-80sec) test of the python backend
 python Tests\testTutorial.py
