@@ -87,9 +87,14 @@ else:
       print('database server:',be.db.db.client.server_url)
       print('configName:',be.configName)
       print('database name:',be.db.db.database_name)
-      if be.db.getDoc('-ontology-')['_id'] == '-ontology-':
+      designDocuments = be.db.db.design_documents()
+      print('Design documents')
+      for item in designDocuments:
+        print('  ',item['id'], '   Num. of views:', len( item['doc']['views']) )
+      try:
+        doc = be.db.getDoc('-ontology-')
         print('Ontology exists on server')
-      else:
+      except:
         print('Ontology does NOT exist on server')
       print('local directory:',be.basePath)
       print('software directory:',be.softwarePath)
@@ -165,7 +170,6 @@ else:
       be.addData(docType,doc)
 
     else:
-
       ## Commands that require open database and open project
       if args.docID!='':
         be.changeHierarchy(args.docID)

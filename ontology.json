@@ -7,21 +7,21 @@
       {"name":"status",   "query":"What is the project status", "list":["active","paused","passive","finished"]},
       {"name":"objective","query":"What is the objective?"},
       {"name":"tags"},
-      {"name":"comment",  "query":"#tags comments :field:value:"}
+      {"name":"comment",  "query":"#tags comments remarks :field:value:"}
   ],
   "step": [
       {"name":"name",     "query":"What is the name of step?"},
-      {"name":"comment",  "query":"#tags comments :field:value:"}
+      {"name":"comment",  "query":"#tags comments remarks :field:value:"}
   ],
   "task": [
       {"name":"name",     "query":"What is the name of task?"},
-      {"name":"comment",  "query":"#tags comments :field:value:"}
+      {"name":"comment",  "query":"#tags comments remarks :field:value:"}
   ],
 
   "measurement": [
     {"name":"name",       "query":"What is the file name?"},
     {"name":"tags"},
-    {"name":"comment",    "query":"#tags comments :field:value:"},
+    {"name":"comment",    "query":"#tags comments remarks :field:value:"},
     {"name":"type"},
     {"name":"image"},
     {"name":"curated"},
@@ -29,10 +29,10 @@
     {"name":"procedure",  "query":"Which procedure was used?",  "list":"procedure"}
   ],
   "sample": [
-    {"name":"name",       "query":"What is the name of the sample?"},
+    {"name":"name",       "query":"What is the name / identifier of the sample?"},
     {"name":"chemistry",  "query":"What is its chemical composition?"},
     {"name":"tags"},
-    {"name":"comment",    "query":"#tags comments :field:value:"},
+    {"name":"comment",    "query":"#tags comments remarks :field:value:"},
     {"name":"qrCode"}
   ],
   "procedure": [

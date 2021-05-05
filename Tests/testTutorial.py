@@ -85,6 +85,7 @@ class TestStringMethods(unittest.TestCase):
       print('*** USE GLOBAL FILES ***')
       self.be.changeHierarchy(semStepID)
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Misc_pollen.jpg'})
+      print(self.be.output('measurement'))
       self.assertTrue(os.path.exists(semDirName+'Misc_pollen_pasta.jpg'),'Wikipedia PASTA not created')
 
       ### VERIFY DATABASE INTEGRITY
