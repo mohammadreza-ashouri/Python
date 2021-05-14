@@ -123,10 +123,10 @@ class TestStringMethods(unittest.TestCase):
       for item in viewMeasurements:
         fileName = item['value'][0]
         if fileName == 'Zeiss.tif':
-          hierStack = [ item['id'] ]
           doc = self.be.getDoc(item['id'])
-          newType = doc['type']+['maximum Contrast']
-          fullPath= doc['branch'][0]['path'] #here choose first branch, but other are possible
+          newType   = doc['type'][:-2]+['no_scale', 'adaptive']
+          hierStack = doc['branch'][0]['stack']
+          fullPath  = doc['branch'][0]['path'] #here choose first branch, but other are possible
           self.be.addData('-edit-', {'type':newType, 'name':fullPath}, hierStack=hierStack, forceNewImage=True)
       print(" ====== STATE 8 ====\n"+self.be.checkDB(verbose=False))
 

@@ -1080,8 +1080,8 @@ class Pasta:
         doc['childNum'] = children[-1]
       # write change to database
       ## FOR DEBUGGING:
-      print(doc['name'].strip()+'||'+doc['_id']+' #:',doc['childNum'])
-      print('  children:',children,'   levelNew, levelOld',levelNew,levelOld,'   cwd:',self.cwd)
+      #print(doc['name'].strip()+'||'+doc['_id']+' #:',doc['childNum'])
+      #print('  children:',children,'   levelNew, levelOld',levelNew,levelOld,'   cwd:',self.cwd)
       if edit=='-edit-':
         docDB = dict(docDB)
         docDB.update(doc)
