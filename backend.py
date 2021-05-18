@@ -292,7 +292,8 @@ class Pasta:
           # _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
           # datalad api version: produces undesired output
           try:
-            datalad.create(path,description=doc['objective']) #TODO SB-Windows10  cfg_proc='text2git'
+            description = doc['objective'] if 'objective' in doc else '_'
+            datalad.create(path,description=description) #TODO SB-Windows10  cfg_proc='text2git'
           except:
             print('**ERROR** Tried to create new datalad folder which did already exist')
             raise
