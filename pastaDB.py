@@ -14,25 +14,37 @@ pastaDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
 
 Possible commands are:
     help: help information
+      example: pastaDB.py help
     test: test PASTA setup
+      example: pastaDB.py test -d instruments
     updatePASTA: git pull in source
+      example: pastaDB updatePASTA
     verifyDB: test PASTA database
+      example: pastaDB.py verifyDB
     saveBackup,loadBackup: save to file.zip / load from file.zip
+      pastaDB.py saveBackup -d instruments
     sync: synchronize / replicate with remote server
     print: print overview
-        label: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
+      label: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
+      example: pastaDB.py print -d instruments -l instrument
     scanHierarchy, hierarchy: scan / print project
-        item: documentID for. To be identified by printing Project
+      item: documentID for. To be identified by printing Project
     saveHierarchy: save hierarchy to database
     addDoc:
       content is required as json-string
+      example: pastaDB.py createDoc --content "{'name':'Instruments','status':'passive','objective':'List of all instruments in IEK2','comment':'result of task force July 2020','docType':'project'}"
     newDB: add/update database configuration. item is e.g.
-        '{"test":{"user":"Peter","password":"Parker",...}}'
+      '{"test":{"user":"Peter","password":"Parker",...}}'
     extractorTest: test the extractor of this file
-        -p should be specified is the path to file from base folder
-    extractorScan: get list of all extractors
+      -p should be specified is the path to file from base folder
+    extractorScan: get list of all extractors and save into .pastaDB.json
+      example: pastaDB.py extractorScan
+    importXLS: import first sheet of excel file into database
+      before: ensure database configuration and project exist
+      example: pastaDB.py importXLS -d instruments -i x-a803c556bb3b367b1e78901109bd5bf5 -c "~/path/to.xls" -l instrument
+      afterwards: adopt ontology (views are automatically generated)
 ''')
-argparser.add_argument('command', help='help, test, updatePASTA, verifyDB, saveBackup, loadBackup, print, scanHierarchy, saveHierarchy, addDoc, hierarchy, newDB, extractorTest, extractorScan')
+argparser.add_argument('command', help='see above...')
 argparser.add_argument('-i','--docID',   help='docID of project', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
 argparser.add_argument('-l','--label',   help='label used for printing', default='project')
@@ -80,7 +92,7 @@ else:
     initViews, initConfig = False, True
     if args.command=='test':
       initViews, initConfig = True, False
-    be = Pasta(args.database, initViews=initViews, initConfig=initConfig)
+    be = Pasta(configName=args.database, initViews=initViews, initConfig=initConfig)
 
     # depending on commands
     if args.command=='test':
@@ -168,6 +180,16 @@ else:
       if len(args.docID)>1:
         be.changeHierarchy(args.docID)
       be.addData(docType,doc)
+
+    elif args.command=='importXLS':
+      import pandas as pd
+      from commonTools import commonTools as cT  #not globally imported since confuses translation
+      be.changeHierarchy(args.docID)
+      data = pd.read_excel(args.content, sheet_name=0).fillna('')
+      for idx, row in data.iterrows():
+        doc = dict((cT.camelCase(k)[0].lower()+cT.camelCase(k)[1:], v) for k, v in row.items())
+        be.addData(args.label, doc )
+      success=True
 
     else:
       ## Commands that require open database and open project
