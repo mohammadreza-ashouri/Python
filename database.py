@@ -55,13 +55,16 @@ class Database:
     jsDefault = "if ($docType$) {emit($key$, [$outputList$]);}"
     viewCode = {}
     for docType, _ in docTypesLabels:
+      if '/' in docType:
+        continue
       if docType=='project':
         jsString = jsDefault.replace('$docType$', "doc.type[1]=='"+docType+"'").replace('$key$','doc._id')
       else:     #only show first instance in list doc.branch[0]
         jsString = jsDefault.replace('$docType$', "doc.type[0]=='"+docType+"'").replace('$key$','doc.branch[0].stack[0]')
       outputList = []
       for item in self.ontology[docType]:
-        if 'name' not in item: continue
+        if 'name' not in item:
+          continue
         if item['name'] == 'image':
           outputList.append('(doc.image.length>3).toString()')
         elif item['name'] == 'tags':
@@ -425,12 +428,12 @@ class Database:
               outstring+= f'{bcolors.FAIL}**ERROR non-text in stack '+doc['_id']+f'{bcolors.ENDC}\n'
 
           if len(branch['stack'])==0 and doc['type']!=['text','project']: #if no inheritance
-            if doc['type'][0] == 'procedure' or  doc['type'][0] == 'sample':
-              if verbose:
-                outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure/sample '+doc['_id']+'|'+doc['name']+f'{bcolors.ENDC}\n'
-            else:
+            if doc['type'][0] == 'measurement' or  doc['type'][0] == 'text':
               if verbose:
                 outstring+= f'{bcolors.WARNING}**warning branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
+            else:
+              if verbose:
+                outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure/sample '+doc['_id']+'|'+doc['name']+f'{bcolors.ENDC}\n'
           if 'type' in doc and doc['type'][0]=='text':
             try:
               dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
@@ -439,14 +442,14 @@ class Database:
             except:
               pass  #handled next lines
           if branch['path'] is None:
-            if doc['type'][0] == 'procedure' or doc['type'][0] == 'sample':
-              if verbose:
-                outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'
-            elif doc['type'][0] == 'text':
+            if doc['type'][0] == 'text':
               outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
-            else:  #measurement and new docTypes
+            elif doc['type'][0] == 'measurement':
               if verbose:
                 outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+f'{bcolors.ENDC}\n'
+            else:
+              if verbose:
+                outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'
           else:                                                            #if sensible path
             if len(branch['stack'])+1 != len(branch['path'].split(os.sep)):#check if length of path and stack coincide
               if verbose:
