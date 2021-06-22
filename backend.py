@@ -430,8 +430,10 @@ class Pasta:
         shasumDict[shasum] = ['', fileName] #new content is same place. No moving necessary, just "new file"
 
     # loop all entries and separate into moved,new,deleted
+    print("Number of changed files:",len(shasumDict))
     for shasum in shasumDict:
       origin, target = shasumDict[shasum]
+      print("  File changed:",origin,target)
       # originDir, _ = os.path.split(self.cwd+origin)
       targetDir, _ = os.path.split(self.cwd+target)
       # find hierStack and parentID of new TARGET location: for new and move
