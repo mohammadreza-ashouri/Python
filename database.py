@@ -7,7 +7,7 @@ class Database:
   Class for interaction with couchDB
   """
 
-  def __init__(self, user, password, databaseName, confirm, softwarePath='', initViews=False):
+  def __init__(self, user, password, databaseName, confirm, softwarePath=''):
     """
     Args:
         user (string): user name to local database
@@ -15,7 +15,6 @@ class Database:
         databaseName (string): local database name
         confirm (function): confirm changes to database and file-tree
         softwarePath (string): path to software and default dataDictionary.json
-        initViews (bool): initialize views at startup
     """
     import json
     from cloudant.client import CouchDB
@@ -55,12 +54,10 @@ class Database:
     jsDefault = "if ($docType$) {emit($key$, [$outputList$]);}"
     viewCode = {}
     for docType, _ in docTypesLabels:
-      if '/' in docType:
-        continue
       if docType=='project':
         jsString = jsDefault.replace('$docType$', "doc.type[1]=='"+docType+"'").replace('$key$','doc._id')
       else:     #only show first instance in list doc.branch[0]
-        jsString = jsDefault.replace('$docType$', "doc.type[0]=='"+docType+"'").replace('$key$','doc.branch[0].stack[0]')
+        jsString = jsDefault.replace('$docType$', "doc.type.join('/').slice(0,"+str(len(docType))+")=='"+docType+"'").replace('$key$','doc.branch[0].stack[0]')
       outputList = []
       for item in self.ontology[docType]:
         if 'name' not in item:
@@ -78,7 +75,7 @@ class Database:
       outputList = ','.join(outputList)
       jsString = jsString.replace('$outputList$', outputList)
       logging.info('database:init view '+docType+' not defined. Use default one:'+jsString)
-      viewCode[docType]=jsString
+      viewCode[docType.replace('/','__')]=jsString
     self.saveView('viewDocType', viewCode)
     # general views: Hierarchy, Identify
     jsHierarchy  = '''
