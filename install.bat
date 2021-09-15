@@ -190,6 +190,7 @@ echo Please note: user name and password are scrambled at first usage, aka they 
 set /p CDB_USER="Which user-name did you use? [admin] "
 set /p CDB_PASSW="Which password did you enter? "
 if not defined CDB_USER (set CDB_USER=admin)
+cls
 
 
 REM Clone source from repository
@@ -201,7 +202,7 @@ git clone https://jugit.fz-juelich.de/pasta/gui.git
 
 echo Install python libraries for backend
 cd %softwareDir%\main
-pip.exe install --disable-pip-version-check -r requirements.txt  >nul
+pip.exe install -r requirements.txt  >nul
 echo.
 
 echo Create basic .pasta.json configuration
