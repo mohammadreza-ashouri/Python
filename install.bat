@@ -85,8 +85,8 @@ echo.   - restart install.bat
 pause
 
 echo Install basic python packages
-pip.exe install --disable-pip-version-check win-unicode-console pywin32 pywin32-ctypes >nul
-pip.exe install --disable-pip-version-check matplotlib pandas wget spyder opencv-python >nul
+pip.exe install win-unicode-console pywin32 pywin32-ctypes >nul
+pip.exe install matplotlib pandas wget spyder opencv-python >nul
 echo.
 
 echo Test if python is fully working: plot a sine-curve
