@@ -6,6 +6,7 @@ are required by frontend. Otherwise, make only temporary changes
 """
 import os, json, sys, subprocess
 import argparse, traceback
+import urllib.request
 from backend import Pasta
 from miscTools import upOut, getExtractorConfig
 
@@ -92,6 +93,16 @@ else:
     initViews, initConfig = False, True
     if args.command=='test':
       initViews, initConfig = True, False
+      # local and remote server test
+      urls = ['http://127.0.0.1:5984', config[config['-defaultRemote']]['url'] ]
+      for url in urls:
+        contents = urllib.request.urlopen(url).read()
+        if json.loads(contents)['couchdb'] == 'Welcome':
+          print('CouchDB server',url,'is working: username and password test upcoming')
+        else:
+          print('CouchDB server',url,'is NOT working')
+          if url=='http://127.0.0.1:5984':
+            raise NameError('Wrong local server.')
     be = Pasta(configName=args.database, initViews=initViews, initConfig=initConfig)
 
     # depending on commands
