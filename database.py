@@ -24,8 +24,7 @@ class Database:
     except:
       logging.error('database:init Something unexpected has happend\n'+traceback.format_exc())
       print('database:init Something unexpected has happend\n'+traceback.format_exc())
-      import sys
-      sys.exit()
+      raise
     self.databaseName = databaseName
     if self.databaseName in self.client.all_dbs():
       self.db = self.client[self.databaseName]

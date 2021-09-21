@@ -237,5 +237,5 @@ else:
     else:
       print('**ERROR**')
   except:
-    print(traceback.format_exc())
+    print("Exception thrown during pastaDB.py")
     sys.exit(1)
