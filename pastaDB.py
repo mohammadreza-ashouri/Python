@@ -96,10 +96,11 @@ else:
       # local and remote server test
       urls = ['http://127.0.0.1:5984', config[config['-defaultRemote']]['url'] ]
       for url in urls:
-        contents = urllib.request.urlopen(url).read()
-        if json.loads(contents)['couchdb'] == 'Welcome':
-          print('CouchDB server',url,'is working: username and password test upcoming')
-        else:
+        try:
+          contents = urllib.request.urlopen(url).read()
+          if json.loads(contents)['couchdb'] == 'Welcome':
+            print('CouchDB server',url,'is working: username and password test upcoming')
+        except:
           print('CouchDB server',url,'is NOT working')
           if url=='http://127.0.0.1:5984':
             raise NameError('Wrong local server.')

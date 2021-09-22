@@ -75,8 +75,11 @@ if command -v git-annex &> /dev/null
 then
   echo "  git-annex installed."
 else
-  echo "  Info: git-annex will be installed."
-  sudo apt-get install -y git-annex >/dev/null
+  echo "  Info: git-annex will be installed from FZJ server."
+  wget -O- http://neuro.debian.net/lists/focal.de-fzj.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+  sudo apt-key adv --recv-keys --keyserver hkps://keyserver.ubuntu.com 0xA5D32F012649A5A9
+  sudo apt-get update >/dev/null
+  sudo apt-get install -y git-annex-standalone >/dev/null
 fi
 OUTPUT=$(sudo -u $THEUSER git config -l | grep "user")
 if [[ -n $OUTPUT ]]
@@ -127,10 +130,12 @@ else
     exit
   fi
   echo
-  sudo apt-get install -y gnupg ca-certificates                   >> installLog.txt
-  echo "deb https://apache.bintray.com/couchdb-deb focal main" | sudo tee /etc/apt/sources.list.d/couchdb.list  >> installLog.txt
-  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 8756C4F765C9AC3CB6B85D62379CE192D401AB61        >> installLog.txt
-  sudo apt update                                                 >> installLog.txt
+  sudo apt update && sudo apt install -y curl apt-transport-https gnupg
+  curl https://couchdb.apache.org/repo/keys.asc | gpg --dearmor | sudo tee /usr/share/keyrings/couchdb-archive-keyring.gpg >/dev/null 2>&1
+  source /etc/os-release
+  echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main" \
+      | sudo tee /etc/apt/sources.list.d/couchdb.list >/dev/null
+  sudo apt update
   sudo apt install -y couchdb
 fi
 CDB_USER="admin"
