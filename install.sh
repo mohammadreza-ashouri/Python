@@ -192,6 +192,7 @@ echo
 
 echo "Create PASTA configuration file .pasta.json in home directory"
 sudo -u $THEUSER echo "{" > /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"-softwareDir\": \"/home/${THEUSER}/${pasta_src}/main\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  \"-userID\": \"${pasta_user}\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  \"-defaultLocal\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  \"-defaultRemote\": \"remote\"," >> /home/$THEUSER/.pasta.json

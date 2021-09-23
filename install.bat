@@ -209,6 +209,7 @@ echo Create basic .pasta.json configuration
 cd %HOMEDRIVE%%HOMEPATH%
 set softwareDirString=%softwareDir:\=\\%
 echo { > .pasta.json
+echo   "-softwareDir": "%softwareDir%\main",>> .pasta.json
 echo   "-userID": "%pasta_user%",>> .pasta.json
 echo   "-defaultLocal": "pasta_tutorial",>> .pasta.json
 echo   "-defaultRemote": "remote",>> .pasta.json
