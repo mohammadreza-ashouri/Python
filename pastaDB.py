@@ -85,10 +85,10 @@ elif args.command=='extractorScan':
 else:
   try:
     # open database
+    with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
+      config = json.load(f)
     if args.database=='':
-      with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
-        config = json.load(f)
-        args.database = config['-defaultLocal']
+      args.database = config['-defaultLocal']
     success = True
     initViews, initConfig = False, True
     if args.command=='test':
@@ -103,7 +103,7 @@ else:
         except:
           print('CouchDB server',url,'is NOT working')
           if url=='http://127.0.0.1:5984':
-            raise NameError('Wrong local server.')
+            raise NameError('Wrong local server.') from None
     be = Pasta(configName=args.database, initViews=initViews, initConfig=initConfig)
 
     # depending on commands
