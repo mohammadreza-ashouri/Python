@@ -46,7 +46,7 @@ Possible commands are:
       afterwards: adopt ontology (views are automatically generated)
 ''')
 argparser.add_argument('command', help='see above...')
-argparser.add_argument('-i','--docID',   help='docID of project', default='')
+argparser.add_argument('-i','--docID',   help='docID of project; always a long alpha-numeric code', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
 argparser.add_argument('-l','--label',   help='label used for printing', default='project')
 argparser.add_argument('-p','--path',    help='path for extractor test', default='')
@@ -87,6 +87,9 @@ else:
     # open database
     with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
       config = json.load(f)
+    if '-softwareDir' not in config:  # TODO Temporary to ensure config is complete
+      print("NOT IN softwareDir")
+      print(os.path.dirname(os.path.abspath(__file__)))
     if args.database=='':
       args.database = config['-defaultLocal']
     success = True
