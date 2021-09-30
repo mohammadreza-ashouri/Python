@@ -357,6 +357,37 @@ class Database:
     return False  #should not reach here
 
 
+  def historyDB(self):
+    """
+    Collect last modification days of documents
+    """
+    from datetime import datetime
+    import numpy as np
+    collection = {}
+    for doc in self.db:
+      if doc['_id'][1]=='-' and len(doc['_id'])==34:
+        if 'type' in doc and 'date' in doc:
+          docType = doc['type'][0]
+          date = doc['date'][:-1]
+          if len(date)==22:
+            date += '0'
+          date    = datetime.fromisoformat( date ).timestamp()
+          if docType in collection:
+            collection[docType] = collection[docType] + [date]
+          else:
+            collection[docType] = [date]
+    firstSubmit = datetime.now().timestamp()
+    for key in collection:
+      if np.min(collection[key]) < firstSubmit:
+        firstSubmit = np.min(collection[key])
+    bins = np.linspace(firstSubmit, datetime.now().timestamp(), 100 )
+    for key in collection:
+      hist, _ = np.histogram(collection[key], bins)
+      collection[key] = hist
+    collection['-bins-'] = (bins[:-1]+bins[1:])/2
+    return collection
+
+
   def checkDB(self, verbose=True, **kwargs):
     """
     Check database for consistencies by iterating through all documents

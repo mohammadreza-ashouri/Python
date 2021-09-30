@@ -22,8 +22,10 @@ Possible commands are:
       example: pastaDB updatePASTA
     verifyDB: test PASTA database
       example: pastaDB.py verifyDB
+    history: get history for docTypes
+      example: pastaDB.py history
     saveBackup,loadBackup: save to file.zip / load from file.zip
-      pastaDB.py saveBackup -d instruments
+      example: pastaDB.py saveBackup -d instruments
     sync: synchronize / replicate with remote server
     print: print overview
       label: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
@@ -144,6 +146,19 @@ else:
       print(output)
       if '**ERROR' in output:
         success = False
+
+    elif args.command=='history':
+      history = be.db.historyDB()
+      print(history)
+      """
+      import matplotlib.pyplot as plt
+      for key in history:
+        if key=='-bins-':
+          continue
+        plt.plot(history['-bins-'], history[key], label=key)
+      plt.legend(loc=0)
+      plt.show()
+      """
 
     elif args.command=='syncLR':
       success = be.replicateDB()
