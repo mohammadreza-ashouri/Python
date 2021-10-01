@@ -263,8 +263,8 @@ class Pasta:
         elif doc['type'][0]=='procedure' and path is not None:
           with open(self.basePath+path,'r') as fIn:
             text = fIn.read()
-            if path.endswith('.org'):
-              text = pypandoc.convert_text(text, 'md', format='org')
+            # if path.endswith('.org'):
+            #   text = pypandoc.convert_text(text, 'md', format='org')
             doc['content'] = text
     # assemble branch information
     if childNum is None: childNum=9999

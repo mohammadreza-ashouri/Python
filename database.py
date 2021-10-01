@@ -376,15 +376,25 @@ class Database:
             collection[docType] = collection[docType] + [date]
           else:
             collection[docType] = [date]
+    #determine bins for histogram
     firstSubmit = datetime.now().timestamp()
     for key in collection:
       if np.min(collection[key]) < firstSubmit:
         firstSubmit = np.min(collection[key])
     bins = np.linspace(firstSubmit, datetime.now().timestamp(), 100 )
+    #calculate histgram and save it
     for key in collection:
       hist, _ = np.histogram(collection[key], bins)
       collection[key] = hist
     collection['-bins-'] = (bins[:-1]+bins[1:])/2
+    #calculate score
+    bias = np.exp(( collection['-bins-']-collection['-bins-'][-1] ) / 1.e7)
+    score = {}
+    for key in collection:
+      score[key] = np.sum(collection[key]*bias)
+    #reformat dates into string
+    collection['-bins-'] = [datetime.fromtimestamp(i).isoformat() for i in collection['-bins-']]
+    collection['-score-']= score
     return collection
 
 

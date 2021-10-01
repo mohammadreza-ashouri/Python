@@ -148,17 +148,7 @@ else:
         success = False
 
     elif args.command=='history':
-      history = be.db.historyDB()
-      print(history)
-      """
-      import matplotlib.pyplot as plt
-      for key in history:
-        if key=='-bins-':
-          continue
-        plt.plot(history['-bins-'], history[key], label=key)
-      plt.legend(loc=0)
-      plt.show()
-      """
+      print(be.db.historyDB())
 
     elif args.command=='syncLR':
       success = be.replicateDB()
@@ -207,7 +197,7 @@ else:
       doc = json.loads(content)
       docType = doc['docType']
       del doc['docType']
-      if len(args.docID)>1:
+      if len(args.docID)>1 and args.docID!='none':
         be.changeHierarchy(args.docID)
       be.addData(docType,doc)
 
