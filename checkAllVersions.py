@@ -39,6 +39,7 @@ def testPython():
     print('  success: Git tree clean')
   else:
     print('  Warning : Submit to git')
+    os.chdir('..')
     return
   # Git, expect clean git before testing
   ### TESTS
@@ -66,6 +67,7 @@ def testPython():
   if docID is None:
     print('**ERROR** "Intermetals it int" not found as project')
     print(result.stdout.decode('utf-8'))
+    os.chdir('..')
     return
   #### get current string
   cmd = ['pastaDB.py']+'hierarchy -d pasta_tutorial -i'.split(' ')+[docID]
@@ -191,13 +193,16 @@ def testDOM():
     print('  success: eslint-success')
   else:
     print('  FAILED : eslint not 100%. run "npx eslint [file]"')
+    os.chdir('..')
+    return  #skip other tests since they fail if linting fails.
   ### git test
   result = subprocess.check_output(['git','status'], stderr=subprocess.STDOUT)
   if len([1 for i in result.decode('utf-8').split('\n') if i.startswith('\tmodified:')])==0:
     print('  success: Git tree clean')
   else:
     print('  Warning : Submit to git')
-    return  #skip other tests since they fail if linting fails.
+    os.chdir('..')
+    return
   # Git, expect clean git before testing
 
   ### cypress, after linting
