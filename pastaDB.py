@@ -248,4 +248,3 @@ else:
   except:
     print("Exception thrown during pastaDB.py")
     raise
-    sys.exit(1)
