@@ -1018,10 +1018,9 @@ class Pasta:
       if doc['_id'] in deletedDocs:  #skip if doc was deleted
         continue
       # identify docType
-      if doc['_id']!='':
-        docDB = self.db.getDoc(doc['_id'])
-      levelNew     = doc['type']
-      if '_id' not in doc or docDB['type'][0]=='text':
+      docDB    = self.db.getDoc(doc['_id']) if doc['_id']!='' else None
+      levelNew = doc['type']
+      if '_id' not in doc or docDB is None or docDB['type'][0]=='text':
         doc['type'] = ['text',self.hierList[levelNew]]
       else:
         doc['type'] = docDB['type']
@@ -1043,8 +1042,8 @@ class Pasta:
         elif levelNew>levelOld:                             #CHILD
           children.append(0)
         else:                                               #SIBLING
-          if doc['type'][0]=='text':
-            self.changeHierarchy(None)                        #'cd ..', change into directory later, once it's name is known
+          if doc['type'][0]=='text' and prevTextFlag:
+            self.changeHierarchy(None)                      #'cd ..', change into directory later, once it's name is known
           children[-1] += 1
         if doc['type'][0]=='text':
           #check if directory exists on disk
@@ -1083,8 +1082,8 @@ class Pasta:
         doc['childNum'] = children[-1]
       # write change to database
       ## FOR DEBUGGING:
-      #print(doc['name'].strip()+'||'+doc['_id']+' #:',doc['childNum'])
-      #print('  children:',children,'   levelNew, levelOld',levelNew,levelOld,'   cwd:',self.cwd)
+      print(doc['name'].strip()+'|'+str(doc['type'])+'||'+doc['_id']+' #:',doc['childNum'])
+      print('  children:',children,'   levelNew, levelOld',levelNew,levelOld,'   cwd:',self.cwd,'\n')
       if edit=='-edit-':
         docDB = dict(docDB)
         docDB.update(doc)
@@ -1093,7 +1092,8 @@ class Pasta:
       #update variables for next iteration
       if edit!="-edit-" and levelOld is not None:
         self.changeHierarchy(self.currentID)   #'cd directory'
-      levelOld, prevTextFlag = levelNew, doc['type'][0]=='text' #prevTextFlag: was the previous entry a text
+      prevTextFlag = doc['type'][0]=='text' #prevTextFlag: was the previous entry a text
+      levelOld     = levelNew
     #at end, go down ('cd  ..') number of children-length
     for _ in range(len(children)-1):
       if prevTextFlag:
