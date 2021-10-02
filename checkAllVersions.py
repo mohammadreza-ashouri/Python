@@ -25,7 +25,7 @@ def testPython():
       success = False
   for fileName in os.listdir('extractors'):
     if not fileName.endswith('.py'): continue
-    result = subprocess.run(['pylint','extractors/'+fileName], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    result = subprocess.run(['pylint','extractors/'+fileName], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     if 'rated at 10.00/10' not in result.stdout.decode('utf-8'):
       print(fileName+'|'+result.stdout.decode('utf-8').strip())
       success = False
@@ -34,7 +34,7 @@ def testPython():
   else:
     print('  FAILED : pylint not 100%. run "pylint [file]"')
   ### git test
-  result = subprocess.run(['git','status'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+  result = subprocess.run(['git','status'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
   if len([1 for i in result.stdout.decode('utf-8').split('\n') if i.startswith('\tmodified:')])==0:
     print('  success: Git tree clean')
   else:
@@ -44,7 +44,7 @@ def testPython():
   ### TESTS
   for fileI in os.listdir('Tests'):
     if not fileI.startswith('test'): continue
-    result = subprocess.run(['python3','-m','unittest','Tests'+os.sep+fileI], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    result = subprocess.run(['python3','-m','unittest','Tests'+os.sep+fileI], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     success = result.stdout.decode('utf-8').count  ('*** DONE WITH VERIFY ***')
     if success==1:
       print("  success: Python unit test: "+fileI)
@@ -54,10 +54,10 @@ def testPython():
   #### section = re.findall(r'Ran \d+ tests in [\d\.]+s\\n\\n..',str(result.stdout.decode('utf-8')))
 
   cmd = 'python3 Tests/testTutorial.py'.split(' ')
-  result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+  result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
   ## test read and write structure
   cmd = 'pastaDB.py -d pasta_tutorial print'.split(' ')
-  result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+  result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
   #### determine docID
   docID = None
   for line in result.stdout.decode('utf-8').split('\n'):
@@ -69,14 +69,14 @@ def testPython():
     return
   #### get current string
   cmd = ['pastaDB.py']+'hierarchy -d pasta_tutorial -i'.split(' ')+[docID]
-  result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+  result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
   lastLine = result.stdout.decode('utf-8').split('\n')[-2].strip()
   if lastLine=='SUCCESS':
     text = result.stdout.decode('utf-8').split('\n')[:-2]
     #### set string to old one
     cmd  = ['pastaDB.py','saveHierarchy','-d','pasta_tutorial','-i',docID,'-c','"'+'\\n'.join(text)+'"']
     # print('Command is: \n',' '.join(cmd))
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     lastLine = result.stdout.decode('utf-8').split('\n')[-2].strip()
     if lastLine=='SUCCESS':
       print('  success pastaDB.py:  setEditString')
@@ -99,7 +99,7 @@ def testPython():
            'extractorTest -d pasta_tutorial -p IntermetalsAtInterfaces/002_SEMImages/Zeiss.tif -c measurement/tif/image/scale/adaptive']
   for test in tests:
     cmd = ['pastaDB.py']+test.split(' ')
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     lastLine = result.stdout.decode('utf-8').split('\n')[-2].strip()
     if lastLine=='SUCCESS':
       print('  success pastaDB.py: ',test)
@@ -183,7 +183,7 @@ def testDOM():
       if not name.endswith('.js'):
         continue
       path = os.path.join(root, name)
-      result = subprocess.run(['npx','eslint','--fix',path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+      result = subprocess.run(['npx','eslint','--fix',path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
       if result.stdout.decode('utf-8').strip()!='':
         print(path+'|'+result.stdout.decode('utf-8').strip())
         success = False
@@ -209,7 +209,7 @@ def testDOM():
     fOut.write(text)
   print('  -- Start cypress test: Be patient!')
   server = subprocess.Popen(['npm','start'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  result = subprocess.run(['npx','cypress','run','-q'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+  result = subprocess.run(['npx','cypress','run','-q'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
   result = result.stdout.decode('utf-8').split('\n')
   failures = [line for line in result if 'failures": [' in line]
   failures = ['[]' not in line for line in failures]
@@ -256,7 +256,7 @@ def testElectron():
   #       continue
   #     path = os.path.join(root, name)
   #     print("check file:",path)
-  #     result = subprocess.run(['npx','eslint','--fix',path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+  #     result = subprocess.run(['npx','eslint','--fix',path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
   #     if result.stdout.decode('utf-8').strip()!='':
   #       print(path+'|'+result.stdout.decode('utf-8').strip())
   #       success = False
