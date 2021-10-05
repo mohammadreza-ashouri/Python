@@ -181,23 +181,23 @@ while be.alive:
         expand = ['']
       else:
         if nextMenu == 'main':
-          expand = [' '+j for i, j in be.dataLabels]
+          expand = [' '+i for i, j in be.dataLabels]
         else:  # output
-          expand = [' '+j for i, j in be.dataLabels+be.hierarchyLabels]
+          expand = [' '+i for i, j in be.dataLabels+be.hierarchyLabels]
       #create list of choices
       for itemI in expand:
         questions[0]['choices'].append({'name': key+itemI, 'value': value+itemI[1:]})
     if nextMenu != 'main':
       questions[0]['choices'].append({'name':'>Go back to main<', 'value':'menu_main'})
-  elif nextMenu.startswith('change') or nextMenu in [i for j,i in be.dataLabels]:
+  elif nextMenu.startswith('change') or nextMenu in [i for i,j in be.dataLabels]:
     #change menu OR add/edit samples,procedures,measurements
-    addEditDoc = nextMenu in [i for j,i in be.dataLabels]
+    addEditDoc = nextMenu in [i for i,j in be.dataLabels]
     questions = [{'type': 'list', 'name': 'choice', 'message': nextMenu, 'choices':[]}]
     if len(be.hierStack) == 0 or addEditDoc: # no project in stack or sample/procedures/measurements: use VIEW
       if addEditDoc:
-        view    = be.db.getView('viewDocType/view'+nextMenu)
+        view    = be.db.getView('viewDocType/'+nextMenu)
       else:
-        view    = be.db.getView('viewDocType/viewProjects')
+        view    = be.db.getView('viewDocType/project')
       values = [i['id'] for i in view]
       names  = [i['value'][0] for i in view]
     else:                      # step/task: get its children
@@ -216,7 +216,7 @@ while be.alive:
   else:  #form
     #ask for measurements, samples, procedures, projects, ...
     #create form (=sequence of questions for string input) is dynamically created from dataDictonary
-    docType = nextMenu.split('_')[1]
+    docType = nextMenu#.split('_')[1]
     if docType not in be.db.ontology:
       #got docLable not docType
       docType = [i[0] for i in be.dataLabels if i[1]==docType][0]

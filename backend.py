@@ -832,6 +832,8 @@ class Pasta:
     if docType in self.tableFormat:
       widthArray = self.tableFormat[docType]['-default-']
     for idx,item in enumerate(self.db.ontology[docType]):
+      if not 'name' in item:    #heading
+        continue
       if idx<len(widthArray):
         width = widthArray[idx]
       else:

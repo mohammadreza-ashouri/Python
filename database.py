@@ -272,12 +272,16 @@ class Database:
     thePath = thePath.split('/')
     designDoc = self.db.get_design_document(thePath[0])
     v = View(designDoc, thePath[1])
-    if startKey is not None:
-      res = v(startkey=startKey, endkey=startKey+'zzz')['rows']
-    elif preciseKey is not None:
-      res = v(key=preciseKey)['rows']
-    else:
-      res = list(v.result)
+    try:
+      if startKey is not None:
+        res = v(startkey=startKey, endkey=startKey+'zzz')['rows']
+      elif preciseKey is not None:
+        res = v(key=preciseKey)['rows']
+      else:
+        res = list(v.result)
+    except:
+      print('Database / Network problem')
+      res = []
     return res
 
 

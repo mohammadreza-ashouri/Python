@@ -13,7 +13,7 @@
    {"Exit program":        "function_exit"}
 ],
 "output": [ "What to display?",
-   {"Output":              "function_output_",          "expand":"docLabel"},
+   {"Output":              "function_output_",          "expand":"docType"},
    {"---":                 ""},
    {"Output hierarchy":    "function_outputHierarchy"},
    {"Output all tags":     "function_outputTags"},
