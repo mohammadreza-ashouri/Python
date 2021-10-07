@@ -188,8 +188,12 @@ else:
       doc = dict(be.getDoc(args.docID))
       doc['type'] = args.content.split('/')
       be.getMeasurement(doc['branch'][0]['path'], doc['shasum'], doc, extractorRedo=True)  #any path is good since the file is the same everywhere; doc-changed by reference
-      be.db.updateDoc({'image':doc['image'], 'type':doc['type']},args.docID)
-      success=True
+      if len(doc['type'])>1 and len(doc['image'])>1:
+        be.db.updateDoc({'image':doc['image'], 'type':doc['type']},args.docID)
+        success=True
+      else:
+        print('**ERROR** in redo - extraction')
+        success=False
 
     elif args.command=='createDoc':
       content = args.content.replace("\n","\\n")

@@ -10,7 +10,7 @@ def getMeasurement(fileName, doc):
      doc (dict): supplied to guide image creation doc['type']
 
   Returns:
-    list: image, [('png'|'jpg'|'svg'), type, metaVendor, metaCustom]
+    list: image, [('png'|'jpg'|'svg'), type, metaVendor, metaUser]
   """
   #if Hysitron/Fischer-Scope file
   try:
