@@ -303,6 +303,57 @@ def createQRcodeSheet(fileName="../qrCodes.pdf"):
   return
 
 
+def printQRcodeSticker(codes={},
+                       sticker={'size':[991,306],
+                                'number':3,
+                                'labelThickness':40}):
+  """
+  Documentation QR-codes
+  - img = qrcode.make("testString",error_correction=qrcode.constants.ERROR_CORRECT_M)
+  - or ERROR-CORRECT_H for better errorcorrection
+
+  Sticker:
+   - size 90.3x29 mm => [991,306] px
+   - number: number of items on the sticker
+   - labelThickness in px
+  """
+  import qrcode, tempfile, os
+  import numpy as np
+  from PIL import Image, ImageDraw, ImageFont
+  from commonTools import commonTools as cT  # don't import globally since it disturbs translation
+  size           = sticker['size']
+  numLength      = sticker['number']
+  labelThickness = sticker['labelThickness']
+  fnt = ImageFont.truetype("arial.ttf", labelThickness)
+  offset    = int(size[0]/numLength)
+  qrCodeSize= min(offset-labelThickness, size[1])
+  print("Effective label size",size, "offset",offset, 'qrCodeSize',qrCodeSize)
+  cropQRCode  = 40         #created by qrcode library
+  numCodes = 0
+  image = Image.new('RGBA', size, color=(255,255,255,255) )
+  for codeI in codes:
+    print('>',numCodes, codeI, codes[codeI])
+    # add text
+    text = codes[codeI]
+    width, height = fnt.getsize(text)
+    txtImage = Image.new('L', (width, height), color=255)
+    d = ImageDraw.Draw(txtImage)
+    d.text( (0, 0), text,  font=fnt, fill=0)
+    txtImage=txtImage.rotate(90, expand=1)
+    if width>size[1]:  #shorten it to fit into height
+      txtImage=txtImage.crop((0,width-size[1],height,width))
+    image.paste(txtImage, (numCodes*offset+qrCodeSize-8, int((size[1]-txtImage.size[1])/2)   ))
+    # add qrcode
+    qrCode = qrcode.make(codeI, error_correction=qrcode.constants.ERROR_CORRECT_M)
+    qrCode = qrCode.crop((cropQRCode, cropQRCode, qrCode.size[0]-cropQRCode, qrCode.size[0]-cropQRCode))
+    qrCode = qrCode.resize((qrCodeSize, qrCodeSize))
+    image.paste(qrCode, (numCodes*offset, int((size[1]-qrCodeSize)/2)))
+    numCodes += 1
+  print('Create temp-file',tempfile.gettempdir()+os.sep+'tmpQRcode.png')
+  image.save(tempfile.gettempdir()+os.sep+'tmpQRcode.png')
+  return
+
+
 def translateJS2PY():
   """
   Translate js-code to python-code using js2py lib
