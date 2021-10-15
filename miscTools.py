@@ -304,53 +304,65 @@ def createQRcodeSheet(fileName="../qrCodes.pdf"):
 
 
 def printQRcodeSticker(codes={},
-                       sticker={'size':[991,306],
-                                'number':3,
-                                'labelThickness':40}):
+                       page={'size':[991,306], 'tiles':2, 'margin': 60, 'font':40},
+                       printer={'model':'QL-700', 'dev':'0x04f9:0x2042/3', 'size':'29x90'}):
   """
-  Documentation QR-codes
-  - img = qrcode.make("testString",error_correction=qrcode.constants.ERROR_CORRECT_M)
-  - or ERROR-CORRECT_H for better errorcorrection
+  Codes: key-value pairs of qr-code and label
+   - filled to achieve tiles
 
   Sticker:
-   - size 90.3x29 mm => [991,306] px
-   - number: number of items on the sticker
-   - labelThickness in px
+   - size: 90.3x29 mm => [991,306] px
+   - tiles: number of items on the sticker
+   - margin: margin between tiles
+   - font: font size in px
+
+  Printer:
+   - model: brother label printer QL-700
+   - dev: device in idVendor:idProduct/iSerial
+     execute 'lsusb -v'; find printer
+   - size: label size in mm
   """
   import qrcode, tempfile, os
   import numpy as np
   from PIL import Image, ImageDraw, ImageFont
   from commonTools import commonTools as cT  # don't import globally since it disturbs translation
-  size           = sticker['size']
-  numLength      = sticker['number']
-  labelThickness = sticker['labelThickness']
-  fnt = ImageFont.truetype("arial.ttf", labelThickness)
-  offset    = int(size[0]/numLength)
-  qrCodeSize= min(offset-labelThickness, size[1])
-  print("Effective label size",size, "offset",offset, 'qrCodeSize',qrCodeSize)
+  fnt = ImageFont.truetype("arial.ttf", page['font'])
+  offset    = int((page['size'][0]+page['margin'])/page['tiles'])
+  qrCodeSize= min(offset-page['font']-page['margin'], page['size'][1])
+  print("Effective label size",page['size'], "offset",offset, 'qrCodeSize',qrCodeSize)
   cropQRCode  = 40         #created by qrcode library
   numCodes = 0
-  image = Image.new('RGBA', size, color=(255,255,255,255) )
-  for codeI in codes:
-    print('>',numCodes, codeI, codes[codeI])
+  image = Image.new('RGBA', page['size'], color=(255,255,255,255) )
+  for idx in range(page['tiles']):
+    if idx<len(codes):
+      codeI, text = codes[idx]
+    else:
+      codeI, text =  '', ''
+    if len(codeI)==0:
+      codeI = cT.uuidv4()
     # add text
-    text = codes[codeI]
     width, height = fnt.getsize(text)
     txtImage = Image.new('L', (width, height), color=255)
     d = ImageDraw.Draw(txtImage)
     d.text( (0, 0), text,  font=fnt, fill=0)
     txtImage=txtImage.rotate(90, expand=1)
-    if width>size[1]:  #shorten it to fit into height
+    if width>page['size'][1]:  #shorten it to fit into height
       txtImage=txtImage.crop((0,width-size[1],height,width))
-    image.paste(txtImage, (numCodes*offset+qrCodeSize-8, int((size[1]-txtImage.size[1])/2)   ))
+    image.paste(txtImage, (numCodes*offset+qrCodeSize-4, int((page['size'][1]-txtImage.size[1])/2)   ))
     # add qrcode
     qrCode = qrcode.make(codeI, error_correction=qrcode.constants.ERROR_CORRECT_M)
     qrCode = qrCode.crop((cropQRCode, cropQRCode, qrCode.size[0]-cropQRCode, qrCode.size[0]-cropQRCode))
     qrCode = qrCode.resize((qrCodeSize, qrCodeSize))
-    image.paste(qrCode, (numCodes*offset, int((size[1]-qrCodeSize)/2)))
+    image.paste(qrCode, (numCodes*offset, int((page['size'][1]-qrCodeSize)/2)))
     numCodes += 1
-  print('Create temp-file',tempfile.gettempdir()+os.sep+'tmpQRcode.png')
-  image.save(tempfile.gettempdir()+os.sep+'tmpQRcode.png')
+  tmpFileName = tempfile.gettempdir()+os.sep+'tmpQRcode.png'
+  print('Create temp-file',tmpFileName)
+  image.save(tmpFileName)
+  cmd = 'brother_ql -b pyusb -m '+printer['model']+' -p usb://'+printer['dev']+' print -l '+printer['size']+' -r auto '+tmpFileName
+  reply = os.system(cmd)
+  if reply>0:
+    print('Printing error')
+    image.show()
   return
 
 

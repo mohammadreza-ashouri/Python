@@ -8,7 +8,7 @@ import os, json, sys, subprocess
 import argparse, traceback
 import urllib.request
 from backend import Pasta
-from miscTools import upOut, getExtractorConfig
+from miscTools import upOut, getExtractorConfig, printQRcodeSticker
 
 argparser = argparse.ArgumentParser(usage='''
 pastaDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
@@ -30,6 +30,10 @@ Possible commands are:
     print: print overview
       label: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
       example: pastaDB.py print -d instruments -l instrument
+    printQRCodes: print qr-codes
+      content: list of qrCodes and text
+      note: requires set -qrPrinter in pasta.json
+      example: pastaDB.py printQRCodes -c '[["my random name","Sample 1"], ["","Oven 450C"]]'
     scanHierarchy, hierarchy: scan / print project
       item: documentID for. To be identified by printing Project
     saveHierarchy: save hierarchy to database
@@ -158,6 +162,15 @@ else:
 
     elif args.command=='print':
       print(be.output(args.label,True))
+
+    elif args.command=='printQRCodes':
+      content = args.content.replace('\\n','\n')
+      if content[0]=='"' and content[-1]=='"':
+        content = content[1:-1]
+      content = json.loads(content)
+      printQRcodeSticker(content,
+        config['-qrPrinter']['page'],
+        config['-qrPrinter']['printer'])
 
     elif args.command=='saveBackup':   #save to backup file.zip
       be.backup('backup')
