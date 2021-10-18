@@ -6,6 +6,8 @@ verify?.org
 extractors/pasta_*.py
 ## use to untrack previously tracked files
 # git update-index --skip-worktree extractors/pasta_xls.py
+## temporarily allow tracking again
+# git update-index --no-skip-worktree extractors/pasta_txt.py
 NielsCode/
 __pycache__/
 .vscode/

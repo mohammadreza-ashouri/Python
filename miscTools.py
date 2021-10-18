@@ -347,7 +347,7 @@ def printQRcodeSticker(codes={},
     d.text( (0, 0), text,  font=fnt, fill=0)
     txtImage=txtImage.rotate(90, expand=1)
     if width>page['size'][1]:  #shorten it to fit into height
-      txtImage=txtImage.crop((0,width-size[1],height,width))
+      txtImage=txtImage.crop((0,width-page['size'][1],height,width))
     image.paste(txtImage, (numCodes*offset+qrCodeSize-4, int((page['size'][1]-txtImage.size[1])/2)   ))
     # add qrcode
     qrCode = qrcode.make(codeI, error_correction=qrcode.constants.ERROR_CORRECT_M)
