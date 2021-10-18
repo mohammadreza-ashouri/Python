@@ -25,12 +25,12 @@ def getMeasurement(fileName, doc):
         i.nextTest()
       ax.set_xlabel(r"depth [$\mathrm{\mu m}$]")
       ax.set_ylabel(r"force [$\mathrm{mN}$]")
-      return ax, ['svg', doc['type'],                 {}, i.meta]
+      return ax, ['svg', doc['type'],                 i.metaVendor, i.metaUser]
 
     else:                                               #default: plot first force-depth curve
       i.analyse()
       img = i.plot(False,False)
-      return img, ['svg', doc['type']+['indentation'], {}, i.meta]
+      return img, ['svg', doc['type']+['indentation'], i.metaVendor, i.metaUser]
   except:
     pass
 

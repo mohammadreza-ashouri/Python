@@ -29,12 +29,12 @@ def getMeasurement(fileName, doc):
       ax2.set_ylabel(r"depth [$\mathrm{\mu m}$]")
       ax1.set_ylim(bottom=0)
       ax2.set_ylim(bottom=0)
-      return ax1, ['svg', doc['type'],                  {}, i.meta]
+      return ax1, ['svg', doc['type'],                 i.metaVendor, i.metaUser]
 
     else:                                               #default: plot force-depth curve
       i.analyse()
       img = i.plot(False,False)
-      return img, ['svg', doc['type']+['indentation'], {}, i.meta]
+      return img, ['svg', doc['type']+['indentation'], i.metaVendor, i.metaUser]
   except:
     pass
 
