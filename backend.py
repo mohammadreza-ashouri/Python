@@ -1000,6 +1000,8 @@ class Pasta:
     path      = None
     deletedDocs= []
     for doc in docList:  #iterate through all entries
+
+      # deleted items
       if doc['edit'] == '-delete-':
         doc['user']   = self.userID
         doc = self.db.updateDoc(doc,doc['_id'])
@@ -1017,15 +1019,32 @@ class Pasta:
         print('Deleted doc: Path',oldPath,newPath)
         os.rename(self.basePath+oldPath,self.basePath+newPath)
         continue
-      if doc['_id'] in deletedDocs:  #skip if doc was deleted
+
+      # deleted parents
+      if doc['_id'] in deletedDocs:
         continue
-      # identify docType
+
+      # All non-deleted items: identify docType
       docDB    = self.db.getDoc(doc['_id']) if doc['_id']!='' else None
       levelNew = doc['type']
       if '_id' not in doc or docDB is None or docDB['type'][0]=='text':
         doc['type'] = ['text',self.hierList[levelNew]]
       else:
         doc['type'] = docDB['type']
+
+      # for all non-text types: change children and  childNum in database
+      #   and continue with next doc. This makes subsequent code easier
+      if doc['type'][0]!='text':
+        docDB = dict(docDB)
+        docDB.update(doc)
+        doc = docDB
+        children[-1] += 1
+        doc['childNum'] = children[-1]
+        del doc['edit']
+        self.addData(edit, doc, self.hierStack)
+        continue
+
+      # ONLY TEXT DOCUMENTS
       if doc['edit'] == "-edit-":
         edit = "-edit-"
       else:
@@ -1037,40 +1056,37 @@ class Pasta:
       else:                   #after first entry
         if levelNew<levelOld:                               #UNCLE, aka SIBLING OF PARENT
           children.pop()
-          if prevTextFlag:                                  #only do first cd if previous entry was text, not if it was an image,...
-            self.changeHierarchy(None)                      #'cd ..'
+          self.changeHierarchy(None)                      #'cd ..'
           self.changeHierarchy(None)                        #'cd ..', change into directory later, once it's name is known
           children[-1] += 1
         elif levelNew>levelOld:                             #CHILD
           children.append(0)
         else:                                               #SIBLING
-          if doc['type'][0]=='text' and prevTextFlag:
-            self.changeHierarchy(None)                      #'cd ..', change into directory later, once it's name is known
+          self.changeHierarchy(None)                      #'cd ..', change into directory later, once it's name is known
           children[-1] += 1
-        if doc['type'][0]=='text':
-          #check if directory exists on disk
-          #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
-          dirName = createDirName(doc['name'],doc['type'][0],children[-1])
-          if not os.path.exists(dirName):                     #if move, deletion or because new
-            if doc['_id']=='' or doc['_id']=='undefined':     #if new data
-              os.makedirs(dirName)
-              edit = doc['type'][-1]
-            else:                                             #if move
-              path = docDB['branch'][0]['path']
-              if not os.path.exists(self.basePath+path):      #parent was moved: get 'path' from knowledge of parent
-                parentID = docDB['branch'][0]['stack'][-1]
-                pathParent = self.db.getDoc(parentID)['branch'][0]['path']
-                path = pathParent+os.sep+path.split(os.sep)[-1]
-              if not os.path.exists(self.basePath+path):        #if still does not exist
-                print("**ERROR** doc path was not found and parent path was not found;Return")
-                print(doc)
-                return False
-              if self.confirm is None or self.confirm(None,"Move directory "+path+" -> "+self.cwd+dirName):
-                os.rename(self.basePath+path, self.basePath+self.cwd+dirName)
-                dlDataset.save(path=self.basePath+path, message='SetEditString move directory: origin')
-                dlDataset.save(path=self.basePath+self.cwd+dirName, message='SetEditString move directory: target')
-                logging.info("moved folder "+self.basePath+path+' -> '+self.basePath+self.cwd+dirName)
-        if edit=='-edit-' and doc['type'][0]=='text':
+        #check if directory exists on disk
+        #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
+        dirName = createDirName(doc['name'],doc['type'][0],children[-1])
+        if not os.path.exists(dirName):                     #if move, deletion or because new
+          if doc['_id']=='' or doc['_id']=='undefined':     #if new data
+            os.makedirs(dirName)
+            edit = doc['type'][-1]
+          else:                                             #if move
+            path = docDB['branch'][0]['path']
+            if not os.path.exists(self.basePath+path):      #parent was moved: get 'path' from knowledge of parent
+              parentID = docDB['branch'][0]['stack'][-1]
+              pathParent = self.db.getDoc(parentID)['branch'][0]['path']
+              path = pathParent+os.sep+path.split(os.sep)[-1]
+            if not os.path.exists(self.basePath+path):        #if still does not exist
+              print("**ERROR** doc path was not found and parent path was not found;Return")
+              print(doc)
+              return False
+            if self.confirm is None or self.confirm(None,"Move directory "+path+" -> "+self.cwd+dirName):
+              os.rename(self.basePath+path, self.basePath+self.cwd+dirName)
+              dlDataset.save(path=self.basePath+path, message='SetEditString move directory: origin')
+              dlDataset.save(path=self.basePath+self.cwd+dirName, message='SetEditString move directory: target')
+              logging.info("moved folder "+self.basePath+path+' -> '+self.basePath+self.cwd+dirName)
+        if edit=='-edit-':
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
           if path is not None:
             #adopt measurements, samples, etc: change / update path by supplying old path
@@ -1094,8 +1110,9 @@ class Pasta:
       #update variables for next iteration
       if edit!="-edit-" and levelOld is not None:
         self.changeHierarchy(self.currentID)   #'cd directory'
-      prevTextFlag = doc['type'][0]=='text' #prevTextFlag: was the previous entry a text
       levelOld     = levelNew
+
+    #----------------------------------------------------
     #at end, go down ('cd  ..') number of children-length
     for _ in range(len(children)-1):
       if prevTextFlag:
