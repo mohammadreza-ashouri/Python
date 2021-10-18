@@ -267,7 +267,8 @@ class Pasta:
             #   text = pypandoc.convert_text(text, 'md', format='org')
             doc['content'] = text
     # assemble branch information
-    if childNum is None: childNum=9999
+    if childNum is None:
+      childNum=9999
     doc['branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
     if edit:
       #update document

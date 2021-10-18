@@ -38,11 +38,12 @@ def testPython():
   if len([1 for i in result.stdout.decode('utf-8').split('\n') if i.startswith('\tmodified:')])==0:
     print('  success: Git tree clean')
   else:
-    print('  Warning : Submit to git')
+    print('  Safety Warning : Submit to git')
     os.chdir('..')
     return
   # Git, expect clean git before testing
   ### TESTS
+  successAll = True
   for fileI in os.listdir('Tests'):
     if not fileI.startswith('test'): continue
     result = subprocess.run(['python3','-m','unittest','Tests'+os.sep+fileI], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
@@ -50,6 +51,7 @@ def testPython():
     if success==1:
       print("  success: Python unit test: "+fileI)
     else:
+      successAll = False
       print("  FAILED: Python unit test: "+fileI)
       print("    run: 'python3 -m unittest Tests/"+fileI+"'")
   #### section = re.findall(r'Ran \d+ tests in [\d\.]+s\\n\\n..',str(result.stdout.decode('utf-8')))
@@ -65,6 +67,7 @@ def testPython():
     if 'Intermetals at int' in line:
       docID = line.split()[-1]
   if docID is None:
+    successAll = False
     print('**ERROR** "Intermetals it int" not found as project')
     print(result.stdout.decode('utf-8'))
     os.chdir('..')
@@ -83,9 +86,11 @@ def testPython():
     if lastLine=='SUCCESS':
       print('  success pastaDB.py:  setEditString')
     else:
+      successAll = False
       print('  FAILED pastaDB.py:  setEditString')
       print(result.stdout.decode('utf-8'))
   else:
+    successAll = False
     print('  FAILED pastaDB.py hierarchy: ')
     print(result.stdout.decode('utf-8'))
 
@@ -106,9 +111,12 @@ def testPython():
     if lastLine=='SUCCESS':
       print('  success pastaDB.py: ',test)
     else:
+      successAll = False
       print('  FAILED pastaDB.py: ',test)
       print(result.stdout.decode('utf-8'))
   os.chdir('..')
+  if successAll:
+    print("ALL SUCCESS: GIT PUSH ")
   return
 
 
