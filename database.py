@@ -53,10 +53,10 @@ class Database:
     jsDefault = "if ($docType$) {emit($key$, [$outputList$]);}"
     viewCode = {}
     for docType, _ in docTypesLabels:
-      if docType=='project':
-        jsString = jsDefault.replace('$docType$', "doc.type[1]=='"+docType+"'").replace('$key$','doc._id')
+      if docType=='x/project':
+        jsString = jsDefault.replace('$docType$', "doc['-type'][1]=='project'").replace('$key$','doc._id')
       else:     #only show first instance in list doc.branch[0]
-        jsString = jsDefault.replace('$docType$', "doc.type.join('/').slice(0,"+str(len(docType))+")=='"+docType+"'").replace('$key$','doc.branch[0].stack[0]')
+        jsString = jsDefault.replace('$docType$', "doc['-type'][0]=='"+docType+"'").replace('$key$','doc["-branch"][0].stack[0]')
       outputList = []
       for item in self.ontology[docType]:
         if 'name' not in item:
@@ -65,8 +65,8 @@ class Database:
           outputList.append('(doc.image.length>3).toString()')
         elif item['name'] == 'tags':
           outputList.append('doc.tags.join(" ")')
-        elif item['name'] == 'type':
-          outputList.append('doc.type.slice(1).join("/")')
+        elif item['name'] == '-type':
+          outputList.append('doc["-type"].slice(1).join("/")')
         elif item['name'] == 'content':
           outputList.append('doc.content.slice(0,100)')
         else:
@@ -74,22 +74,25 @@ class Database:
       outputList = ','.join(outputList)
       jsString = jsString.replace('$outputList$', outputList)
       logging.info('database:init view '+docType+' not defined. Use default one:'+jsString)
-      viewCode[docType.replace('/','__')]=jsString
+      if docType=='x/project':
+        viewCode['project']=jsString
+      else:
+        viewCode[docType.replace('/','__')]=jsString
     self.saveView('viewDocType', viewCode)
     # general views: Hierarchy, Identify
     jsHierarchy  = '''
-      if ('type' in doc) {
-        doc.branch.forEach(function(branch) {emit(branch.stack.concat([doc._id]).join(' '),[branch.child,doc.type,doc.name]);});
+      if ('-type' in doc) {
+        doc['-branch'].forEach(function(branch) {emit(branch.stack.concat([doc._id]).join(' '),[branch.child,doc['-type'],doc.name]);});
       }
     '''
     jsPath = '''
-      if ('type' in doc && 'branch' in doc){
-        if ('shasum' in doc){doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,doc.shasum]);}});}
-        else                {doc.branch.forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc.type,branch.child,''        ]);}});}
+      if ('-type' in doc && '-branch' in doc){
+        if ('shasum' in doc){doc['-branch'].forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc['-type'],branch.child,doc.shasum]);}});}
+        else                {doc['-branch'].forEach(function(branch){if(branch.path){emit(branch.path,[branch.stack,doc['-type'],branch.child,''        ]);}});}
       }
     '''
     self.saveView('viewHierarchy',{'viewHierarchy':jsHierarchy,'viewPaths':jsPath})
-    jsSHA= "if (doc.type[0]==='measurement'){emit(doc.shasum, doc.name);}"
+    jsSHA= "if (doc['-type'][0]==='measurement'){emit(doc.shasum, doc.name);}"
     jsQR = "if (doc.qrCode.length > 0)"
     jsQR+= '{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}'
     jsTags=str(magicTags)+".forEach(function(tag){if(doc.tags.indexOf('#'+tag)>-1) emit('#'+tag, doc.name);});"
@@ -139,10 +142,10 @@ class Database:
     tracebackString = traceback.format_stack()
     tracebackString = [item for item in tracebackString if 'backend.py' in item or 'database.py' in item or 'Tests' in item or 'pasta' in item]
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString])  #| separated list of stack excluding last
-    doc['client'] = tracebackString
-    if 'branch' in doc and 'op' in doc['branch']:
-      del doc['branch']['op']  #remove operation, saveDoc creates and therefore always the same
-      doc['branch'] = [doc['branch']]
+    doc['-client'] = tracebackString
+    if '-branch' in doc and 'op' in doc['-branch']:
+      del doc['-branch']['op']  #remove operation, saveDoc creates and therefore always the same
+      doc['-branch'] = [doc['-branch']]
     if self.confirm is None or self.confirm(doc,"Create this document?"):
       res = self.db.create_document(doc)
     else:
@@ -171,44 +174,44 @@ class Database:
     tracebackString = traceback.format_stack()
     tracebackString = [item for item in tracebackString if 'backend.py' in item or 'database.py' in item or 'Tests' in item or 'pasta' in item]
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString])  #| separated list of stack excluding last
-    change['client'] = tracebackString
+    change['-client'] = tracebackString
     newDoc = self.db[docID]  #this is the document that stays live
     if 'edit' in change:     #if delete
       oldDoc = dict(newDoc)
       for item in oldDoc:
-        if item not in ('_id', '_rev', 'branch'):
+        if item not in ('_id', '_rev', '-branch'):
           del newDoc[item]
-      newDoc['client'] = tracebackString
-      newDoc['user']   = change['user']
+      newDoc['-client'] = tracebackString
+      newDoc['-user']   = change['-user']
     else:                    #if update
       oldDoc = {}            #this is an older revision of the document
       nothingChanged = True
       # handle branch
-      if 'branch' in change and len(change['branch']['stack'])>0: #TODO Remove if not needed by Dec. 2021: and change['branch']['path'] is not None:
-        op = change['branch'].pop('op')
-        oldpath = change['branch'].pop('oldpath',None)
-        if not change['branch'] in newDoc['branch']:       #skip if new branch is already in branch
-          oldDoc['branch'] = newDoc['branch'].copy()
-          for branch in newDoc['branch']:
-            if op=='c' and branch['path']==change['branch']['path']:
+      if '-branch' in change and len(change['-branch']['stack'])>0: #TODO Remove if not needed by Dec. 2021: and change['-branch']['path'] is not None:
+        op = change['-branch'].pop('op')
+        oldpath = change['-branch'].pop('oldpath',None)
+        if not change['-branch'] in newDoc['-branch']:       #skip if new branch is already in branch
+          oldDoc['-branch'] = newDoc['-branch'].copy()
+          for branch in newDoc['-branch']:
+            if op=='c' and branch['path']==change['-branch']['path']:
               op='u'
           if op=='c':    #create, append
-            newDoc['branch'] += [change['branch']]
+            newDoc['-branch'] += [change['-branch']]
             nothingChanged = False
           elif op=='u':  #update
             if oldpath is not None:
-              for branch in newDoc['branch']:
+              for branch in newDoc['-branch']:
                 if branch['path'].startswith(oldpath):
-                  branch['path'] = branch['path'].replace(oldpath ,change['branch']['path'])
-                  branch['stack']= change['branch']['stack']
+                  branch['path'] = branch['path'].replace(oldpath ,change['-branch']['path'])
+                  branch['stack']= change['-branch']['stack']
                   break
             else:
-              newDoc['branch'][0] = change['branch'] #change the initial one
+              newDoc['-branch'][0] = change['-branch'] #change the initial one
             nothingChanged = False
           elif op=='d':  #delete
-            originalLength = len(newDoc['branch'])
-            newDoc['branch'] = [branch for branch in newDoc['branch'] if branch['path']!=change['branch']['path']]
-            if originalLength!=len(newDoc['branch']):
+            originalLength = len(newDoc['-branch'])
+            newDoc['-branch'] = [branch for branch in newDoc['-branch'] if branch['path']!=change['-branch']['path']]
+            if originalLength!=len(newDoc['-branch']):
               nothingChanged = False
           else:
             logging.error('database:updateDoc: op(eration) unknown, exit update')
@@ -216,9 +219,9 @@ class Database:
       #handle other items
       # change has to be dict, not Document
       for item in change:
-        if item in ['_id','_rev','branch']:                #skip items cannot do not result in change
+        if item in ['_id','_rev','-branch']:                #skip items cannot do not result in change
           continue
-        if item=='type' and change['type']=='--':          #skip non-set type
+        if item=='-type' and change['-type']=='--':          #skip non-set type
           continue
         if item=='image' and change['image']=='':          #skip if non-change in image
           continue
@@ -236,7 +239,7 @@ class Database:
         # Add to testBasic to test for it:
         #       myString = myString.replace('A long comment','A long   comment')
         if change[item]!=newDoc[item]:
-          if item not in ['date','client']:      #if only date/client change, no significant change
+          if item not in ['-date','-client']:      #if only date/client change, no significant change
             nothingChanged = False
           if item == 'image':
             oldDoc[item] = 'image changed'       #don't backup images: makes database big and are only thumbnails anyhow
@@ -370,9 +373,9 @@ class Database:
     collection = {}
     for doc in self.db:
       if doc['_id'][1]=='-' and len(doc['_id'])==34:
-        if 'type' in doc and 'date' in doc:
-          docType = doc['type'][0]
-          date = doc['date'][:-1]
+        if '-type' in doc and '-date' in doc:
+          docType = doc['-type'][0]
+          date = doc['-date'][:-1]
           if len(date)==22:
             date += '0'
           date    = datetime.fromisoformat( date ).timestamp()
@@ -458,24 +461,24 @@ class Database:
         # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
 
         #branch test
-        if 'branch' not in doc:
+        if '-branch' not in doc:
           outstring+= f'{bcolors.FAIL}**ERROR branch does not exist '+doc['_id']+f'{bcolors.ENDC}\n'
           continue
-        if len(doc['branch'])>1 and doc['type'] =='text':                 #text elements only one branch
-          outstring+= f'{bcolors.FAIL}**ERROR branch length >1 for text'+doc['_id']+' '+str(doc['type'])+f'{bcolors.ENDC}\n'
-        for branch in doc['branch']:
+        if len(doc['-branch'])>1 and doc['-type'] =='x':                 #text elements only one branch
+          outstring+= f'{bcolors.FAIL}**ERROR branch length >1 for text'+doc['_id']+' '+str(doc['-type'])+f'{bcolors.ENDC}\n'
+        for branch in doc['-branch']:
           for item in branch['stack']:
             if not item.startswith('x-'):
               outstring+= f'{bcolors.FAIL}**ERROR non-text in stack '+doc['_id']+f'{bcolors.ENDC}\n'
 
-          if len(branch['stack'])==0 and doc['type']!=['text','project']: #if no inheritance
-            if doc['type'][0] == 'measurement' or  doc['type'][0] == 'text':
+          if len(branch['stack'])==0 and doc['-type']!=['x','project']: #if no inheritance
+            if doc['-type'][0] == 'measurement' or  doc['-type'][0] == 'x':
               if verbose:
                 outstring+= f'{bcolors.WARNING}**warning branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
             else:
               if verbose:
                 outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure/sample '+doc['_id']+'|'+doc['name']+f'{bcolors.ENDC}\n'
-          if 'type' in doc and doc['type'][0]=='text':
+          if '-type' in doc and doc['-type'][0]=='x':
             try:
               dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
               if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
@@ -483,9 +486,9 @@ class Database:
             except:
               pass  #handled next lines
           if branch['path'] is None:
-            if doc['type'][0] == 'text':
+            if doc['-type'][0] == 'x':
               outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
-            elif doc['type'][0] == 'measurement':
+            elif doc['-type'][0] == 'measurement':
               if verbose:
                 outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+f'{bcolors.ENDC}\n'
             else:
@@ -497,7 +500,7 @@ class Database:
                 outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths not equal: '+doc['_id']+'|'+branch['path']+f'{bcolors.ENDC}\n'
             if branch['child'] != 9999:
               for parentID in branch['stack']:                              #check if all parents in doc have a corresponding path
-                parentDocBranches = self.getDoc(parentID)['branch']
+                parentDocBranches = self.getDoc(parentID)['-branch']
                 onePathFound = False
                 for parentBranch in parentDocBranches:
                   if parentBranch['path'] is not None and parentBranch['path'] in branch['path']:
@@ -506,10 +509,10 @@ class Database:
                   outstring+= f'{bcolors.FAIL}**ERROR parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
 
         #doc-type specific tests
-        if 'type' in doc and doc['type'][0] == 'sample':
+        if '-type' in doc and doc['-type'][0] == 'sample':
           if 'qrCode' not in doc:
             outstring+= f'{bcolors.FAIL}**ERROR qrCode not in sample '+doc['_id']+f'{bcolors.ENDC}\n'
-        elif 'type' in doc and doc['type'][0] == 'measurement':
+        elif '-type' in doc and doc['-type'][0] == 'measurement':
           if 'shasum' not in doc:
             outstring+= f'{bcolors.FAIL}**ERROR: shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
           if 'image' not in doc:

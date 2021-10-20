@@ -1,17 +1,17 @@
-"""create measurement data from random .jpeg file
+"""extract data from random .jpeg file
 """
 from io import BytesIO
 import requests
 from PIL import Image
 
-def getMeasurement(fileName, doc):
+def use(fileName, doc):
   """
   Args:
      fileName (string): full path file name
-     doc (dict): supplied to guide image creation doc['type']
+     doc (dict): supplied to guide image creation doc['-type']
 
   Returns:
-    list: image, [('png'|'jpg'|'svg'), type, metaVendor, metaUser]
+    list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
   """
   # plain jpeg
   try:
@@ -20,7 +20,7 @@ def getMeasurement(fileName, doc):
       image = Image.open(BytesIO(response.content))
     else:
       image = Image.open(fileName).convert("L").convert("P")
-    return image, ['jpg', doc['type']+['image'], {}, {}]
+    return image, ['jpg', doc['-type']+['image'], {}, {}]
   except:
     pass
 

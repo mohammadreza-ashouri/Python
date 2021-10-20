@@ -89,7 +89,7 @@ class Pasta:
     res = cT.ontology2Labels(self.db.ontology,self.tableFormat)
     self.dataLabels      = list(res['dataList'])
     self.hierarchyLabels = list(res['hierarchyList'])
-    self.hierList        = self.db.ontology['-hierarchy-']
+    self.hierList        = list(res['hierarchyOrder'])
     if initViews:
       self.db.initViews(self.dataLabels+self.hierarchyLabels,self.magicTags)
     # internal hierarchy structure
@@ -143,43 +143,41 @@ class Pasta:
     """
     import logging, sys, os, json
     from urllib import request
-    import pypandoc
     import datalad.api as datalad
     from commonTools import commonTools as cT
     from miscTools import createDirName, generic_hash
     if sys.platform=='win32':
       import win32con, win32api
 
-    if hierStack is None: hierStack=[]
+    if hierStack is None:
+      hierStack=[]
     logging.debug('addData beginning doc: '+docType+' | hierStack'+str(hierStack))
     callback = kwargs.get('callback', None)
     forceNewImage=kwargs.get('forceNewImage',False)
-    doc['user']  = self.userID
+    doc['-user']  = self.userID
     childNum     = doc.pop('childNum',None)
     path         = None
     operation    = 'c'  #operation of branch/path
     if docType == '-edit-':
       edit = True
-      if 'type' not in doc:
-        doc['type'] = ['text',self.hierList[len(self.hierStack)-1]]
+      if '-type' not in doc:
+        doc['-type'] = ['x',self.hierList[len(self.hierStack)-1]]
       if len(hierStack) == 0:
         hierStack = self.hierStack
       if '_id' not in doc:
         doc['_id'] = hierStack[-1]
-      if len(hierStack)>0 and doc['type'][0]=='text':
+      if len(hierStack)>0 and doc['-type'][0]=='x':
         hierStack   = hierStack[:-1]
-      elif 'branch' in doc:
-        hierStack   = doc['branch'][0]['stack']
+      elif '-branch' in doc:
+        hierStack   = doc['-branch'][0]['stack']
     else:  #new doc
       edit = False
-      if docType in self.hierList:
-        doc['type'] = ['text',docType]
-      else:
-        doc['type'] = [docType]
-      if len(hierStack) == 0:  hierStack = self.hierStack
+      doc['-type'] = docType.split('/')
+      if len(hierStack) == 0:
+        hierStack = self.hierStack
 
-    # collect text-doc and prepare
-    if doc['type'][0] == 'text' and doc['type'][1]!='project' and childNum is None:
+    # collect structure-doc and prepare
+    if doc['-type'][0] == 'x' and doc['-type'][1]!='project' and childNum is None:
       #should not have childnumber in other cases
       thisStack = ' '.join(self.hierStack)
       view = self.db.getView('viewHierarchy/viewHierarchy', startKey=thisStack) #not faster with cT.getChildren
@@ -196,9 +194,9 @@ class Pasta:
           doc['name'].endswith('.id_pasta.json') ):
         print("**WARNING** DO NOT ADD _pasta. files to database")
         return False
-      if doc['type'][0] == 'text':
+      if doc['-type'][0] == 'x':
         #project, step, task
-        if doc['type'][0]=='project':
+        if doc['-type'][1]=='project':
           childNum = 0
         if edit:      #edit: cwd of the project/step/task: remove last directory from cwd (since cwd contains a / at end: remove two)
           parentDirectory = os.sep.join(self.cwd.split(os.sep)[:-2])
@@ -206,7 +204,7 @@ class Pasta:
             parentDirectory += os.sep
         else:         #new: below the current project/step/task
           parentDirectory = self.cwd
-        path = parentDirectory + createDirName(doc['name'],doc['type'][1],childNum) #update,or create (if new doc, update ignored anyhow)
+        path = parentDirectory + createDirName(doc['name'],doc['-type'][1],childNum) #update,or create (if new doc, update ignored anyhow)
         operation = 'u'
       else:
         #measurement, sample, procedure
@@ -231,15 +229,14 @@ class Pasta:
           path = self.cwd+doc['name']
         else:                                                     #make up name
           shasum  = None
-        if shasum is not None and doc['type'][0]=='measurement':         #samples, procedures not added to shasum database, getMeasurement not sensible
+        if shasum is not None: # and doc['-type'][0]=='measurement':         #samples, procedures not added to shasum database, getMeasurement not sensible
           if shasum == '':
             shasum = generic_hash(self.basePath+path, forceFile=True)
           view = self.db.getView('viewIdentify/viewSHAsum',shasum)
           if len(view)==0 or forceNewImage:  #measurement not in database: create doc
             while True:
-              self.getMeasurement(path,shasum,doc)  #create image and add to datalad
-              if len(doc['metaVendor'])==0 and len(doc['metaUser'])==0 and \
-                doc['image']=='' and len(doc['type'])==1:  #did not get valuable data: extractor does not exit
+              self.useExtractors(path,shasum,doc)  #create image/content and add to datalad
+              if not 'image' in doc and not 'content' in doc:  #did not get valuable data: extractor does not exit
                 return False
               if callback is None or not callback(doc):
                 # if no more iterations of curation
@@ -256,20 +253,14 @@ class Pasta:
                     return False
                 break
           if len(view)==1:  #measurement is already in database
-            self.getMeasurement(path,shasum,doc,exitAfterDataLad=True)
+            self.useExtractors(path,shasum,doc,exitAfterDataLad=True)
             doc['_id'] = view[0]['id']
             doc['shasum'] = shasum
             edit = True
-        elif doc['type'][0]=='procedure' and path is not None:
-          with open(self.basePath+path,'r') as fIn:
-            text = fIn.read()
-            # if path.endswith('.org'):
-            #   text = pypandoc.convert_text(text, 'md', format='org')
-            doc['content'] = text
     # assemble branch information
     if childNum is None:
       childNum=9999
-    doc['branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
+    doc['-branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
     if edit:
       #update document
       keysNone = [key for key in doc if doc[key] is None]
@@ -279,15 +270,15 @@ class Pasta:
       doc = self.db.updateDoc(doc, doc['_id'])
     else:
       # add doc to database
-      doc = cT.fillDocBeforeCreate(doc, doc['type']).to_dict()
+      doc = cT.fillDocBeforeCreate(doc, doc['-type']).to_dict()
       doc = self.db.saveDoc(doc)
 
     ## adaptation of directory tree, information on disk: documentID is required
-    if self.cwd is not None and doc['type'][0]=='text':
+    if self.cwd is not None and doc['-type'][0]=='x':
       #project, step, task
-      path = doc['branch'][0]['path']
+      path = doc['-branch'][0]['path']
       if not edit:
-        if doc['type']==['text','project']:
+        if doc['-type']==['x','project']:
           ## shell command
           # cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
           # _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
@@ -333,7 +324,7 @@ class Pasta:
       # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       # print("datalad save",output.stdout.decode('utf-8'))
     self.currentID = doc['_id']
-    logging.debug('addData ending doc '+doc['_id']+' '+doc['type'][0])
+    logging.debug('addData ending doc '+doc['_id']+' '+doc['-type'][0])
     return True
 
 
@@ -362,7 +353,7 @@ class Pasta:
         if self.cwd is not None:
           if dirName is None:
             doc = self.db.getDoc(docID)
-            path = doc['branch'][0]['path']
+            path = doc['-branch'][0]['path']
             dirName = path.split(os.sep)[-1]
           os.chdir(dirName)     #exception caught
           self.cwd += dirName+os.sep
@@ -459,7 +450,7 @@ class Pasta:
               itemTarget = item
           targetDir = os.sep.join(targetDir.split(os.sep)[:-1])
         parentDoc = self.db.getDoc(parentID)
-        hierStack = parentDoc['branch'][0]['stack']+[parentID]
+        hierStack = parentDoc['-branch'][0]['stack']+[parentID]
       ### separate into two cases
       # newly created file
       if origin == '':
@@ -483,12 +474,12 @@ class Pasta:
         if len(view)==1:
           docID = view[0]['id']
           if target == '':       #delete
-            self.db.updateDoc( {'branch':{'path':self.cwd+origin, 'oldpath':self.cwd+origin,\
+            self.db.updateDoc( {'-branch':{'path':self.cwd+origin, 'oldpath':self.cwd+origin,\
                                           'stack':[None],\
                                           'child':-1,\
                                           'op':'d'}}, docID)
           else:                  #update
-            self.db.updateDoc( {'branch':{'path':self.cwd+target, 'oldpath':self.cwd+origin,\
+            self.db.updateDoc( {'-branch':{'path':self.cwd+target, 'oldpath':self.cwd+origin,\
                                           'stack':hierStack,\
                                           'child':itemTarget['value'][2],\
                                           'op':'u'}}, docID)
@@ -601,7 +592,7 @@ class Pasta:
     return False
 
 
-  def getMeasurement(self, filePath, shasum, doc, **kwargs):
+  def useExtractors(self, filePath, shasum, doc, **kwargs):
     """
     get measurements from datafile: central distribution point
     - max image size defined here
@@ -620,7 +611,7 @@ class Pasta:
     import matplotlib.pyplot as plt
     from PIL.Image import Image
     import datalad.api as datalad
-    logging.debug('getMeasurement started for path '+filePath)
+    logging.debug('useExtractors started for path '+filePath)
     maxSize = kwargs.get('maxSize', 600)
     extractorTest    = kwargs.get('extractorTest', False)
     exitAfterDataLad = kwargs.get('exitAfterDataLad',False)
@@ -634,22 +625,23 @@ class Pasta:
       parentPath = filePath.split(os.sep)[0]
       if not extractorTest:
         dataset = datalad.Dataset(self.basePath+parentPath)
-        dataset.save(path=self.basePath+filePath, message='Added locked document')
+        if dataset.id:
+          dataset.save(path=self.basePath+filePath, message='Added locked document')
         if exitAfterDataLad:
           return
       absFilePath = self.basePath + filePath
       outFile = self.basePath + filePath.replace('.','_')+'_pasta'
     pyFile = 'pasta_'+extension+'.py'
     pyPath = self.softwarePath+os.sep+'extractors'+os.sep+pyFile
-    if len(doc['type'])==1:
-      doc['type'] += [extension]
+    if len(doc['-type'])==1:
+      doc['-type'] += [extension]
     if os.path.exists(pyPath):
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
-      image, [imgType, docType, metaVendor, metaUser] = module.getMeasurement(absFilePath, doc)
+      content, [imgType, docType, metaVendor, metaUser] = module.use(absFilePath, doc)
       if extractorTest:
-        if isinstance(image, Image):
-          image.show()
+        if isinstance(content, Image):
+          content.show()
         else:
           plt.show()
       # depending on imgType: produce image
@@ -657,29 +649,26 @@ class Pasta:
       if imgType == 'svg':  #no scaling
         figfile = StringIO()
         plt.savefig(figfile, format='svg')
-        image = figfile.getvalue()
+        content = figfile.getvalue()
         # 'data:image/svg+xml;utf8,<svg' + figfile.getvalue().split('<svg')[1]
         outFileFull = outFile+'.svg'
       elif imgType == 'jpg':
-        ratio = maxSize / image.size[np.argmax(image.size)]
-        image = image.resize((np.array(image.size)*ratio).astype(int)).convert('RGB')
+        ratio = maxSize / content.size[np.argmax(content.size)]
+        content = content.resize((np.array(content.size)*ratio).astype(int)).convert('RGB')
         figfile = BytesIO()
-        image.save(figfile, format='JPEG')
+        content.save(figfile, format='JPEG')
         imageData = base64.b64encode(figfile.getvalue()).decode()
-        image = 'data:image/jpg;base64,' + imageData
+        content = 'data:image/jpg;base64,' + imageData
         outFileFull = outFile+'.jpg'
       elif imgType == 'png':
-        ratio = maxSize / image.size[np.argmax(image.size)]
-        image = image.resize((np.array(image.size)*ratio).astype(int))
+        ratio = maxSize / content.size[np.argmax(content.size)]
+        content = content.resize((np.array(content.size)*ratio).astype(int))
         figfile = BytesIO()
-        image.save(figfile, format='PNG')
+        content.save(figfile, format='PNG')
         imageData = base64.b64encode(figfile.getvalue()).decode()
-        image = 'data:image/png;base64,' + imageData
+        content = 'data:image/png;base64,' + imageData
         outFileFull = outFile+'.png'
-      if outFileFull is None:
-        image, metaVendor, metaUser, docType = '', {}, {}, []
-        logging.debug('getMeasurement should not read data; returned data void '+str(imgType))
-      else:
+      if outFileFull is not None:
         if self.cwd is not None and not extractorTest:
           # write to file
           appendix = ''
@@ -699,16 +688,22 @@ class Pasta:
               figfile.seek(0)
               shutil.copyfileobj(figfile, f)
           dataset.save(path=outFileFull, message='Added document '+appendix)
+        document = {'image': content, '-type': docType,
+                    'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
+      else:
+        if imgType=='text':
+          document = {'content': content, '-type': docType,
+                      'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
+        else:
+          document={'-type':None, 'metaUser':None, 'metaVendor':None, 'shasum':shasum}
     else:
-      image, metaVendor, metaUser, docType = '', {}, {}, []
-      logging.warning('getMeasurement could not find pyFile to convert '+pyFile)
+      document={'-type':None, 'metaUser':None, 'metaVendor':None, 'shasum':shasum}
+      logging.warning('useExtractor could not find pyFile to convert '+pyFile)
     #combine into document
-    document = {'image': image, 'type': docType,
-                'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
-    logging.debug('getMeasurement: finished')
+    logging.debug('useExtractor: finished')
     doc.update(document)
     if extractorTest:
-      print("Measurement type:",document['type'])
+      print("Measurement type:",document['-type'])
     ##if 'comment' not in doc: doc['comment']=''
     return
 
@@ -774,7 +769,7 @@ class Pasta:
     clean, count = True, 0
     for item in viewProjects:
       doc = self.db.getDoc(item['id'])
-      dirName =doc['branch'][0]['path']
+      dirName =doc['-branch'][0]['path']
       #output += '- '+dirName+' -\n'
       os.chdir(self.basePath+dirName)
       fileList = annexrepo.AnnexRepo('.').status()
@@ -844,7 +839,8 @@ class Pasta:
         outString.append(formatString.format(item['name']) )
     outString = '|'.join(outString)+'\n'
     outString += '-'*104+'\n'
-    for lineItem in self.db.getView('viewDocType/'+docType):
+    viewDocType = 'project' if docType=='x/project' else docType
+    for lineItem in self.db.getView('viewDocType/'+viewDocType):
       rowString = []
       for idx, item in enumerate(self.db.ontology[docType]):
         if idx<len(widthArray):
@@ -1004,16 +1000,16 @@ class Pasta:
 
       # deleted items
       if doc['edit'] == '-delete-':
-        doc['user']   = self.userID
+        doc['-user']   = self.userID
         doc = self.db.updateDoc(doc,doc['_id'])
         deletedDocs.append(doc['_id'])
-        thisStack = ' '.join(doc['branch'][0]['stack']+[doc['_id']])
+        thisStack = ' '.join(doc['-branch'][0]['stack']+[doc['_id']])
         view = self.db.getView('viewHierarchy/viewHierarchy', startKey=thisStack)
         for item in view:
-          subDoc = {'user':self.userID, 'edit':'-delete-'}
+          subDoc = {'-user':self.userID, 'edit':'-delete-'}
           _ = self.db.updateDoc(subDoc, item['id'])
           deletedDocs.append(item['id'])
-        oldPath   = doc['branch'][0]['path']
+        oldPath   = doc['-branch'][0]['path']
         pathArray = oldPath.split(os.sep)
         pathArray[-1]='trash_'+'_'.join(pathArray[-1].split('_')[1:])
         newPath   = os.sep.join(pathArray)
@@ -1027,15 +1023,15 @@ class Pasta:
 
       # All non-deleted items: identify docType
       docDB    = self.db.getDoc(doc['_id']) if doc['_id']!='' else None
-      levelNew = doc['type']
-      if '_id' not in doc or docDB is None or docDB['type'][0]=='text':
-        doc['type'] = ['text',self.hierList[levelNew]]
+      levelNew = doc['-type']
+      if '_id' not in doc or docDB is None or docDB['-type'][0]=='x':
+        doc['-type'] = ['x',self.hierList[levelNew]]
       else:
-        doc['type'] = docDB['type']
+        doc['-type'] = docDB['-type']
 
       # for all non-text types: change children and  childNum in database
       #   and continue with next doc. This makes subsequent code easier
-      if doc['type'][0]!='text':
+      if doc['-type'][0]!='x':
         docDB = dict(docDB)
         docDB.update(doc)
         doc = docDB
@@ -1049,11 +1045,11 @@ class Pasta:
       if doc['edit'] == "-edit-":
         edit = "-edit-"
       else:
-        edit = doc['type'][-1]
+        edit = doc['-type'][-1]
       del doc['edit']
       # change directories: downward
       if levelOld is None:   #first run-through
-        doc['childNum'] = docDB['branch'][0]['child']
+        doc['childNum'] = docDB['-branch'][0]['child']
       else:                   #after first entry
         if levelNew<levelOld:                               #UNCLE, aka SIBLING OF PARENT
           children.pop()
@@ -1067,16 +1063,16 @@ class Pasta:
           children[-1] += 1
         #check if directory exists on disk
         #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
-        dirName = createDirName(doc['name'],doc['type'][0],children[-1])
+        dirName = createDirName(doc['name'],doc['-type'][0],children[-1])
         if not os.path.exists(dirName):                     #if move, deletion or because new
           if doc['_id']=='' or doc['_id']=='undefined':     #if new data
             os.makedirs(dirName)
-            edit = doc['type'][-1]
+            edit = doc['-type'][-1]
           else:                                             #if move
-            path = docDB['branch'][0]['path']
+            path = docDB['-branch'][0]['path']
             if not os.path.exists(self.basePath+path):      #parent was moved: get 'path' from knowledge of parent
-              parentID = docDB['branch'][0]['stack'][-1]
-              pathParent = self.db.getDoc(parentID)['branch'][0]['path']
+              parentID = docDB['-branch'][0]['stack'][-1]
+              pathParent = self.db.getDoc(parentID)['-branch'][0]['path']
               path = pathParent+os.sep+path.split(os.sep)[-1]
             if not os.path.exists(self.basePath+path):        #if still does not exist
               print("**ERROR** doc path was not found and parent path was not found;Return")
@@ -1093,15 +1089,15 @@ class Pasta:
             #adopt measurements, samples, etc: change / update path by supplying old path
             view = self.db.getView('viewHierarchy/viewPaths', startKey=path)
             for item in view:
-              if item['value'][1][0]=='text': continue  #skip since moved by itself
-              self.db.updateDoc( {'branch':{'path':self.cwd, 'oldpath':path+os.sep,\
+              if item['value'][1][0]=='x': continue  #skip since moved by itself
+              self.db.updateDoc( {'-branch':{'path':self.cwd, 'oldpath':path+os.sep,\
                                             'stack':self.hierStack,\
                                             'child':item['value'][2],\
                                             'op':'u'}},item['id'])
         doc['childNum'] = children[-1]
       # write change to database
       ## FOR DEBUGGING:
-      print(doc['name'].strip()+'|'+str(doc['type'])+'||'+doc['_id']+' #:',doc['childNum'])
+      print(doc['name'].strip()+'|'+str(doc['-type'])+'||'+doc['_id']+' #:',doc['childNum'])
       print('  children:',children,'   levelNew, levelOld',levelNew,levelOld,'   cwd:',self.cwd,'\n')
       if edit=='-edit-':
         docDB = dict(docDB)

@@ -1,20 +1,19 @@
 {
   "_id":"-ontology-",
-  "-hierarchy-":["project","step","task"],
 
-  "project": [
+  "x/project": [ {"order":1},
       {"name":"name",     "query":"What is the project's name?"},
       {"name":"status",   "query":"What is the project status", "list":["active","paused","passive","finished"]},
       {"name":"objective","query":"What is the objective?"},
       {"name":"tags"},
       {"name":"comment",  "query":"#tags comments remarks :field:value:"}
   ],
-  "step": [
-      {"name":"name",     "query":"What is the name of step?"},
+  "x/task": [    {"order":3},
+      {"name":"name",     "query":"What is the name of task?"},
       {"name":"comment",  "query":"#tags comments remarks :field:value:"}
   ],
-  "task": [
-      {"name":"name",     "query":"What is the name of task?"},
+  "x/step": [    {"order":2},
+      {"name":"name",     "query":"What is the name of step?"},
       {"name":"comment",  "query":"#tags comments remarks :field:value:"}
   ],
 
@@ -22,7 +21,7 @@
     {"name":"name",       "query":"What is the file name?"},
     {"name":"tags"},
     {"name":"comment",    "query":"#tags comments remarks :field:value:"},
-    {"name":"type"},
+    {"name":"-type"},
     {"name":"image"},
     {"name":"curated"},
     {"name":"sample",     "query":"Which sample was used?",     "list":"sample"},
@@ -40,5 +39,14 @@
     {"name":"tags"},
     {"name":"comment",    "query":"#tags comments :field:value: e.g. #SOP_v1"},
     {"name":"content",    "query":"What are the steps (autofilled if file given)?"}
+  ],
+  "instrument": [
+    {"name":"name",       "query":"What is the name / path?"},
+    {"name":"comment",    "query":"#tags comments :field:value: e.g. #SOP_v1"},
+    {"name":"vendor",     "query":"Who is the vendor?"},
+    {"heading":"Requirements"},
+    {"name":"electricity","query":"What voltage does the instrument need?"},
+    {"name":"size",       "query":"What are the dimensions?"},
+    {"attachment":"Right side of instrument", "docType":"instrument"}
   ]
 }

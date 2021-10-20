@@ -1,17 +1,17 @@
-"""create measurement data from random .png file
+"""extract data from random .png file
 """
 from io import BytesIO
 import requests
 from PIL import Image
 
-def getMeasurement(fileName, doc):
+def use(fileName, doc):
   """
   Args:
      fileName (string): full path file name
-     doc (dict): supplied to guide image creation doc['type']
+     doc (dict): supplied to guide image creation doc['-type']
 
   Returns:
-    list: image, [('png'|'jpg'|'svg'), type, metaVendor, metaUser]
+    list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
   """
   # plain png
   try:
@@ -22,7 +22,7 @@ def getMeasurement(fileName, doc):
       image = Image.open(fileName)
     if 'Software' in image.info and 'matplotlib' in image.info['Software']:  #ignore python.matplotlib files since they are not measurements
       raise ValueError
-    return image.convert('P'), ['jpg', doc['type']+['image'], {}, {}]
+    return image.convert('P'), ['jpg', doc['-type']+['image'], {}, {}]
   except:
     pass
 
