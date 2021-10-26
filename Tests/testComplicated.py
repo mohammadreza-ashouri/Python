@@ -25,10 +25,10 @@ class TestStringMethods(unittest.TestCase):
     try:
       ### create some projects and show them
       print('*** TEST PROJECTS ***')
-      self.be.addData('project', {'name': 'Test project1', 'objective': 'Test objective1', 'status': 'active', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
-      self.be.addData('project', {'name': 'Test project2', 'objective': 'Test objective2', 'status': 'passive', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
-      self.be.addData('project', {'name': 'Test project3', 'objective': 'Test objective3', 'status': 'paused', 'comment': '#tag1 :field2:max: A random text'})
-      print(self.be.output('project'))
+      self.be.addData('x/project', {'name': 'Test project1', 'objective': 'Test objective1', 'status': 'active', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
+      self.be.addData('x/project', {'name': 'Test project2', 'objective': 'Test objective2', 'status': 'passive', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
+      self.be.addData('x/project', {'name': 'Test project3', 'objective': 'Test objective3', 'status': 'paused', 'comment': '#tag1 :field2:max: A random text'})
+      print(self.be.output('x/project'))
       print(" ====== STATE 1 ====\n"+self.be.checkDB(verbose=False))
 
       ### create some steps and tasks in the first (by id-number) project
@@ -39,18 +39,18 @@ class TestStringMethods(unittest.TestCase):
       projID1 = [i['id'] for i in viewProj if 'Test project2'==i['value'][0]][0]
       self.be.changeHierarchy(projID)
       projDirName = self.be.basePath+self.be.cwd
-      self.be.addData('step',    {'comment': 'More random text', 'name': 'Test step one'})
-      self.be.addData('step',    {'comment': 'Much more random text', 'name': 'Test step two'})
+      self.be.addData('x/step',    {'comment': 'More random text', 'name': 'Test step one'})
+      self.be.addData('x/step',    {'comment': 'Much more random text', 'name': 'Test step two'})
       stepID = self.be.currentID
-      self.be.addData('step',    {'comment': 'Even more random text', 'name': 'Test step three'})
+      self.be.addData('x/step',    {'comment': 'Even more random text', 'name': 'Test step three'})
       self.be.changeHierarchy(stepID)
-      self.be.addData('task',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
-      self.be.addData('task',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
+      self.be.addData('x/task',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
+      self.be.addData('x/task',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
       self.be.changeHierarchy(self.be.currentID)  #cd in task
       self.be.addData('measurement', {'name': 'geolocation.txt', 'comment': 'Center of work'})
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/320px-Google_2015_logo.svg.png', 'comment': 'logo'})
       self.be.changeHierarchy(None)  #cd .. into step
-      self.be.addData('task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
+      self.be.addData('x/task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
       print(" ====== STATE 2 ====\n"+self.be.checkDB(verbose=False))
 
       ### output of project
@@ -103,7 +103,7 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('measurement', {'name': 'filename.jpg', 'comment': '#3 #other medium stuff'})
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
-      stepDirName = self.be.basePath+self.be.db.getDoc(stepID)['branch'][0]['path']
+      stepDirName = self.be.basePath+self.be.db.getDoc(stepID)['-branch'][0]['path']
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
       self.be.scanTree()
       print(" ====== STATE 6 ====\n"+self.be.checkDB(verbose=False))
@@ -124,15 +124,15 @@ class TestStringMethods(unittest.TestCase):
         fileName = item['value'][0]
         if fileName == 'Zeiss.tif':
           doc = self.be.getDoc(item['id'])
-          newType   = doc['type'][:-2]+['no_scale', 'adaptive']
-          hierStack = doc['branch'][0]['stack']
-          fullPath  = doc['branch'][0]['path'] #here choose first branch, but other are possible
-          self.be.addData('-edit-', {'type':newType, 'name':fullPath}, hierStack=hierStack, forceNewImage=True)
+          newType   = doc['-type'][:-2]+['no_scale', 'adaptive']
+          hierStack = doc['-branch'][0]['stack']
+          fullPath  = doc['-branch'][0]['path'] #here choose first branch, but other are possible
+          self.be.addData('-edit-', {'-type':newType, 'name':fullPath}, hierStack=hierStack, forceNewImage=True)
       print(" ====== STATE 8 ====\n"+self.be.checkDB(verbose=False))
 
       ### Try to fool system: move directory that includes data to another random name
       print('*** TEST MOVE DIRECTORY INTO RANDOM NAME ***')
-      origin = self.be.basePath+self.be.db.getDoc(stepID)['branch'][0]['path']
+      origin = self.be.basePath+self.be.db.getDoc(stepID)['-branch'][0]['path']
       target = os.sep.join(origin.split(os.sep)[:-1])+os.sep+'RandomDir'
       shutil.move(origin, target)
       self.be.scanTree()

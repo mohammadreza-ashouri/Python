@@ -25,25 +25,25 @@ class TestStringMethods(unittest.TestCase):
     try:
       ### CREATE PROJECTS AND SHOW
       print('*** CREATE PROJECTS AND SHOW ***')
-      self.be.addData('project', {'name': 'Intermetals at interfaces', 'objective': 'Does spray coating lead to intermetalic phase?', 'status': 'active', 'comment': '#intermetal #Fe #Al This is a test project'})
+      self.be.addData('x/project', {'name': 'Intermetals at interfaces', 'objective': 'Does spray coating lead to intermetalic phase?', 'status': 'active', 'comment': '#intermetal #Fe #Al This is a test project'})
 
       ### TEST PROJECT PLANING
       print('*** TEST PROJECT PLANING ***')
       viewProj = self.be.db.getView('viewDocType/project')
       projID1  = [i['id'] for i in viewProj if 'Intermetals at interfaces'==i['value'][0]][0]
       self.be.changeHierarchy(projID1)
-      self.be.addData('step',    {'comment': 'This is hard! #TODO', 'name': 'Get steel and Al-powder'})
-      self.be.addData('step',    {'comment': 'This will take a long time. #WAIT', 'name': 'Get spray machine'})
+      self.be.addData('x/step',    {'comment': 'This is hard! #TODO', 'name': 'Get steel and Al-powder'})
+      self.be.addData('x/step',    {'comment': 'This will take a long time. #WAIT', 'name': 'Get spray machine'})
       self.be.changeHierarchy(self.be.currentID)
-      self.be.addData('task',    {'name': 'Get quotes', 'comment': 'Dont forget company-A', 'procedure': 'Guidelines of procurement'})
-      self.be.addData('task',    {'name': 'Buy machine','comment': 'Delivery time will be 6month'})
+      self.be.addData('x/task',    {'name': 'Get quotes', 'comment': 'Dont forget company-A', 'procedure': 'Guidelines of procurement'})
+      self.be.addData('x/task',    {'name': 'Buy machine','comment': 'Delivery time will be 6month'})
       self.be.changeHierarchy(None)
-      self.be.addData('step',    {'name': 'SEM images'})
+      self.be.addData('x/step',    {'name': 'SEM images'})
       semStepID = self.be.currentID
       self.be.changeHierarchy(semStepID)
       semDirName = self.be.basePath+self.be.cwd
       self.be.changeHierarchy(None)
-      self.be.addData('step',    {'name': 'Nanoindentation'})
+      self.be.addData('x/step',    {'name': 'Nanoindentation'})
       self.be.changeHierarchy(self.be.currentID)
       indentDirName = self.be.basePath+self.be.cwd
       self.be.changeHierarchy(None)
@@ -74,6 +74,7 @@ class TestStringMethods(unittest.TestCase):
       self.be.setEditString(myString)
       print(" === STATE 1D ===\n"+self.be.checkDB(verbose=False))
       newString = self.be.outputHierarchy(False)
+      print('new string',newString)
       self.assertEqual(oldString,newString,'Hierarchy changed when should not change.')
 
 

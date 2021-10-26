@@ -1025,7 +1025,7 @@ class Pasta:
       docDB    = self.db.getDoc(doc['_id']) if doc['_id']!='' else None
       levelNew = doc['-type']
       if '_id' not in doc or docDB is None or docDB['-type'][0]=='x':
-        doc['-type'] = ['x',self.hierList[levelNew]]
+        doc['-type'] = self.hierList[levelNew].split('/')
       else:
         doc['-type'] = docDB['-type']
 
