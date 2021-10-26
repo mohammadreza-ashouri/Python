@@ -54,7 +54,7 @@ Possible commands are:
 argparser.add_argument('command', help='see above...')
 argparser.add_argument('-i','--docID',   help='docID of project; always a long alpha-numeric code', default='')
 argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
-argparser.add_argument('-l','--label',   help='label used for printing', default='project')
+argparser.add_argument('-l','--label',   help='label used for printing', default='x/project')
 argparser.add_argument('-p','--path',    help='path for extractor test', default='')
 argparser.add_argument('-d','--database',help='name of database configuration', default='') #required for be = Pasta(args.database)
 args = argparser.parse_args()
@@ -183,15 +183,15 @@ else:
         path = args.path
       elif args.docID and not args.path:
         doc = dict(be.getDoc(args.docID))
-        path = doc['branch'][0]['path']
+        path = doc['-branch'][0]['path']
       else:
         print("SOMETHING STRANGE",args.path,args.docID)
       if args.content is None:
-        doc = {'type':['measurement']}
+        doc = {'-type':['measurement']}
       else:
-        doc = {'type':args.content.split('/')}
-      be.getMeasurement(path,"empty_md5sum",doc,extractorTest=True)
-      if len(doc['type'])>1:
+        doc = {'-type':args.content.split('/')}
+      be.useExtractors(path,"empty_md5sum",doc,extractorTest=True)
+      if len(doc['-type'])>1:
         print("SUCCESS")
       else:
         print("**ERROR**")

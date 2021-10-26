@@ -98,7 +98,7 @@ def testPython():
   tests = ['test -d pasta_tutorial',
            'scanHierarchy -d pasta_tutorial -i '+docID,
            'print -d pasta_tutorial',
-           'print -d pasta_tutorial -l project',
+           'print -d pasta_tutorial -l x/project',
            'print -d pasta_tutorial -l measurement',
            'print -d pasta_tutorial -l sample',
            'print -d pasta_tutorial -l procedure',
