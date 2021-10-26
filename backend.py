@@ -1045,7 +1045,7 @@ class Pasta:
       if doc['edit'] == "-edit-":
         edit = "-edit-"
       else:
-        edit = doc['-type'][-1]
+        edit = '/'.join(doc['-type'])
       del doc['edit']
       # change directories: downward
       if levelOld is None:   #first run-through
@@ -1067,7 +1067,6 @@ class Pasta:
         if not os.path.exists(dirName):                     #if move, deletion or because new
           if doc['_id']=='' or doc['_id']=='undefined':     #if new data
             os.makedirs(dirName)
-            edit = doc['-type'][-1]
           else:                                             #if move
             path = docDB['-branch'][0]['path']
             if not os.path.exists(self.basePath+path):      #parent was moved: get 'path' from knowledge of parent

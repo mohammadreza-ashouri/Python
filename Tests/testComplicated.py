@@ -66,7 +66,7 @@ class TestStringMethods(unittest.TestCase):
       print(" ====== STATE 4 ====\n"+self.be.checkDB(verbose=False))
       # second test
       myString = self.be.getEditString()
-      myString = myString.replace('* Test step two||t-','** Test step two||t-')
+      myString = myString.replace('* Test step two||x-','** Test step two||x-')
       myString+= '\n* Test step four\nTags: #SomeBody\n- One line of list\n- Two lines of list\n  - One sublist\n'
       self.be.setEditString(myString)
       self.be.scanTree()  #nothing done: no harm
