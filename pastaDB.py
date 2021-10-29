@@ -199,10 +199,10 @@ else:
 
     elif args.command=='redo':
       doc = dict(be.getDoc(args.docID))
-      doc['type'] = args.content.split('/')
-      be.getMeasurement(doc['branch'][0]['path'], doc['shasum'], doc, extractorRedo=True)  #any path is good since the file is the same everywhere; doc-changed by reference
-      if len(doc['type'])>1 and len(doc['image'])>1:
-        be.db.updateDoc({'image':doc['image'], 'type':doc['type']},args.docID)
+      doc['-type'] = args.content.split('/')
+      be.useExtractors(doc['-branch'][0]['path'], doc['shasum'], doc, extractorRedo=True)  #any path is good since the file is the same everywhere; doc-changed by reference
+      if len(doc['-type'])>1 and len(doc['image'])>1:
+        be.db.updateDoc({'image':doc['image'], '-type':doc['-type']},args.docID)
         success=True
       else:
         print('**ERROR** in redo - extraction')
@@ -253,9 +253,9 @@ else:
 
       ## Default case for all: unknown
       else:
-        print("Command does not exist:",args.command)
+        print("Command in pastaDB.py does not exist:",args.command)
         be.exit()
-        raise NameError('Wrong command: '+args.command)
+        success = False
 
     be.exit()
     if success:

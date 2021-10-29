@@ -70,7 +70,7 @@ class Database:
         elif item['name'] == 'content':
           outputList.append('doc.content.slice(0,100)')
         else:
-          outputList.append('doc.'+item['name'])
+          outputList.append('doc["'+item['name']+'"]')
       outputList = ','.join(outputList)
       jsString = jsString.replace('$outputList$', outputList)
       logging.info('database:init view '+docType+' not defined. Use default one:'+jsString)

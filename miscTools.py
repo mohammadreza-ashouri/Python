@@ -251,7 +251,7 @@ def getExtractorConfig(directory):
             line = line.replace('"""','')
             header.append(line)
             continue
-          if "if doc['type'][2:] == [" in line and "#:" in line:
+          if "if doc['-type'][2:] == [" in line and "#:" in line:
             specialType = line.split('== [')[1].split(']:')[0]
             specialType = [i.strip()[1:-1] for i in specialType.split(',')]
             extractors.append([ baseType+specialType, line.split('#:')[1].strip() ])

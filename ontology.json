@@ -23,7 +23,7 @@
     {"name":"comment",    "query":"#tags comments remarks :field:value:"},
     {"name":"-type"},
     {"name":"image"},
-    {"name":"curated"},
+    {"name":"-curated"},
     {"name":"sample",     "query":"Which sample was used?",     "list":"sample"},
     {"name":"procedure",  "query":"Which procedure was used?",  "list":"procedure"}
   ],
