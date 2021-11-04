@@ -53,8 +53,8 @@ class Database:
     jsDefault = "if ($docType$) {emit($key$, [$outputList$]);}"
     viewCode = {}
     for docType, _ in docTypesLabels:
-      if docType=='x/project':
-        jsString = jsDefault.replace('$docType$', "doc['-type'][1]=='project'").replace('$key$','doc._id')
+      if docType=='x0':
+        jsString = jsDefault.replace('$docType$', "doc['-type']=='x0'").replace('$key$','doc._id')
       else:     #only show first instance in list doc.branch[0]
         jsString = jsDefault.replace('$docType$', "doc['-type'][0]=='"+docType+"'").replace('$key$','doc["-branch"][0].stack[0]')
       outputList = []
@@ -74,10 +74,7 @@ class Database:
       outputList = ','.join(outputList)
       jsString = jsString.replace('$outputList$', outputList)
       logging.info('database:init view '+docType+' not defined. Use default one:'+jsString)
-      if docType=='x/project':
-        viewCode['project']=jsString
-      else:
-        viewCode[docType.replace('/','__')]=jsString
+      viewCode[docType.replace('/','__')]=jsString
     self.saveView('viewDocType', viewCode)
     # general views: Hierarchy, Identify
     jsHierarchy  = '''
@@ -283,7 +280,7 @@ class Database:
       else:
         res = list(v.result)
     except:
-      print('Database / Network problem')
+      print('Database / Network problem for path',thePath)
       res = []
     return res
 

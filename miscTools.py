@@ -28,7 +28,7 @@ def createDirName(name,docType,thisChildNumber):
     string: directory name with leading number
   """
   from commonTools import commonTools as cT  #not globally imported since confuses translation
-  if docType == 'project':
+  if docType == 'x0':
     return cT.camelCase(name)
   #steps, tasks
   if isinstance(thisChildNumber, str):

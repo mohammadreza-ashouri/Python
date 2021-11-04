@@ -166,7 +166,7 @@ class Pasta:
         hierStack = self.hierStack
       if '_id' not in doc:
         doc['_id'] = hierStack[-1]
-      if len(hierStack)>0 and doc['-type'][0]=='x':
+      if len(hierStack)>0 and doc['-type'][0][0]=='x':
         hierStack   = hierStack[:-1]
       elif '-branch' in doc:
         hierStack   = doc['-branch'][0]['stack']
@@ -177,13 +177,13 @@ class Pasta:
         hierStack = self.hierStack
 
     # collect structure-doc and prepare
-    if doc['-type'][0] == 'x' and doc['-type'][1]!='project' and childNum is None:
+    if doc['-type'][0][0]=='x' and doc['-type'][0]!='x0' and childNum is None:
       #should not have childnumber in other cases
       thisStack = ' '.join(self.hierStack)
       view = self.db.getView('viewHierarchy/viewHierarchy', startKey=thisStack) #not faster with cT.getChildren
       childNum = 0
       for item in view:
-        if item['value'][1]=='project': continue
+        if item['value'][1][0]=='x0': continue
         if thisStack == ' '.join(item['key'].split(' ')[:-1]): #remove last item from string
           childNum += 1
 
@@ -194,9 +194,9 @@ class Pasta:
           doc['name'].endswith('.id_pasta.json') ):
         print("**WARNING** DO NOT ADD _pasta. files to database")
         return False
-      if doc['-type'][0] == 'x':
+      if doc['-type'][0][0]=='x':
         #project, step, task
-        if doc['-type'][1]=='project':
+        if doc['-type'][0]=='x0':
           childNum = 0
         if edit:      #edit: cwd of the project/step/task: remove last directory from cwd (since cwd contains a / at end: remove two)
           parentDirectory = os.sep.join(self.cwd.split(os.sep)[:-2])
@@ -204,7 +204,7 @@ class Pasta:
             parentDirectory += os.sep
         else:         #new: below the current project/step/task
           parentDirectory = self.cwd
-        path = parentDirectory + createDirName(doc['name'],doc['-type'][1],childNum) #update,or create (if new doc, update ignored anyhow)
+        path = parentDirectory + createDirName(doc['name'],doc['-type'][0],childNum) #update,or create (if new doc, update ignored anyhow)
         operation = 'u'
       else:
         #measurement, sample, procedure
@@ -274,11 +274,11 @@ class Pasta:
       doc = self.db.saveDoc(doc)
 
     ## adaptation of directory tree, information on disk: documentID is required
-    if self.cwd is not None and doc['-type'][0]=='x':
+    if self.cwd is not None and doc['-type'][0][0]=='x':
       #project, step, task
       path = doc['-branch'][0]['path']
       if not edit:
-        if doc['-type']==['x','project']:
+        if doc['-type'][0]=='x0':
           ## shell command
           # cmd = ['datalad','create','--description','"'+doc['objective']+'"','-c','text2git',path]
           # _ = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
@@ -762,7 +762,7 @@ class Pasta:
     ### check if datalad status is clean for all projects
     if verbose:
       output += "--- DataLad status ---\n"
-    viewProjects   = self.db.getView('viewDocType/project')
+    viewProjects   = self.db.getView('viewDocType/x0')
     viewPaths      = self.db.getView('viewHierarchy/viewPaths')
     listPaths = [item['key'] for item in viewPaths]
     curDirectory = os.path.abspath(os.path.curdir)
@@ -839,8 +839,7 @@ class Pasta:
         outString.append(formatString.format(item['name']) )
     outString = '|'.join(outString)+'\n'
     outString += '-'*104+'\n'
-    viewDocType = 'project' if docType=='x/project' else docType
-    for lineItem in self.db.getView('viewDocType/'+viewDocType):
+    for lineItem in self.db.getView('viewDocType/'+docType):
       rowString = []
       for idx, item in enumerate(self.db.ontology[docType]):
         if idx<len(widthArray):
@@ -1024,14 +1023,14 @@ class Pasta:
       # All non-deleted items: identify docType
       docDB    = self.db.getDoc(doc['_id']) if doc['_id']!='' else None
       levelNew = doc['-type']
-      if '_id' not in doc or docDB is None or docDB['-type'][0]=='x':
+      if '_id' not in doc or docDB is None or docDB['-type'][0][0]=='x':
         doc['-type'] = self.hierList[levelNew].split('/')
       else:
         doc['-type'] = docDB['-type']
 
       # for all non-text types: change children and  childNum in database
       #   and continue with next doc. This makes subsequent code easier
-      if doc['-type'][0]!='x':
+      if doc['-type'][0][0]!='x':
         docDB = dict(docDB)
         docDB.update(doc)
         doc = docDB
@@ -1088,7 +1087,7 @@ class Pasta:
             #adopt measurements, samples, etc: change / update path by supplying old path
             view = self.db.getView('viewHierarchy/viewPaths', startKey=path)
             for item in view:
-              if item['value'][1][0]=='x': continue  #skip since moved by itself
+              if item['value'][1][0][0]=='x': continue  #skip since moved by itself
               self.db.updateDoc( {'-branch':{'path':self.cwd, 'oldpath':path+os.sep,\
                                             'stack':self.hierStack,\
                                             'child':item['value'][2],\

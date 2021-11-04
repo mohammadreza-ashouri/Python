@@ -25,32 +25,32 @@ class TestStringMethods(unittest.TestCase):
     try:
       ### create some projects and show them
       print('*** TEST PROJECTS ***')
-      self.be.addData('x/project', {'name': 'Test project1', 'objective': 'Test objective1', 'status': 'active', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
-      self.be.addData('x/project', {'name': 'Test project2', 'objective': 'Test objective2', 'status': 'passive', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
-      self.be.addData('x/project', {'name': 'Test project3', 'objective': 'Test objective3', 'status': 'paused', 'comment': '#tag1 :field2:max: A random text'})
-      print(self.be.output('x/project'))
+      self.be.addData('x0', {'name': 'Test project1', 'objective': 'Test objective1', 'status': 'active', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
+      self.be.addData('x0', {'name': 'Test project2', 'objective': 'Test objective2', 'status': 'passive', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
+      self.be.addData('x0', {'name': 'Test project3', 'objective': 'Test objective3', 'status': 'paused', 'comment': '#tag1 :field2:max: A random text'})
+      print(self.be.output('x0'))
       print(" ====== STATE 1 ====\n"+self.be.checkDB(verbose=False))
 
       ### create some steps and tasks in the first (by id-number) project
       # add also some empty measurements
       print('*** TEST PROJECT HIERARCHY: no output ***')
-      viewProj = self.be.db.getView('viewDocType/project')
+      viewProj = self.be.db.getView('viewDocType/x0')
       projID  = [i['id'] for i in viewProj if 'Test project1'==i['value'][0]][0]
       projID1 = [i['id'] for i in viewProj if 'Test project2'==i['value'][0]][0]
       self.be.changeHierarchy(projID)
       projDirName = self.be.basePath+self.be.cwd
-      self.be.addData('x/step',    {'comment': 'More random text', 'name': 'Test step one'})
-      self.be.addData('x/step',    {'comment': 'Much more random text', 'name': 'Test step two'})
+      self.be.addData('x1',    {'comment': 'More random text', 'name': 'Test step one'})
+      self.be.addData('x1',    {'comment': 'Much more random text', 'name': 'Test step two'})
       stepID = self.be.currentID
-      self.be.addData('x/step',    {'comment': 'Even more random text', 'name': 'Test step three'})
+      self.be.addData('x1',    {'comment': 'Even more random text', 'name': 'Test step three'})
       self.be.changeHierarchy(stepID)
-      self.be.addData('x/task',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
-      self.be.addData('x/task',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
+      self.be.addData('x2',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
+      self.be.addData('x2',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
       self.be.changeHierarchy(self.be.currentID)  #cd in task
       self.be.addData('measurement', {'name': 'geolocation.txt', 'comment': 'Center of work'})
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/320px-Google_2015_logo.svg.png', 'comment': 'logo'})
       self.be.changeHierarchy(None)  #cd .. into step
-      self.be.addData('x/task',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
+      self.be.addData('x2',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
       print(" ====== STATE 2 ====\n"+self.be.checkDB(verbose=False))
 
       ### output of project

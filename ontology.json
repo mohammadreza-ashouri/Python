@@ -1,19 +1,19 @@
 {
   "_id":"-ontology-",
 
-  "x/project": [ {"order":1},
+  "x0": [ {"label":"project"},
       {"name":"name",     "query":"What is the project's name?"},
       {"name":"status",   "query":"What is the project status", "list":["active","paused","passive","finished"]},
       {"name":"objective","query":"What is the objective?"},
       {"name":"tags"},
       {"name":"comment",  "query":"#tags comments remarks :field:value:"}
   ],
-  "x/task": [    {"order":3},
-      {"name":"name",     "query":"What is the name of task?"},
-      {"name":"comment",  "query":"#tags comments remarks :field:value:"}
+  "x1": [ {"label":"step"},
+    {"name":"name",     "query":"What is the name of step?"},
+    {"name":"comment",  "query":"#tags comments remarks :field:value:"}
   ],
-  "x/step": [    {"order":2},
-      {"name":"name",     "query":"What is the name of step?"},
+  "x2": [ {"label":"task"},
+      {"name":"name",     "query":"What is the name of task?"},
       {"name":"comment",  "query":"#tags comments remarks :field:value:"}
   ],
 
