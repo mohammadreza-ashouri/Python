@@ -256,6 +256,33 @@ class Database:
     return newDoc
 
 
+  def addAttachment(self, docID, name, content):
+    """
+    Update document by adding attachment (no new revision)
+
+    Args:
+        docID (string):  id of document to change
+        name (string): attachment name to add to
+        content (dict): dictionary of content to be added (should include user,date,docID,remark)
+
+    Returns:
+        bool: success of method
+    """
+    try:
+      doc = self.db[docID]
+      if not '-attachment' in doc:
+        doc['-attachment'] = {}
+      if name in doc['-attachment']:
+        doc['-attachment'][name] += [content]
+      else:
+        doc['-attachment'][name] = [content]
+      doc.save()
+      return True
+    except:
+      return False
+
+
+
   def getView(self, thePath, startKey=None, preciseKey=None):
     """
     Wrapper for getting view function

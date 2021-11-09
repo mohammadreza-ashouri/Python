@@ -58,6 +58,21 @@ def testPython():
 
   cmd = 'python3 Tests/testTutorial.py'.split(' ')
   result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+  ### SUB-TESTS that depend on tutorial
+  successAll = True
+  for fileI in os.listdir('Tests'):
+    if not fileI.startswith('subtest'): continue
+    result = subprocess.run(['python3','-m','unittest','Tests'+os.sep+fileI], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    success = result.stdout.decode('utf-8').count  ('*** DONE WITH VERIFY ***')
+    if success==1:
+      print("  success: Python sub-unit test: "+fileI)
+    else:
+      successAll = False
+      print("  FAILED: Python sub-unit test: "+fileI)
+      print("    run: 'python3 -m unittest Tests/"+fileI+"'")
+  #### section = re.findall(r'Ran \d+ tests in [\d\.]+s\\n\\n..',str(result.stdout.decode('utf-8')))
+
+
   ## test read and write structure
   cmd = 'pastaDB.py -d pasta_tutorial print'.split(' ')
   result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
