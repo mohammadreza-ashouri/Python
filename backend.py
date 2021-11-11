@@ -825,7 +825,7 @@ class Pasta:
     """
     outString = []
     widthArray = [25,25,25,25]
-    if docType in self.tableFormat:
+    if docType in self.tableFormat and '-default-' in self.tableFormat[docType]:
       widthArray = self.tableFormat[docType]['-default-']
     for idx,item in enumerate(self.db.ontology[docType]):
       if not 'name' in item:    #heading
