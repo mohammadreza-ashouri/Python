@@ -151,7 +151,8 @@ def compareDOM_ELECTRON():
     if 'differ' in line and 'Files' in line:
       domFile = line.split()[1]
       electronFile = line.split()[3]
-      if 'localInteraction.js' in domFile: continue
+      if 'localInteraction.js' in domFile:
+        continue
       domTime =      now-datetime.datetime.fromtimestamp(os.path.getmtime(domFile)).replace(microsecond=0)
       electronTime = now-datetime.datetime.fromtimestamp(os.path.getmtime(electronFile)).replace(microsecond=0)
       print("  Files are different\t\t\tTime since change\n   ",domFile,'\t\t',domTime,'\n   ',electronFile,'\t',electronTime)
@@ -164,7 +165,8 @@ def compareDOM_ELECTRON():
           print('    -> Electron is newer: copy file')
           shutil.copy(electronFile,domFile)
     if 'Only' in line:
-      if 'App.test.js' in line: continue
+      if 'App.test.js' in line:
+        continue
       print("  File only in one directory",' '.join(line.split()[2:]))
   result = subprocess.Popen(['diff','-q','ReactDOM/src/components','ReactElectron/app/renderer/components'], stdout=subprocess.PIPE)
   result.wait()
