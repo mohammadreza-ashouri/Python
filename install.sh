@@ -221,7 +221,7 @@ sudo -u $THEUSER echo "    \"database\": \"____\"" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  \"-tableFormat-\": {" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"project\":{\"-label-\":\"Projects\",\"-default-\": [22,6,50,22]}," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"x0\":{\"-label-\":\"Projects\",\"-default-\": [22,6,50,22]}," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"measurement\":{\"-default-\": [24,7,23,23,-5,-6,-6,-6]}," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"sample\":{\"-default-\": [23,23,23,23,-5]}," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"procedure\":{\"-default-\": [20,20,20,40]}" >> /home/$THEUSER/.pasta.json

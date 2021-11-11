@@ -231,7 +231,7 @@ echo     "database": "____">> .pasta.json
 echo   },>> .pasta.json
 echo.  >> .pasta.json
 echo   "-tableFormat-": {>> .pasta.json
-echo     "project":{"-label-":"Projects","-default-": [22,6,50,22]},>> .pasta.json
+echo     "x0":{"-label-":"Projects","-default-": [22,6,50,22]},>> .pasta.json
 echo     "measurement":{"-default-": [24,7,23,23,-5,-6,-6,-6]},>> .pasta.json
 echo     "sample":{"-default-": [23,23,23,23,-5]},>> .pasta.json
 echo     "procedure":{"-default-": [20,20,20,40]}>> .pasta.json
