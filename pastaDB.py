@@ -99,9 +99,11 @@ else:
     if args.database=='':
       args.database = config['-defaultLocal']
     success = True
-    initViews, initConfig = False, True
-    if args.command=='test':
+    initViews, initConfig, resetOntology = False, True, False
+    if args.command.startswith('test'):
       initViews, initConfig = True, False
+      if args.command=='testDev':
+        resetOntology = True
       # local and remote server test
       urls = ['http://127.0.0.1:5984', config[config['-defaultRemote']]['url'] ]
       for url in urls:
@@ -113,10 +115,11 @@ else:
           print('CouchDB server',url,'is NOT working')
           if url=='http://127.0.0.1:5984':
             raise NameError('Wrong local server.') from None
-    be = Pasta(configName=args.database, initViews=initViews, initConfig=initConfig)
+    be = Pasta(configName=args.database, initViews=initViews, initConfig=initConfig,
+                                         resetOntology=resetOntology)
 
     # depending on commands
-    if args.command=='test':
+    if args.command.startswith('test'):
       print('database server:',be.db.db.client.server_url)
       print('configName:',be.configName)
       print('database name:',be.db.db.database_name)
@@ -145,8 +148,9 @@ else:
       output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       print(output.stdout.decode('utf-8'))
 
-    elif args.command=='verifyDB':
-      output = be.checkDB(verbose=False)
+    elif args.command.startswith('verifyDB'):
+      repair = args.command=='verifyDBdev'
+      output = be.checkDB(verbose=False, repair=repair)
       print(output)
       if '**ERROR' in output:
         success = False

@@ -7,7 +7,7 @@ class Database:
   Class for interaction with couchDB
   """
 
-  def __init__(self, user, password, databaseName, confirm, softwarePath=''):
+  def __init__(self, user, password, databaseName, confirm, softwarePath='', **kwargs):
     """
     Args:
         user (string): user name to local database
@@ -15,6 +15,7 @@ class Database:
         databaseName (string): local database name
         confirm (function): confirm changes to database and file-tree
         softwarePath (string): path to software and default dataDictionary.json
+        kwargs (dict): additional parameter
     """
     import json
     from cloudant.client import CouchDB
@@ -31,8 +32,11 @@ class Database:
     else:
       self.db = self.client.create_database(self.databaseName)
     # check if default documents exist and create
-    if '-ontology-' not in self.db:
-      logging.info('database:init ontology not defined. Use default one')
+    if '-ontology-' not in self.db or kwargs.get('resetOntology', False):
+      if '-ontology-' in self.db:
+        print('Remove old ontology')
+        self.db['-ontology-'].delete()
+      logging.info('database:init ontology reinitialized')
       with open(softwarePath+'ontology.json', 'r') as fIn:
         doc = json.load(fIn)
       _ = self.db.create_document(doc)
@@ -459,6 +463,9 @@ class Database:
       outstring+= f'{bcolors.UNDERLINE}**** List all DOCUMENTS ****{bcolors.ENDC}\n'
     else:
       outstring = ''
+    repair = kwargs.get('repair', False)
+    if repair:
+      print('REPAIR MODE IS ON')
     ## loop all documents
     for doc in self.db:
       try:

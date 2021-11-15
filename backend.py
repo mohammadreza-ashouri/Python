@@ -7,15 +7,17 @@ class Pasta:
   PYTHON BACKEND
   """
 
-  def __init__(self, configName=None, confirm=None, initViews=False, initConfig=True):
+  def __init__(self, configName=None, confirm=None, **kwargs):
     """
     open server and define database
 
     Args:
         configName (string): name of configuration used; if not given, use the one defined by '-defaultLocal' in config file
         confirm (function): confirm changes to database and file-tree
-        initViews (bool): initialize views at startup
-        initConfig (bool): skip initialization of .pasta.json configuration file
+        kwargs (dict): additional parameters
+          - initViews (bool): initialize views at startup
+          - initConfig (bool): skip initialization of .pasta.json configuration file
+          - resetOntology (bool): reset ontology on database from one on file
     """
     import os, logging, json, sys
     from database import Database
@@ -35,7 +37,7 @@ class Pasta:
     with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
       configuration = json.load(f)
     changed = False
-    if initConfig:
+    if kwargs.get('initConfig', True):
       for item in configuration:
         if 'user' in configuration[item] and 'password' in configuration[item]:
           configuration[item]['cred'] = upIn(configuration[item]['user']+':'+configuration[item]['password'])
@@ -85,12 +87,12 @@ class Pasta:
     self.magicTags= configuration['-magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
     self.tableFormat = configuration['-tableFormat-']
     # start database
-    self.db = Database(n, s, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep)
+    self.db = Database(n, s, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep, **kwargs)
     res = cT.ontology2Labels(self.db.ontology,self.tableFormat)
     self.dataLabels      = list(res['dataList'])
     self.hierarchyLabels = list(res['hierarchyList'])
     self.hierList        = list(res['hierarchyOrder'])
-    if initViews:
+    if kwargs.get('initViews', False):
       self.db.initViews(self.dataLabels+self.hierarchyLabels,self.magicTags)
     # internal hierarchy structure
     self.hierStack = []
