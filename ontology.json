@@ -38,7 +38,7 @@
     {"name":"name",       "query":"What is the name / path?"},
     {"name":"tags"},
     {"name":"comment",    "query":"#tags comments :field:value: e.g. #SOP_v1"},
-    {"name":"content",    "query":"What are the steps (autofilled if file given)?"}
+    {"name":"content",    "query":"What is procedure (Markdown possible; autofilled if file given)?"}
   ],
   "instrument": [
     {"name":"name",       "query":"What is the name / path?"},

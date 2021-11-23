@@ -126,7 +126,8 @@ else:
       designDocuments = be.db.db.design_documents()
       print('Design documents')
       for item in designDocuments:
-        print('  ',item['id'], '   Num. of views:', len( item['doc']['views']) )
+        numViews = len(item['doc']['views']) if 'views' in item['doc'] else 0
+        print('  ',item['id'], '   Num. of views:', numViews )
       try:
         doc = be.db.getDoc('-ontology-')
         print('Ontology exists on server')
