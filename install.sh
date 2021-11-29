@@ -148,7 +148,6 @@ echo "Two empty (for safety) directories are required. One for the source code"
 echo "and the other as central place to store data, work in."
 read -p "  Where to store the source code? [pasta_source, i.e. /home/${THEUSER}/pasta_source] " pasta_src
 read -p "  Where to store the data? [pasta, i.e. /home/${THEUSER}/pasta] " pasta
-read -p "  How do you want to be known in workgroup (leave empty for more privacy)? only small letters [_]? " pasta_user
 if [ -z $pasta_src ]
 then
   pasta_src="pasta_source"
@@ -156,10 +155,6 @@ fi
 if [ -z $pasta ]
 then
   pasta="pasta"
-fi
-if [ -z $pasta_user ]
-then
-  pasta_user="_"
 fi
 sudo -u $THEUSER mkdir /home/$THEUSER/$pasta_src
 sudo -u $THEUSER mkdir /home/$THEUSER/$pasta_src/pasta_tutorial
@@ -193,7 +188,7 @@ echo
 echo "Create PASTA configuration file .pasta.json in home directory"
 sudo -u $THEUSER echo "{" > /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  \"-softwareDir\": \"/home/${THEUSER}/${pasta_src}/main\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"-userID\": \"${pasta_user}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"-userID\": \"${THEUSER}\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  \"-defaultLocal\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  \"-defaultRemote\": \"remote\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  \"-eargs\": {\"editor\": \"emacs\", \"ext\": \".org\", \"style\": \"all\"}," >> /home/$THEUSER/.pasta.json
@@ -202,7 +197,7 @@ sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  \"local\": {" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"database\": \"${pasta_user}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"database\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"path\": \"/home/${THEUSER}/${pasta}\"" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json

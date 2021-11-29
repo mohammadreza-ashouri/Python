@@ -10,13 +10,10 @@ echo One empty (for safety) directory is required for source code and test data.
 echo Your own data can be saved elsewhere.
 set softwareDir=
 set pasta=
-set pasta_user=
 set /p softwareDir="Which subdirectory of 'My Documents' should the software be installed to [e.g. pasta_source]? "
-set /p pasta_user=" How do you want to be known in workgroup (leave empty for more privacy)? only small letters [_] "
 REM check for empty line
 if not defined softwareDir (set softwareDir=pasta_source)
 if not defined pasta (set pasta=pasta)
-if not defined pasta_user (set pasta_user=_)
 set softwareDir=%HOMEDRIVE%%HOMEPATH%\Documents\%softwareDir%
 set downloadDir=%softwareDir%\tempDownload
 mkdir %softwareDir%
@@ -210,7 +207,7 @@ cd %HOMEDRIVE%%HOMEPATH%
 set softwareDirString=%softwareDir:\=\\%
 echo { > .pasta.json
 echo   "-softwareDir": "%softwareDir%\main",>> .pasta.json
-echo   "-userID": "%pasta_user%",>> .pasta.json
+echo   "-userID": "%USERNAME%",>> .pasta.json
 echo   "-defaultLocal": "pasta_tutorial",>> .pasta.json
 echo   "-defaultRemote": "remote",>> .pasta.json
 echo   "-eargs": {"editor": "emacs", "ext": ".org", "style": "all"},>> .pasta.json
