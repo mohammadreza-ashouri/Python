@@ -16,8 +16,6 @@ def testPython():
   """
   print('==== PYTHON ====')
   os.chdir('Python')
-  result = subprocess.run(['python3','./miscTools.py'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
-  print(result.stdout.decode('utf-8').strip())
   ### pylint
   success = True
   for fileName in ['backend.py', 'database.py', 'pastaCLI.py', 'pastaDB.py', 'miscTools.py', 'checkAllVersions.py']:
@@ -44,6 +42,10 @@ def testPython():
     os.chdir('..')
     return
   # Git, expect clean git before testing
+  #
+  # run miscTools
+  result = subprocess.run(['python3','./miscTools.py'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+  print(result.stdout.decode('utf-8').strip())
   ### TESTS
   successAll = True
   for fileI in os.listdir('Tests'):
