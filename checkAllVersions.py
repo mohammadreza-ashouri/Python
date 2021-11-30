@@ -35,7 +35,7 @@ def testPython():
     print('  FAILED : pylint not 100%. run "pylint [file]"')
   ### git test
   result = subprocess.run(['git','status'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
-  if len([1 for i in result.stdout.decode('utf-8').split('\n') if i.startswith('\tmodified:')])==0:
+  if len([1 for i in result.stdout.decode('utf-8').split('\n') if (i.startswith('\tmodified:') and i!='\tmodified:   commonTools.py')])==0:
     print('  success: Git tree clean')
   else:
     print('  Safety Warning : Submit to git')
