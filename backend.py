@@ -167,7 +167,7 @@ class Pasta:
     if docType == '-edit-':
       edit = True
       if '-type' not in doc:
-        doc['-type'] = ['x',self.hierList[len(self.hierStack)-1]]
+        doc['-type'] = ['x'+str(len(self.hierStack))]
       if len(hierStack) == 0:
         hierStack = self.hierStack
       if '_id' not in doc:
