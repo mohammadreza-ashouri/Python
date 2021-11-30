@@ -89,11 +89,15 @@ class Pasta:
     # start database
     self.db = Database(n, s, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep, **kwargs)
     res = cT.ontology2Labels(self.db.ontology,self.tableFormat)
-    self.dataLabels      = list(res['dataList'])
-    self.hierarchyLabels = list(res['hierarchyList'])
-    self.hierList        = list(res['hierarchyOrder'])
+    self.dataLabels      = res['dataDict']
+    self.hierarchyLabels = res['hierarchyDict']
     if kwargs.get('initViews', False):
-      self.db.initViews(self.dataLabels+self.hierarchyLabels,self.magicTags)
+      labels = {}  #one line merging / update does not work
+      for i in res['dataDict']:
+        labels[i]=res['dataDict'][i]
+      for i in res['hierarchyDict']:
+        labels[i]=res['hierarchyDict'][i]
+      self.db.initViews(labels,self.magicTags)
     # internal hierarchy structure
     self.hierStack = []
     self.currentID  = None
@@ -344,7 +348,7 @@ class Pasta:
         kwargs (dict): additional parameter
     """
     import os, logging
-    if docID is None or docID in self.hierList:  # none, 'project', 'step', 'task' are given: close
+    if docID is None or (docID[0]=='x' and docID[1]!='-'):  # none, 'project', 'step', 'task' are given: close
       self.hierStack.pop()
       if self.cwd is not None:
         os.chdir('..')
@@ -1026,7 +1030,7 @@ class Pasta:
       docDB    = self.db.getDoc(doc['_id']) if doc['_id']!='' else None
       levelNew = doc['-type']
       if '_id' not in doc or docDB is None or docDB['-type'][0][0]=='x':
-        doc['-type'] = self.hierList[levelNew].split('/')
+        doc['-type'] = 'x'+str(levelNew+1)
       else:
         doc['-type'] = docDB['-type']
 
@@ -1046,16 +1050,17 @@ class Pasta:
       if doc['edit'] == "-edit-":
         edit = "-edit-"
       else:
-        edit = '/'.join(doc['-type'])
+        edit = doc['-type']
       del doc['edit']
       # change directories: downward
       if levelOld is None:   #first run-through
         doc['childNum'] = docDB['-branch'][0]['child']
       else:                   #after first entry
         if levelNew<levelOld:                               #UNCLE, aka SIBLING OF PARENT
-          children.pop()
-          self.changeHierarchy(None)                      #'cd ..'
-          self.changeHierarchy(None)                        #'cd ..', change into directory later, once it's name is known
+          self.changeHierarchy(None)                        #'cd ..'
+          for _ in range(levelOld-levelNew):
+            children.pop()
+            self.changeHierarchy(None)                        #'cd ..', change into directory later, once it's name is known
           children[-1] += 1
         elif levelNew>levelOld:                             #CHILD
           children.append(0)

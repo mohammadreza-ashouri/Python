@@ -1,6 +1,7 @@
 #!/bin/bash
 echo "Installer for PASTA database on Ubuntu Systems"
 echo "IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/pasta/main/-/wikis/home#installation-scripts"
+echo "Default choices are accepted by return: [Y/n]->yes; [default]->default"
 echo
 read -p "Do you wish to start installing now [Y/n] ? " yesno
 if [[ $yesno = 'N' ]] || [[ $yesno = 'n' ]]
@@ -260,9 +261,20 @@ echo -e "Last step: Start the graphical user interface. If you want to do that i
 echo -e "the future:"
 echo -e "  cd /home/$THEUSER/$pasta_src/gui"
 echo -e "  npm start"
-echo -e "During the first run of the GUI, click 'Test Backend' in CONFIGURATION. It"
-echo -e "is good to start with Projects, then Samples and Procedures and finally"
+echo -e "During first run of the GUI, click 'Test Backend' in CONFIGURATION/Top-left corner."
+echo -e "It is good to start with Projects, then Samples and Procedures and finally"
 echo -e "Measurements."
 echo -e "==========================================================\033[0m"
 echo
 sudo PATH=$PATH:/home/$THEUSER/$pasta_src/main -u $THEUSER npm start
+
+echo -e "\033[0;31m=========================================================="
+echo -e "Last step: Start the graphical user interface. If you want to do that in "
+echo -e "the future:"
+echo -e "  cd /home/$THEUSER/$pasta_src/gui"
+echo -e "  npm start"
+echo -e "During first run of the GUI, click 'Test Backend' in CONFIGURATION/Top-left corner."
+echo -e "It is good to start with Projects, then Samples and Procedures and finally"
+echo -e "Measurements."
+echo -e "==========================================================\033[0m"
+echo

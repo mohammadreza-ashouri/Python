@@ -56,7 +56,7 @@ class Database:
     # for the individual docTypes
     jsDefault = "if ($docType$) {emit($key$, [$outputList$]);}"
     viewCode = {}
-    for docType, _ in docTypesLabels:
+    for docType in docTypesLabels:
       if docType=='x0':
         jsString = jsDefault.replace('$docType$', "doc['-type']=='x0'").replace('$key$','doc._id')
       else:     #only show first instance in list doc.branch[0]

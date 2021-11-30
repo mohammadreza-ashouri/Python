@@ -16,6 +16,8 @@ def testPython():
   """
   print('==== PYTHON ====')
   os.chdir('Python')
+  result = subprocess.run(['python3','./miscTools.py'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+  print(result.stdout.decode('utf-8').strip())
   ### pylint
   success = True
   for fileName in ['backend.py', 'database.py', 'pastaCLI.py', 'pastaDB.py', 'miscTools.py', 'checkAllVersions.py']:
