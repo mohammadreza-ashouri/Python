@@ -377,7 +377,7 @@ def translateJS2PY():
   jsString = re.sub(r"export.+;", "", jsString)
   jsFile = io.StringIO(jsString)
   js2py.translate_file(jsFile, 'commonTools.py')
-  print('translated js->py')
+  print('..success: translated commonTools.js->commonTools.py')
   return
 
 

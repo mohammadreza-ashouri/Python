@@ -32,15 +32,15 @@ def testPython():
   if success:
     print('  success: pylint-success')
   else:
-    print('  FAILED : pylint not 100%. run "pylint [file]"')
+    print('**FAILED : pylint not 100%. run "pylint [file]"')
   ### git test
   result = subprocess.run(['git','status'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
   if len([1 for i in result.stdout.decode('utf-8').split('\n') if (i.startswith('\tmodified:') and i!='\tmodified:   commonTools.py')])==0:
     print('  success: Git tree clean')
   else:
-    print('  Safety Warning : Submit to git')
-    os.chdir('..')
-    return
+    print('**WARNING: Check code and submit to git')
+    # os.chdir('..')
+    # return
   # Git, expect clean git before testing
   #
   # run miscTools
@@ -53,11 +53,11 @@ def testPython():
     result = subprocess.run(['python3','-m','unittest','Tests'+os.sep+fileI], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     success = result.stdout.decode('utf-8').count  ('*** DONE WITH VERIFY ***')
     if success==1:
-      print("  success: Python unit test: "+fileI)
+      print("  success: Python unit test "+fileI)
     else:
       successAll = False
-      print("  FAILED: Python unit test: "+fileI)
-      print("    run: 'python3 -m unittest Tests/"+fileI+"'")
+      print("  FAILED: Python unit test "+fileI)
+      print("    run: 'python3 Tests/"+fileI+"'")
   #### section = re.findall(r'Ran \d+ tests in [\d\.]+s\\n\\n..',str(result.stdout.decode('utf-8')))
 
   cmd = 'python3 Tests/testTutorial.py'.split(' ')
@@ -69,11 +69,11 @@ def testPython():
     result = subprocess.run(['python3','-m','unittest','Tests'+os.sep+fileI], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     success = result.stdout.decode('utf-8').count  ('*** DONE WITH VERIFY ***')
     if success==1:
-      print("  success: Python sub-unit test: "+fileI)
+      print("  success: Python sub-unit test "+fileI)
     else:
       successAll = False
-      print("  FAILED: Python sub-unit test: "+fileI)
-      print("    run: 'python3 -m unittest Tests/"+fileI+"'")
+      print("**FAILED: Python sub-unit test "+fileI)
+      print("    run: 'python3 Tests/"+fileI+"'")
   #### section = re.findall(r'Ran \d+ tests in [\d\.]+s\\n\\n..',str(result.stdout.decode('utf-8')))
 
 
@@ -103,36 +103,41 @@ def testPython():
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     lastLine = result.stdout.decode('utf-8').split('\n')[-2].strip()
     if lastLine=='SUCCESS':
-      print('  success pastaDB.py:  setEditString')
+      print('  success pastaDB.py  setEditString2')
     else:
       successAll = False
-      print('  FAILED pastaDB.py:  setEditString')
+      print('**FAILED pastaDB.py  setEditString2')
       print(result.stdout.decode('utf-8'))
   else:
     successAll = False
-    print('  FAILED pastaDB.py hierarchy: ')
+    print('**FAILED pastaDB.py hierarchy: ')
     print(result.stdout.decode('utf-8'))
 
-  ## Test all other pastaDB.py commands
+  ## Blocking Test all other pastaDB.py commands
   tests = ['test -d pasta_tutorial',
            'scanHierarchy -d pasta_tutorial -i '+docID,
            'print -d pasta_tutorial',
            'print -d pasta_tutorial -l x0',
            'print -d pasta_tutorial -l measurement',
            'print -d pasta_tutorial -l sample',
-           'print -d pasta_tutorial -l procedure',
-           'extractorTest -d pasta_tutorial -p IntermetalsAtInterfaces/002_SEMImages/Zeiss.tif',
-           'extractorTest -d pasta_tutorial -p IntermetalsAtInterfaces/002_SEMImages/Zeiss.tif -c measurement/tif/image/scale/adaptive']
+           'print -d pasta_tutorial -l procedure']
   for test in tests:
     cmd = ['pastaDB.py']+test.split(' ')
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     lastLine = result.stdout.decode('utf-8').split('\n')[-2].strip()
     if lastLine=='SUCCESS':
-      print('  success pastaDB.py: ',test)
+      print('  success pastaDB.py ',test)
     else:
       successAll = False
-      print('  FAILED pastaDB.py: ',test)
+      print('**FAILED pastaDB.py ',test)
       print(result.stdout.decode('utf-8'))
+  ## NON-Blocking Test all other pastaDB.py commands
+  tests = [
+           'extractorTest -d pasta_tutorial -p IntermetalsAtInterfaces/002_SEMImages/Zeiss.tif',
+           'extractorTest -d pasta_tutorial -p IntermetalsAtInterfaces/002_SEMImages/Zeiss.tif -c measurement/tif/image/scale/adaptive']
+  for test in tests:
+    cmd = ['pastaDB.py']+test.split(' ')
+    _   = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   os.chdir('..')
   if successAll:
     print("ALL SUCCESS: GIT PUSH ")
@@ -194,7 +199,7 @@ def compareDOM_ELECTRON():
       print("  File only in one directory",' '.join(line.split()[2:]))
       failure=True
   if failure:
-    print('  FAILURE OF COMPARE')
+    print('**FAILURE of compare')
   else:
     print('  success of compare')
   return
@@ -229,10 +234,10 @@ def testDOM():
   if len([1 for i in result.decode('utf-8').split('\n') if i.startswith('\tmodified:')])==0:
     print('  success: Git tree clean')
   else:
-    print('  Warning : Submit to git')
-    os.chdir('..')
-    return
-  # Git, expect clean git before testing
+    print('**WARNING: Check code and submit to git')
+    # os.chdir('..')
+    # return
+  # Git, expect clean git before testing (not easy since, linting/etc. can cause small changes)
 
   ### cypress, after linting
   text = None
@@ -248,10 +253,9 @@ def testDOM():
   failures = [line for line in result if 'failures": [' in line]
   failures = ['[]' not in line for line in failures]
   if np.any(failures):
-    print('  FAILED : cypress ')
-    print('    Title of test: '+str(np.array([line for line in result if 'fullTitle"' in line][::2])[failures]))
-    print('    File of failed test: '+str([line for line in result if '"relativeFile"' in line][::4]) )
-    print('    Message of failure: '+str([line for line in result if '"message"' in line][::4]))
+    print('**FAILED : cypress failed test')
+    print('    - '+'\n    - '.join(np.array([line[20:-3].strip() for line in result if 'fullTitle"' in line][::2])[failures]))
+    # print('    Message of failure: '+str([line for line in result if '"message"' in line][::4]))
   else:
     print('  success: cypress')
   text = None
@@ -282,7 +286,7 @@ def testElectron():
   if len([1 for i in result.decode('utf-8').split('\n') if i.startswith('\tmodified:')])==0:
     print('  success: Git tree clean')
   else:
-    print('  Warning: Submit to git')
+    print('**Warning: Submit to git')
   # success = True
   # for root, dirs, files in os.walk("app/renderer"):
   #   for name in files:
