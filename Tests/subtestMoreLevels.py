@@ -30,7 +30,7 @@ class TestStringMethods(unittest.TestCase):
       #restart
       self.be.exit()
       self.be = Pasta(configName, initViews=True, initConfig=False)
-      self.assertTrue(self.be.hierList==['x0','x1','x2','x3'],'Level not added')
+      self.assertTrue(list(self.be.hierarchyLabels)==['x0','x1','x2','x3'],'Level not added')
       print('\n*** DONE WITH VERIFY ***')
 
     except:

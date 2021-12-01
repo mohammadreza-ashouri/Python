@@ -1030,7 +1030,7 @@ class Pasta:
       docDB    = self.db.getDoc(doc['_id']) if doc['_id']!='' else None
       levelNew = doc['-type']
       if '_id' not in doc or docDB is None or docDB['-type'][0][0]=='x':
-        doc['-type'] = 'x'+str(levelNew+1)
+        doc['-type'] = 'x'+str(levelNew)
       else:
         doc['-type'] = docDB['-type']
 
