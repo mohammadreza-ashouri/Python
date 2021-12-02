@@ -1,5 +1,5 @@
 ### About Main project
-Python / Main section of the PASTA database framework.
+Main backend: install first! (Python backend of PASTA database)
 
 Pasta-dishes are a mixture pasta and sauce, the latter adds flavors
 and richness to the otherwise boring pasta. This database combines raw-data with rich metadata
