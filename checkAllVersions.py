@@ -83,11 +83,11 @@ def testPython():
   #### determine docID
   docID = None
   for line in result.stdout.decode('utf-8').split('\n'):
-    if 'Intermetals at int' in line:
+    if 'Intermet' in line:
       docID = line.split()[-1]
   if docID is None:
     successAll = False
-    print('**ERROR** "Intermetals it int" not found as project')
+    print('**ERROR** "Intermet" not found as project')
     print(result.stdout.decode('utf-8'))
     os.chdir('..')
     return
