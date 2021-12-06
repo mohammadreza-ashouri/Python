@@ -1,23 +1,23 @@
-"""create measurement data from .txt file
+"""extract data from .txt file
 """
 import matplotlib.pyplot as plt
 from nanoIndent import Indentation
 
-def getMeasurement(fileName, doc):
+def use(fileName, doc):
   """
   Args:
      fileName (string): full path file name
-     doc (dict): supplied to guide image creation doc['type']
+     doc (dict): supplied to guide image creation doc['-type']
 
   Returns:
-    list: image, [('png'|'jpg'|'svg'), type, metaVendor, metaUser]
+    list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
   """
   #if Hysitron/Fischer-Scope file
   try:
     i = Indentation(fileName, verbose=1)
     if i is None:
       raise ValueError
-    if doc['type'][2:] == ['indentation', 'procedure']:#: plot indentation procedure
+    if doc['-type'][2:] == ['indentation', 'procedure']:#: plot indentation procedure
       ax1 = plt.subplot(111)
       ax2 = ax1.twinx()
       ax1.plot(i.t, i.p, c='C0', label='force')
@@ -29,12 +29,12 @@ def getMeasurement(fileName, doc):
       ax2.set_ylabel(r"depth [$\mathrm{\mu m}$]")
       ax1.set_ylim(bottom=0)
       ax2.set_ylim(bottom=0)
-      return ax1, ['svg', doc['type'],                 i.metaVendor, i.metaUser]
+      return ax1, ['svg', doc['-type'],                 i.metaVendor, i.metaUser]
 
     else:                                               #default: plot force-depth curve
       i.analyse()
       img = i.plot(False,False)
-      return img, ['svg', doc['type']+['indentation'], i.metaVendor, i.metaUser]
+      return img, ['svg', doc['-type']+['indentation'], i.metaVendor, i.metaUser]
   except:
     pass
 
