@@ -20,6 +20,14 @@ fi
 echo
 THEUSER=$(logname)
 
+echo "Ensure that conda is not running"
+if conda &>/dev/null
+then
+  echo "  'conda' is installed; I deactivate it."
+  conda deactivate
+else
+  echo "  Info: 'conda' is not installed."
+fi
 
 echo "Ensure python is installed"
 OUTPUT=$(python3 --version)
