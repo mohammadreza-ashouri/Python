@@ -61,8 +61,8 @@ class Database:
         jsString = jsDefault.replace('$docType$', "doc['-type']=='x0'").replace('$key$','doc._id')
       elif docType[0]=='x':
         continue
-      else:     #only show docType is full match
-        jsString = jsDefault.replace('$docType$', "doc['-type'].join('/')=='"+docType+"'").replace('$key$','doc["-branch"][0].stack[0]')
+      else:     #show all doctypes that have the same starting ..
+        jsString = jsDefault.replace('$docType$', "doc['-type'].join('/').substring(0, "+str(len(docType))+")=='"+docType+"'").replace('$key$','doc["-branch"][0].stack[0]')
       outputList = []
       for item in self.ontology[docType]:
         if 'name' not in item:
