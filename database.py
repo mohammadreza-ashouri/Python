@@ -59,8 +59,10 @@ class Database:
     for docType in docTypesLabels:
       if docType=='x0':
         jsString = jsDefault.replace('$docType$', "doc['-type']=='x0'").replace('$key$','doc._id')
-      else:     #only show first instance in list doc.branch[0]
-        jsString = jsDefault.replace('$docType$', "doc['-type'][0]=='"+docType+"'").replace('$key$','doc["-branch"][0].stack[0]')
+      elif docType[0]=='x':
+        continue
+      else:     #only show docType is full match
+        jsString = jsDefault.replace('$docType$', "doc['-type'].join('/')=='"+docType+"'").replace('$key$','doc["-branch"][0].stack[0]')
       outputList = []
       for item in self.ontology[docType]:
         if 'name' not in item:
@@ -465,7 +467,7 @@ class Database:
       outstring = ''
     repair = kwargs.get('repair', False)
     if repair:
-      print('REPAIR MODE IS ON')
+      print('REPAIR MODE IS ON: afterwards, full-reload and create views')
     ## loop all documents
     for doc in self.db:
       try:
@@ -474,6 +476,14 @@ class Database:
             outstring+= f'{bcolors.OKGREEN}..info: Design document '+doc['_id']+f'{bcolors.ENDC}\n'
           continue
         if doc['_id'] == '-ontology-':
+          if repair:
+            if '-hierarchy-' in doc:
+              del doc['-hierarchy-']
+            for old,new in [['project','x0'],['step','x1'],['task','x2']]:
+              if new not in doc and old in doc:
+                doc[new] = doc[old].copy()
+                del doc[old]
+            doc.save()
           if verbose:
             outstring+= f'{bcolors.OKGREEN}..info: ontology exists{bcolors.ENDC}\n'
           continue
@@ -490,6 +500,34 @@ class Database:
         #   continue
         ## output size of document
         # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
+        if repair:
+          # print("before",doc.keys(),doc['_id'])
+          # if doc['_id']== "x-028456be353dd7b5092c48841d6dfec8":
+          #   print('found')
+          for item in ['branch','curated','user','type','client','date']:
+            if '-'+item not in doc and item in doc:
+              if item=='branch' or item=='type':
+                doc['-'+item] = doc[item].copy()
+              else:
+                doc['-'+item] = doc[item]
+              del doc[item]
+          #print(doc.keys())
+          if not '-type' in doc:
+            doc['-type'] =[]
+          if doc['-type'] == ["text","project"]:
+            doc['-type'] = ["x0"]
+          if doc['-type'] == ["text","step"]:
+            doc['-type'] = ["x1"]
+          if doc['-type'] == ["text","task"]:
+            doc['-type'] = ["x2"]
+
+          # #due to steffen's fuck up
+          # if doc['-type'] == [] and doc['-branch'][0]['path']:
+          #   if len(doc['-branch'][0]['stack']) == len(doc['-branch'][0]['path'].split('/'))-1 :
+          #     doc['-type'] = ["x"+str(len(doc['-branch'][0]['stack'])) ]
+          doc.save()
+          # print("after ",doc.keys(),doc['_id'])
+
 
         #branch test
         if '-branch' not in doc:
