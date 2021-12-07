@@ -506,7 +506,7 @@ class Database:
           #   print('found')
           for item in ['branch','curated','user','type','client','date']:
             if '-'+item not in doc and item in doc:
-              if item=='branch' or item=='type':
+              if item in ('branch', 'type'):
                 doc['-'+item] = doc[item].copy()
               else:
                 doc['-'+item] = doc[item]
