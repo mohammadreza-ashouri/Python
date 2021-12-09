@@ -997,8 +997,7 @@ class Pasta:
     docList = cT.editString2Docs(newText, self.magicTags)
     del newText; del text
     # initialize iteration
-    levelOld, prevTextFlag = None, True
-    children  = [0]
+    levelOld = None
     path      = None
     deletedDocs= []
     for doc in docList:  #iterate through all entries
@@ -1029,6 +1028,17 @@ class Pasta:
       # All non-deleted items: identify docType
       docDB    = self.db.getDoc(doc['_id']) if doc['_id']!='' else None
       levelNew = doc['-type']
+      if levelOld is None:   #first run-through
+        children  = [0]
+      else:                   #after first entry
+        if levelNew<levelOld:                               #UNCLE, aka SIBLING OF PARENT
+          for _ in range(levelOld-levelNew):
+            children.pop()
+          children[-1] += 1
+        elif levelNew>levelOld:                             #CHILD
+          children.append(0)
+        else:                                               #SIBLING
+          children[-1] += 1
       if '_id' not in doc or docDB is None or docDB['-type'][0][0]=='x':
         doc['-type'] = 'x'+str(levelNew)
       else:
@@ -1040,10 +1050,10 @@ class Pasta:
         docDB = dict(docDB)
         docDB.update(doc)
         doc = docDB
-        children[-1] += 1
         doc['childNum'] = children[-1]
         del doc['edit']
         self.addData(edit, doc, self.hierStack)
+        levelOld     = levelNew
         continue
 
       # ONLY TEXT DOCUMENTS
@@ -1056,17 +1066,9 @@ class Pasta:
       if levelOld is None:   #first run-through
         doc['childNum'] = docDB['-branch'][0]['child']
       else:                   #after first entry
-        if levelNew<levelOld:                               #UNCLE, aka SIBLING OF PARENT
+        lenPath = len(self.cwd.split('/'))-1 if len(self.cwd.split('/')[-1])==0 else len(self.cwd.split('/'))
+        for _ in range(lenPath-levelNew):
           self.changeHierarchy(None)                        #'cd ..'
-          for _ in range(levelOld-levelNew):
-            children.pop()
-            self.changeHierarchy(None)                        #'cd ..', change into directory later, once it's name is known
-          children[-1] += 1
-        elif levelNew>levelOld:                             #CHILD
-          children.append(0)
-        else:                                               #SIBLING
-          self.changeHierarchy(None)                      #'cd ..', change into directory later, once it's name is known
-          children[-1] += 1
         #check if directory exists on disk
         #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
         dirName = createDirName(doc['name'],doc['-type'][0],children[-1])
@@ -1116,11 +1118,10 @@ class Pasta:
 
     #----------------------------------------------------
     #at end, go down ('cd  ..') number of children-length
+    if doc['-type'][0][0]!='x':  #remove one child, if last was not an x-element, e.g. a measurement
+      children.pop()
     for _ in range(len(children)-1):
-      if prevTextFlag:
-        self.changeHierarchy(None)
-      else:
-        prevTextFlag=True
+      self.changeHierarchy(None)
     os.unlink(tempfile.gettempdir()+os.sep+'tempSetEditString.txt')
     dataset = datalad.Dataset(self.basePath+self.cwd.split(os.sep)[0])
     dataset.save(message='set-edit-string: update the project structure')
