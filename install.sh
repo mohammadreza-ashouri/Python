@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "Installer for PASTA database on Ubuntu Systems"
+echo "Installer for PASTA database on Ubuntu 20.04"
 echo "IMPORTANT: if you have problems, visit https://jugit.fz-juelich.de/pasta/main/-/wikis/home#installation-scripts"
 echo "Default choices are accepted by return: [Y/n]->yes; [default]->default"
 echo
@@ -70,26 +70,15 @@ else
   sudo apt-get install -y pandoc          >> installLog.txt
 fi
 echo
-echo "Ensure git is installed"
-if command -v git &> /dev/null
-then
-  echo "  git installed."
-else
-  echo "  Info: git will be installed. This takes a few minutes"
-  sudo apt-get install -y git             >> installLog.txt
-fi
-echo
-echo "Ensure git-annex is installed"
-if command -v git-annex &> /dev/null
-then
-  echo "  git-annex installed."
-else
-  echo "  Info: git-annex will be installed from FZJ server."
-  wget -O- http://neuro.debian.net/lists/focal.de-fzj.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
-  sudo apt-key adv --recv-keys --keyserver hkps://keyserver.ubuntu.com 0xA5D32F012649A5A9
-  sudo apt-get update >/dev/null
-  sudo apt-get install -y git-annex-standalone >/dev/null
-fi
+
+
+echo "Install git, git-annex, datalad"
+wget -O- http://neuro.debian.net/lists/focal.de-fzj.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+sudo apt-key adv --recv-keys --keyserver hkps://keyserver.ubuntu.com 0xA5D32F012649A5A9
+sudo apt-get update >/dev/null
+sudo apt-get install -y datalad >/dev/null
+
+
 OUTPUT=$(sudo -u $THEUSER git config -l | grep "user")
 if [[ -n $OUTPUT ]]
 then
@@ -190,7 +179,6 @@ echo
 echo "Install python requirements. This takes a few minutes."
 cd /home/$THEUSER/$pasta_src/main
 sudo -H pip3 install -r requirements.txt           >> installLog.txt
-sudo -H pip3 install js2py                         >> installLog.txt
 echo
 
 
