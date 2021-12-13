@@ -1,20 +1,11 @@
-# This file is a template, and might need editing before it works on your project.
-# To contribute improvements to CI/CD templates, please follow the Development guide at:
-# https://docs.gitlab.com/ee/development/cicd/templates.html
-# This specific template is located at:
-# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Bash.gitlab-ci.yml
-
-# See https://docs.gitlab.com/ee/ci/yaml/index.html for all available options
-
 variables:
   COUCHDB_USER: "admin"
   COUCHDB_PASSWORD: "my_passw0rd"
 
 services:
   - name: couchdb:latest
-    alias: 127.0.0.1
+    alias: localhost
 
-# you can delete this line if you're not using Docker
 image: ubuntu:20.04
 
 before_script:
@@ -22,8 +13,8 @@ before_script:
   - apt update 
   - apt install -y curl apt-transport-https gnupg
   - sleep 15
-  - curl -X PUT http://127.0.0.1:5984/
-  - curl -X PUT http://127.0.0.1:5984/_users
+  - curl -X PUT http://localhost:5984/
+  - curl -X PUT http://localhost:5984/_users
   - echo "Or perhaps you might print out some debugging details"
 
 after_script:
