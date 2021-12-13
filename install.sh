@@ -38,7 +38,7 @@ then
   echo "  Python installed in version 3."
 else
   echo "  Info: Python 3 will be installed."
-  sudo apt-get install -y python3 >/dev/null
+  sudo apt install -y python3 >/dev/null
 fi
 echo
 echo "Ensure openCV (as an example downstream package) for python is installed"
@@ -48,7 +48,7 @@ then
 else
   echo "  Info: Python-OpenCV will be installed. This takes a few minutes."
   sudo add-apt-repository universe       >> installLog.txt
-  sudo apt-get install -y python3-opencv >> installLog.txt
+  sudo apt install -y python3-opencv >> installLog.txt
 fi
 echo
 echo "Ensure pip for python is installed"
@@ -57,7 +57,7 @@ then
   echo "  python3-pip is installed"
 else
   echo "  Info: Python3-pip will be installed."
-  sudo apt-get install -y python3-pip     >/dev/null
+  sudo apt install -y python3-pip     >/dev/null
 fi
 echo
 
@@ -67,7 +67,7 @@ then
   echo "  pandoc installed."
 else
   echo "  Info: pandoc will be installed. This takes a few minutes."
-  sudo apt-get install -y pandoc          >> installLog.txt
+  sudo apt install -y pandoc          >> installLog.txt
 fi
 echo
 
@@ -75,8 +75,8 @@ echo
 echo "Install git, git-annex, datalad"
 wget -O- http://neuro.debian.net/lists/focal.de-fzj.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
 sudo apt-key adv --recv-keys --keyserver hkps://keyserver.ubuntu.com 0xA5D32F012649A5A9
-sudo apt-get update >/dev/null
-sudo apt-get install -y datalad >/dev/null
+sudo apt update >/dev/null
+sudo apt install -y datalad >/dev/null
 
 
 OUTPUT=$(sudo -u $THEUSER git config -l | grep "user")
@@ -102,7 +102,7 @@ else
   if ! command -v display &> /dev/null
   then
     echo "  xv and display are NOT installed. Imagemagick will be installed."
-    sudo apt-get install -y imagemagick                         >> installLog.txt
+    sudo apt install -y imagemagick                         >> installLog.txt
   fi
   if [ -f "/usr/bin/xv" ]; then
     echo "xv exists now."
@@ -128,7 +128,8 @@ else
     exit
   fi
   echo
-  sudo apt update && sudo apt install -y curl apt-transport-https gnupg
+  sudo apt update
+  sudo apt install -y curl apt-transport-https gnupg
   curl https://couchdb.apache.org/repo/keys.asc | gpg --dearmor | sudo tee /usr/share/keyrings/couchdb-archive-keyring.gpg >/dev/null 2>&1
   source /etc/os-release
   echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main" \
@@ -245,7 +246,7 @@ then
   echo "  npm installed."
 else
   echo "  Info: npm will be installed."
-  sudo apt-get install -y npm                         >> installLog.txt
+  sudo apt install -y npm                         >> installLog.txt
 fi
 echo
 cd /home/$THEUSER/$pasta_src/gui
