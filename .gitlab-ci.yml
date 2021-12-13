@@ -9,7 +9,7 @@ services:
 image: ubuntu:20.04
 
 before_script:
-  - apt-get install python3
+  - apt-get install -y python3
   - echo "Before script section"
   - sleep 15
   - sed 's/sudo//g' install.sh > installTemp.sh
