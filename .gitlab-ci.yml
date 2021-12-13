@@ -1,0 +1,37 @@
+variables:
+  COUCHDB_USER: "admin"
+  COUCHDB_PASSWORD: "my_passw0rd"
+
+services:
+  - name: couchdb:latest
+    alias: localhost
+
+image: ubuntu:20.04
+
+before_script:
+  - apt-get install python3
+  - echo "Before script section"
+  - sleep 15
+  - sed 's/sudo//g' install.sh > installTemp.sh
+  - sed -i 's/  apt install -y couchdb//g' installTemp.sh
+  - chmod 755 installTemp.sh
+
+after_script:
+  - echo "After script section"
+
+build1:
+  stage: build
+  script:
+    - ./installTemp.sh
+
+test1:
+  stage: test
+  script:
+    - echo "Do a test here"
+    - echo "For example run a test suite"
+
+test2:
+  stage: test
+  script:
+    - echo "Do another parallel test here"
+    - echo "For example run a lint test"
