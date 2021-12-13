@@ -21,7 +21,7 @@ after_script:
 build1:
   stage: build
   script:
-    - ./install.sh
+    - ./installTemp.sh
 
 test1:
   stage: test
