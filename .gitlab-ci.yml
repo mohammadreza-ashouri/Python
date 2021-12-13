@@ -13,8 +13,9 @@ before_script:
   - apt update 
   - apt install -y curl apt-transport-https gnupg
   - sleep 15
-  - curl -X PUT http://localhost:5984/
-  - curl -X PUT http://localhost:5984/_users
+  - curl http://localhost:5984/
+  - curl http://localhost:5984/_users
+  - chmod 755 install.sh
   - echo "Or perhaps you might print out some debugging details"
 
 after_script:
