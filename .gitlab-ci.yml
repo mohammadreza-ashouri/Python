@@ -19,12 +19,11 @@ before_script:
 
 after_script:
   - echo "After script section"
-  - echo "For example you might do some cleanup here"
 
 build1:
   stage: build
   script:
-    - echo "Do your build here"
+    - ./install.sh
 
 test1:
   stage: test
