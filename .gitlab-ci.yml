@@ -7,10 +7,18 @@
 # See https://docs.gitlab.com/ee/ci/yaml/index.html for all available options
 
 # you can delete this line if you're not using Docker
-image: busybox:latest
+image: ubuntu:20.04
 
 before_script:
   - echo "Before script section"
+  
+  - apt update 
+  - apt install -y curl apt-transport-https gnupg
+  - curl https://couchdb.apache.org/repo/keys.asc | gpg --dearmor | sudo tee /usr/share/keyrings/couchdb-archive-keyring.gpg
+  - source /etc/os-release
+  - echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main" | sudo tee /etc/apt/sources.list.d/couchdb.list
+  - apt update
+  - apt install -y couchdb
   - echo "For example you might run an update here or install a build dependency"
   - echo "Or perhaps you might print out some debugging details"
 
