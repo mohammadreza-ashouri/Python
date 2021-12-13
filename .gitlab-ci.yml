@@ -9,12 +9,12 @@ services:
 image: ubuntu:20.04
 
 before_script:
+  - apt-get install python3
   - echo "Before script section"
   - sleep 15
   - sed 's/sudo//g' install.sh > installTemp.sh
   - sed -i 's/  apt install -y couchdb//g' installTemp.sh
   - chmod 755 installTemp.sh
-  - apt install python3
 
 after_script:
   - echo "After script section"
