@@ -6,6 +6,10 @@
 
 # See https://docs.gitlab.com/ee/ci/yaml/index.html for all available options
 
+variables:
+  COUCHDB_USER: "admin"
+  COUCHDB_PASSWORD: "my_passw0rd"
+
 services:
   - name: couchdb:latest
 
