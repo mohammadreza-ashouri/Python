@@ -10,13 +10,10 @@ image: ubuntu:20.04
 
 before_script:
   - echo "Before script section"
-  - apt update 
-  - apt install -y curl apt-transport-https gnupg
   - sleep 15
-  - curl http://localhost:5984/
-  - curl http://localhost:5984/_users
-  - chmod 755 install.sh
-  - echo "Or perhaps you might print out some debugging details"
+  - sed 's/sudo//g' install.sh > installTemp.sh
+  - sed -i 's/  apt install -y couchdb//g' installTemp.sh
+  - chmod 755 installTemp.sh
 
 after_script:
   - echo "After script section"
