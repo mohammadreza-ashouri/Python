@@ -819,7 +819,58 @@ class Pasta:
 
 
   def checkConfiguration(self, repair=False):
-    output = 'Success'
+    import os, json #TODO
+    fConf = open(os.path.expanduser('~')+'/.pasta.json','r')
+    conf = json.load(fConf)
+    output = ''
+    #test static entries
+    if not '-softwareDir' in conf:
+      print('**ERROR No -softwareDir in config')
+      if repair:
+        conf['-softwareDir'] = os.path.dirname(os.path.abspath(__file__))
+    if not '-userID' in conf:
+      print('**ERROR No -userID in config')
+      if repair:
+        conf['-userID'] = os.getlogin()
+    if not '-eargs' in conf:
+      print('**ERROR No -eargs in config')
+      if repair:
+        conf['-eargs'] = {"editor":"", "ext":"", "style":""}
+    if not '-magicTags' in conf:
+      print('**ERROR No -magicTags in config')
+      if repair:
+        conf['-magicTags'] = []
+    if not '-qrPrinter' in conf:
+      print('**ERROR No -qrPrinter in config')
+      if repair:
+        conf['-qrPrinter'] = []
+    if not '-tableFormat-' in conf:
+      print('**ERROR No -tableFormat- in config')
+      if repair:
+        conf['-tableFormat-'] = {}
+    if not '-extractors-' in conf:
+      print('**ERROR No -extractors- in config')
+      if repair:
+        conf['-extractors-'] = {}
+    # go through all entries
+    for key in conf:
+      if key[0]=='-':
+        continue
+      if not 'database' in conf[key]:
+        print('**ERROR No database in config',key,'REPAIR WITH GUI')
+      if not 'cred' in conf[key]:
+        print('**ERROR No cred in config',key,'REPAIR WITH GUI and RERUN Test & Create Views')
+      if 'url' in conf[key]:
+        # remote entry
+        continue
+      else:
+        # local entry
+        if not 'path' in conf[key]:
+          print('**ERROR No path in config',key,'REPAIR WITH GUI')
+    #end
+    if repair:
+      with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
+        f.write(json.dumps(conf,indent=2))
     return output
 
 

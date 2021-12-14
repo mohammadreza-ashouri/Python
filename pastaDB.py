@@ -22,6 +22,10 @@ Possible commands are:
       example: pastaDB updatePASTA
     verifyDB: test PASTA database
       example: pastaDB.py verifyDB
+      example: pastaDB.py verifyDBdev (repair function)
+    verifyConfiguration: test PASTA configuration
+      example: pastaDB.py verifyConfiguration
+      example: pastaDB.py verifyConfigurationDev (repair function)
     history: get history for docTypes
       example: pastaDB.py history
     saveBackup,loadBackup: save to file.zip / load from file.zip
@@ -93,9 +97,6 @@ else:
     # open database
     with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
       config = json.load(f)
-    if '-softwareDir' not in config:  # TODO Temporary to ensure config is complete
-      print("NOT IN softwareDir")
-      print(os.path.dirname(os.path.abspath(__file__)))
     if args.database=='':
       args.database = config['-defaultLocal']
     success = True
@@ -158,7 +159,7 @@ else:
 
     elif args.command.startswith('verifyConfiguration'):
       repair = args.command=='verifyConfigurationDev'
-      output = be.checkDB(repair=repair)
+      output = be.checkConfiguration(repair=repair)
       print(output)
       if '**ERROR' in output:
         success = False
