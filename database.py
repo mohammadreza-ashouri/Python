@@ -543,13 +543,16 @@ class Database:
               outstring+= f'{bcolors.FAIL}**ERROR non-text in stack '+doc['_id']+f'{bcolors.ENDC}\n'
 
           if len(branch['stack'])==0 and doc['-type']!=['x','project']: #if no inheritance
-            if doc['-type'][0] == 'measurement' or  doc['-type'][0] == 'x':
+            if doc['-type'][0] == 'measurement' or  doc['-type'][0][0] == 'x':
               if verbose:
                 outstring+= f'{bcolors.WARNING}**warning branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
             else:
               if verbose:
                 outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure/sample '+doc['_id']+'|'+doc['name']+f'{bcolors.ENDC}\n'
-          if '-type' in doc and doc['-type'][0]=='x':
+          if not '-type' in doc or len(doc['-type'])==0:
+            outstring+= f'{bcolors.FAIL}**ERROR no type in '+doc['_id']+f'{bcolors.ENDC}\n'
+            continue
+          if doc['-type'][0][0]=='x':
             try:
               dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
               if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
@@ -557,7 +560,7 @@ class Database:
             except:
               pass  #handled next lines
           if branch['path'] is None:
-            if doc['-type'][0] == 'x':
+            if doc['-type'][0][0] == 'x':
               outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
             elif doc['-type'][0] == 'measurement':
               if verbose:
@@ -571,7 +574,11 @@ class Database:
                 outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack and path lengths not equal: '+doc['_id']+'|'+branch['path']+f'{bcolors.ENDC}\n'
             if branch['child'] != 9999:
               for parentID in branch['stack']:                              #check if all parents in doc have a corresponding path
-                parentDocBranches = self.getDoc(parentID)['-branch']
+                parentDoc = self.getDoc(parentID)
+                if not '-branch' in parentDoc:
+                  outstring+= f'{bcolors.FAIL}**ERROR branch not in parent with id '+parentID+f'{bcolors.ENDC}\n'
+                  continue
+                parentDocBranches = parentDoc['-branch']
                 onePathFound = False
                 for parentBranch in parentDocBranches:
                   if parentBranch['path'] is not None and parentBranch['path'] in branch['path']:
@@ -602,7 +609,7 @@ class Database:
               if SVG_RE.match(doc['image']) is None:
                 outstring+= f'{bcolors.FAIL}**ERROR: svg-image not valid '+doc['_id']+f'{bcolors.ENDC}\n'
             elif doc['image']=='':
-              outstring+= f'{bcolors.OKBLUE}**warning: image not valid '+doc['_id']+' '+doc['image']+f'{bcolors.ENDC}\n'
+              outstring+= f'{bcolors.OKBLUE}**warning: image not valid '+doc['_id']+' '+doc['image']+f'{bcolors.ENDC}\nRecreate it\n'
             else:
               outstring+= f'{bcolors.FAIL}**ERROR: image not valid '+doc['_id']+' '+doc['image']+f'{bcolors.ENDC}\n'
 
