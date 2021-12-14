@@ -76,17 +76,17 @@ class TestStringMethods(unittest.TestCase):
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', indentDirName)
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', indentDirName)
       self.be.scanTree()
-      # TEST THAT LOCAL FILES/THUMBNAILS EXIST
-      self.assertTrue(os.path.exists(semDirName+'Zeiss_tif_pasta.jpg'),'Zeiss PASTA not created')
-      self.assertTrue(os.path.exists(indentDirName+'1500nmXX 5 7074 -4594_txt_pasta.svg'),'Micromaterials PASTA not created')
-      self.assertTrue(os.path.exists(indentDirName+'RobinSteel0000LC_txt_pasta.svg'),'Hysitron PASTA not created')
+      # TEST THAT LOCAL FILES/THUMBNAILS EXIST: thumbnails not created anymore
+      # self.assertTrue(os.path.exists(semDirName+'Zeiss_tif_pasta.jpg'),'Zeiss PASTA not created')
+      # self.assertTrue(os.path.exists(indentDirName+'1500nmXX 5 7074 -4594_txt_pasta.svg'),'Micromaterials PASTA not created')
+      # self.assertTrue(os.path.exists(indentDirName+'RobinSteel0000LC_txt_pasta.svg'),'Hysitron PASTA not created')
 
       ### USE GLOBAL FILES
       print('*** USE GLOBAL FILES ***')
       self.be.changeHierarchy(semStepID)
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Misc_pollen.jpg'})
       print(self.be.output('measurement'))
-      self.assertTrue(os.path.exists(semDirName+'Misc_pollen_pasta.jpg'),'Wikipedia PASTA not created')
+      # self.assertTrue(os.path.exists(semDirName+'Misc_pollen_pasta.jpg'),'Wikipedia PASTA not created')
 
       ### VERIFY DATABASE INTEGRITY
       print("\n*** VERIFY DATABASE INTEGRITY ***")

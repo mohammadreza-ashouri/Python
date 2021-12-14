@@ -610,6 +610,7 @@ class Pasta:
         kwargs (dict): additional parameter
           - maxSize of image
           - extractorTest: test the extractor and show image
+          - saveToFile: save data to files
     """
     import logging, os, importlib, base64, shutil
     from io import StringIO, BytesIO
@@ -621,6 +622,7 @@ class Pasta:
     maxSize = kwargs.get('maxSize', 600)
     extractorTest    = kwargs.get('extractorTest', False)
     exitAfterDataLad = kwargs.get('exitAfterDataLad',False)
+    saveToFile       = kwargs.get('saveToFile',False)
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = filePath
@@ -674,8 +676,11 @@ class Pasta:
         imageData = base64.b64encode(figfile.getvalue()).decode()
         content = 'data:image/png;base64,' + imageData
         outFileFull = outFile+'.png'
+      #clear figures for next extraction
+      plt.cla()
+      plt.clf()
       if outFileFull is not None:
-        if self.cwd is not None and not extractorTest:
+        if self.cwd is not None and not extractorTest and saveToFile:
           # write to file
           appendix = ''
           if os.path.exists(outFileFull):
@@ -810,6 +815,11 @@ class Pasta:
     else:
       output += "** Datalad tree NOT clean **\n"
     os.chdir(curDirectory)
+    return output
+
+
+  def checkConfiguration(self, repair=False):
+    output = 'Success'
     return output
 
 

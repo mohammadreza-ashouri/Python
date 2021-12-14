@@ -156,6 +156,13 @@ else:
       if '**ERROR' in output:
         success = False
 
+    elif args.command.startswith('verifyConfiguration'):
+      repair = args.command=='verifyConfigurationDev'
+      output = be.checkDB(repair=repair)
+      print(output)
+      if '**ERROR' in output:
+        success = False
+
     elif args.command=='history':
       print(be.db.historyDB())
 

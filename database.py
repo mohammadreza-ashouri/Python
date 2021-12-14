@@ -173,7 +173,7 @@ class Database:
     Returns:
         dict: json representation of updated document
     """
-    import json
+    import json, os
     tracebackString = traceback.format_stack()
     tracebackString = [item for item in tracebackString if 'backend.py' in item or 'database.py' in item or 'Tests' in item or 'pasta' in item]
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString])  #| separated list of stack excluding last
@@ -205,6 +205,8 @@ class Database:
             if oldpath is not None:
               for branch in newDoc['-branch']:
                 if branch['path'].startswith(oldpath):
+                  if os.path.basename(branch['path']) == newDoc['name']:
+                    newDoc['name'] = os.path.basename(change['-branch']['path'])
                   branch['path'] = branch['path'].replace(oldpath ,change['-branch']['path'])
                   branch['stack']= change['-branch']['stack']
                   break
