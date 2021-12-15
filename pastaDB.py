@@ -8,7 +8,7 @@ import os, json, sys, subprocess
 import argparse, traceback
 import urllib.request
 from backend import Pasta
-from miscTools import upOut, getExtractorConfig, printQRcodeSticker
+from miscTools import upOut, getExtractorConfig, printQRcodeSticker, checkConfiguration
 
 argparser = argparse.ArgumentParser(usage='''
 pastaDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
@@ -73,11 +73,14 @@ if args.command=='newDB':
   configuration[label] = newDB[label]
   with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
     f.write(json.dumps(configuration, indent=2))
+
 elif args.command=='help':
   print("HELP:")
   argparser.print_help()
+
 elif args.command=='up':
   print('up:',upOut(args.docID))
+
 elif args.command=='extractorScan':
   pathToExtractors = os.path.dirname(os.path.abspath(__file__))+os.sep+'extractors'
   extractors = getExtractorConfig(pathToExtractors)
@@ -90,6 +93,14 @@ elif args.command=='extractorScan':
   with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
     f.write(json.dumps(configuration, indent=2))
   print('SUCCESS')
+
+elif args.command.startswith('verifyConfiguration'):
+  repair = args.command=='verifyConfigurationDev'
+  output = checkConfiguration(repair=repair)
+  print(output)
+  if '**ERROR' in output:
+    success = False
+
 
 ## Commands that require open PASTA database, but not specific project
 else:
@@ -153,13 +164,6 @@ else:
     elif args.command.startswith('verifyDB'):
       repair = args.command=='verifyDBdev'
       output = be.checkDB(verbose=False, repair=repair)
-      print(output)
-      if '**ERROR' in output:
-        success = False
-
-    elif args.command.startswith('verifyConfiguration'):
-      repair = args.command=='verifyConfigurationDev'
-      output = be.checkConfiguration(repair=repair)
       print(output)
       if '**ERROR' in output:
         success = False
