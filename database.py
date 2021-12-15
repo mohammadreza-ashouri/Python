@@ -193,6 +193,8 @@ class Database:
       if '-branch' in change and len(change['-branch']['stack'])>0: #TODO Remove if not needed by Dec. 2021: and change['-branch']['path'] is not None:
         op = change['-branch'].pop('op')
         oldpath = change['-branch'].pop('oldpath',None)
+        if change['-branch']['path'] is None:
+          change['-branch']['path']=newDoc['-branch'][0]['path']
         if not change['-branch'] in newDoc['-branch']:       #skip if new branch is already in branch
           oldDoc['-branch'] = newDoc['-branch'].copy()
           for branch in newDoc['-branch']:
@@ -205,7 +207,8 @@ class Database:
             if oldpath is not None:
               for branch in newDoc['-branch']:
                 if branch['path'].startswith(oldpath):
-                  if os.path.basename(branch['path']) == newDoc['name']:
+                  if os.path.basename(branch['path']) == newDoc['name'] and \
+                     os.path.basename(change['-branch']['path'])!='':
                     newDoc['name'] = os.path.basename(change['-branch']['path'])
                   branch['path'] = branch['path'].replace(oldpath ,change['-branch']['path'])
                   branch['stack']= change['-branch']['stack']

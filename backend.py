@@ -228,10 +228,10 @@ class Pasta:
             except:
               print('addData: fetch remote content failed. Data not added')
               return False
-        elif os.path.exists(self.basePath+doc['name']):          #file exists
+        elif doc['name']!='' and os.path.exists(self.basePath+doc['name']):          #file exists
           path = doc['name']
           doc['name'] = os.path.basename(doc['name'])
-        elif os.path.exists(self.basePath+self.cwd+doc['name']): #file exists
+        elif doc['name']!='' and os.path.exists(self.basePath+self.cwd+doc['name']): #file exists
           path = self.cwd+doc['name']
         else:                                                     #make up name
           shasum  = None
