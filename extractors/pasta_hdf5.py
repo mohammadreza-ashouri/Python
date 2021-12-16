@@ -60,7 +60,12 @@ def use(fileName, doc):
         ax1.plot(displacement, force, label=branch)
         metaVendor = {}
         for key in hdf[branch]['metadata'].attrs:  #use last branch, others overwritten
-          metaVendor[key] = hdf[branch]['metadata'].attrs[key]
+          if hdf[branch]['metadata'].attrs[key]==h5py.Empty('S1'):
+            metaVendor[key] = ''
+          elif isinstance(hdf[branch]['metadata'].attrs[key], np.bytes_):
+            metaVendor[key] = hdf[branch]['metadata'].attrs[key].decode('UTF-8')
+          else:
+            metaVendor[key] = hdf[branch]['metadata'].attrs[key]
       metaUser = {'measurementType': 'Doli mvl to HDF5 file: stacked files'}
     else:
       print('hdf file of one measurement')
