@@ -612,7 +612,7 @@ class Pasta:
           - extractorTest: test the extractor and show image
           - saveToFile: save data to files
     """
-    import logging, os, importlib, base64, shutil
+    import logging, os, importlib, base64, shutil, json
     from io import StringIO, BytesIO
     import numpy as np
     import matplotlib.pyplot as plt
@@ -647,6 +647,19 @@ class Pasta:
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
       content, [imgType, docType, metaVendor, metaUser] = module.use(absFilePath, doc)
+      # test whether meta data JSON format
+      try:
+        _ = json.dumps(metaUser, cls=json.JSONEncoder)
+      except TypeError as err:
+        if str(err)=='Object of type Empty is not JSON serializable':
+          print('**ERROR metaUSER not json format',metaUser,'\n')
+          metaUser = {'error':str(metaUser)}
+      try:
+        _ = json.dumps(metaVendor, cls=json.JSONEncoder)
+      except TypeError as err:
+        if str(err)=='Object of type Empty is not JSON serializable':
+          print('**ERROR metaVENDOR not json format',metaVendor,'\n')
+          metaVendor = {'error':str(metaVendor)}
       if extractorTest:
         if isinstance(content, Image):
           content.show()

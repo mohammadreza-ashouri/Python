@@ -280,5 +280,5 @@ else:
     else:
       print('**ERROR**')
   except:
-    print("Exception thrown during pastaDB.py")
+    print("Exception thrown during pastaDB.py:\n"+traceback.format_exc())
     raise
