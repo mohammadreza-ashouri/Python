@@ -377,7 +377,7 @@ def checkConfiguration(repair=False):
   Returns:
       string: output incl. \n
   """
-  import os, json #TODO
+  import os, json
   fConf = open(os.path.expanduser('~')+'/.pasta.json','r')
   conf = json.load(fConf)
   output = ''
@@ -410,7 +410,17 @@ def checkConfiguration(repair=False):
     print('**ERROR No -extractors- in config')
     if repair:
       conf['-extractors-'] = {}
-  # go through all entries
+  if not "-defaultLocal" in conf:
+    print('**ERROR No -defaultLocal in config')
+    if repair:
+      conf['-defaultLocal'] = [i for i in conf.keys() if i[0]!='-' and 'path' in conf[i]][0]
+  else:
+    if not conf['-defaultLocal'] in conf:
+      print('**ERROR -defaultLocal entry '+conf['-defaultLocal']+' not in config')
+      if repair:
+        conf['-defaultLocal'] = [i for i in conf.keys() if i[0]!='-' and 'path' in conf[i]][0]
+
+  # go through all connection entries
   for key in conf:
     if key[0]=='-':
       continue
