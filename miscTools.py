@@ -494,8 +494,11 @@ def errorCodes(verbose=False):
       print('\n\n'+fileName+'\n  '+'\n  '.join(prints))
   fOut = open('../Documents/errorCodes.md','w')
   fOut.write(output)
-  fOut = open('../ReactElectron/app/renderer/errorCodes.json','w')
+  fOut = open('../ReactElectron/app/renderer/errorCodes.js','w')
+  fOut.write('export const errorCodes =\n')
   json.dump(knownErrcodes,fOut)
+  fOut.write(';')
+  print('..success: assembled error-codes')
   return
 
 
