@@ -153,27 +153,6 @@ def blob_hash(stream, size):
   return hasher.hexdigest()
 
 
-
-def jsonValidator(data):
-  """
-  for debugging, test if valid json object
-  - not really used
-
-  Args:
-     data (string): string to test
-
-  Returns:
-    bool: is valid json string
-  """
-  import json
-  try:
-    json.loads(json.dumps(data))
-    return True
-  except ValueError as error:
-    print("**ERROR** invalid json: %s" % error)
-    return False
-
-
 def imageToString(url):
   """
   *DEPRECATED*
@@ -361,7 +340,7 @@ def printQRcodeSticker(codes={},
   cmd = 'brother_ql -b pyusb -m '+printer['model']+' -p usb://'+printer['dev']+' print -l '+printer['size']+' -r auto '+tmpFileName
   reply = os.system(cmd)
   if reply>0:
-    print('Printing error')
+    print('**ERROR mpq01: Printing error')
     image.show()
   return
 
@@ -378,45 +357,49 @@ def checkConfiguration(repair=False):
       string: output incl. \n
   """
   import os, json
-  fConf = open(os.path.expanduser('~')+'/.pasta.json','r')
+  from cloudant.client import CouchDB
+  try:
+    fConf = open(os.path.expanduser('~')+'/.pasta.json','r')
+  except:
+    return 'Verify configuration\n**ERROR mcc00: config file does not exist.\nFAILURE\n'
   conf = json.load(fConf)
   output = ''
   #test static entries
   if not '-softwareDir' in conf:
-    print('**ERROR No -softwareDir in config')
+    output += '**ERROR mcc01a: No -softwareDir in config file\n'
     if repair:
       conf['-softwareDir'] = os.path.dirname(os.path.abspath(__file__))
   if not '-userID' in conf:
-    print('**ERROR No -userID in config')
+    output += '**ERROR mcc01b: No -userID in config file\n'
     if repair:
       conf['-userID'] = os.getlogin()
   if not '-eargs' in conf:
-    print('**ERROR No -eargs in config')
+    output += '**ERROR mcc01c: No -eargs in config file\n'
     if repair:
       conf['-eargs'] = {"editor":"", "ext":"", "style":""}
   if not '-magicTags' in conf:
-    print('**ERROR No -magicTags in config')
+    output += '**ERROR mcc01d: No -magicTags in config file\n'
     if repair:
       conf['-magicTags'] = []
   if not '-qrPrinter' in conf:
-    print('**ERROR No -qrPrinter in config')
+    output += '**ERROR mcc01e: No -qrPrinter in config file\n'
     if repair:
       conf['-qrPrinter'] = []
   if not '-tableFormat-' in conf:
-    print('**ERROR No -tableFormat- in config')
+    output += '**ERROR mcc01f: No -tableFormat- in config file\n'
     if repair:
       conf['-tableFormat-'] = {}
   if not '-extractors-' in conf:
-    print('**ERROR No -extractors- in config')
+    output += '**ERROR mcc01g: No -extractors- in config file\n'
     if repair:
       conf['-extractors-'] = {}
   if not "-defaultLocal" in conf:
-    print('**ERROR No -defaultLocal in config')
+    output += '**ERROR mcc01h: No -defaultLocal in config file\n'
     if repair:
       conf['-defaultLocal'] = [i for i in conf.keys() if i[0]!='-' and 'path' in conf[i]][0]
   else:
     if not conf['-defaultLocal'] in conf:
-      print('**ERROR -defaultLocal entry '+conf['-defaultLocal']+' not in config')
+      output += '**ERROR mcc01i: -defaultLocal entry '+conf['-defaultLocal']+' not in config file\n'
       if repair:
         conf['-defaultLocal'] = [i for i in conf.keys() if i[0]!='-' and 'path' in conf[i]][0]
 
@@ -425,19 +408,31 @@ def checkConfiguration(repair=False):
     if key[0]=='-':
       continue
     if not 'database' in conf[key]:
-      print('**ERROR No database in config',key,'REPAIR WITH GUI')
+      output += '**ERROR mcc02a: No database in config |'+key+'\n'
     if not 'cred' in conf[key]:
-      print('**ERROR No cred in config',key,'REPAIR WITH GUI and RERUN Test & Create Views')
+      output += '**ERROR mcc03: No user-credentials (username,password) in config |'+key+'\n'
+    elif 'path' in conf[key]:
+      u,p = upOut(conf[key]['cred']).split(':')
+      client = CouchDB(u, p, url='http://127.0.0.1:5984', connect=True)
+      if not conf[key]['database'] in client.all_dbs():
+        output += '**ERROR mcc04: Database not on local server configuration |'+key+'\n'
     if 'url' in conf[key]:
       # remote entry
       continue
     # local entry
-    if not 'path' in conf[key]:
-      print('**ERROR No path in config',key,'REPAIR WITH GUI')
+    if 'path' in conf[key]:
+      if not os.path.exists(conf[key]['path']):
+        output += '**ERROR mcc05: Path does not exist |'+str(conf[key]['path'])+'\n'
+    else:
+      output += '**ERROR mcc02b: No path in config |'+key+'\n'
   #end
   if repair:
     with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
       f.write(json.dumps(conf,indent=2))
+  if output=='':
+    output='Verify configuration\nSUCCESS\n'
+  else:
+    output='Verify configuration\n'+output+'FAILURE\n'
   return output
 
 
@@ -456,12 +451,57 @@ def translateJS2PY():
   return
 
 
+def errorCodes(verbose=False):
+  """
+  go through all source files and list error codes
+
+  Args:
+     verbose (bool): print information about printing statements
+  """
+  import os, re, json
+  ignoreFiles = ['checkAllVersions.py','pastaCLI.py','commonTools.py']
+  knownErrcodes = {
+    "mcc01":"Use automatic configuration repair",
+    "mcc02":"Repair with configuration-editor",
+    "mcc03":"Repair with configuration-editor and restart",
+    "mcc04":"Restart using this database",
+    "mcc05":"Please create path manually",
+    "dit01":"Likely userName / password not correct"
+  }
+  output = 'automatically created MD file of error codes by miscTools:errorCodesp\n'
+  if verbose:
+    print('All terminal output')
+  for fileName in os.listdir('.'):
+    if not fileName.endswith('.py') or fileName in ignoreFiles:
+      continue
+    content = open(fileName,'r').read().split('\n')
+    errors = [' '+i.split('**ERROR')[1] for i in content if '**ERROR' in i and 'if' not in i]   #SKIP ME ErrorCode
+    errors = [i for i in errors if '#SKIP ME ErrorCode' not in i]
+    errors = [i.replace(")","").replace("\\n'",'').replace("+f'{bcolors.ENDC}","").replace(",'","") for i in errors]
+    errorsNew = []
+    for err in errors:
+      result = re.match(r"^[\w]{3}[\d]{2}\w*:",err.strip())
+      if result:
+        errCode = result.group()[:-1]
+        err = '  - '+errCode+':'+err.strip()[result.end():]
+        if errCode[:5] in knownErrcodes:
+          err += '\n    '+knownErrcodes[errCode[:5]]
+      errorsNew.append(err)
+    if len(errorsNew)>0:
+      output+='# '+fileName+'\n'+'\n'.join(errorsNew)+'\n\n'
+    prints = [i.strip() for i in content if i.strip().startswith('print') and "**ERROR" not in i]  #SKIP ME ErrorCode
+    if verbose:
+      print('\n\n'+fileName+'\n  '+'\n  '.join(prints))
+  fOut = open('../Documents/errorCodes.md','w')
+  fOut.write(output)
+  fOut = open('../ReactElectron/app/renderer/errorCodes.json','w')
+  json.dump(knownErrcodes,fOut)
+  return
+
 
 ###########################################
 ##### MAIN FUNCTION
 ###########################################
 if __name__ == "__main__":
-  # translate js-code to python
-  translateJS2PY()
-  # prepare new sheet with QR-codes, does not hurt to create new
-  createQRcodeSheet()
+  translateJS2PY()    # translate js-code to python
+  errorCodes()        # create overview of errorCodes

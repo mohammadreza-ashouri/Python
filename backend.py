@@ -68,7 +68,7 @@ class Pasta:
     if os.path.exists(self.basePath):
       os.chdir(self.basePath)
     else:
-      print('**ERROR**: Base folder did not exist:'+self.basePath)
+      print('**ERROR bin01: Base folder did not exist |'+self.basePath)
       sys.exit(1)
     sys.path.append(self.softwarePath+os.sep+'extractors')  #allow extractors
     # start logging
@@ -198,7 +198,7 @@ class Pasta:
       if (doc['name'].endswith('_pasta.jpg') or
           doc['name'].endswith('_pasta.svg') or
           doc['name'].endswith('.id_pasta.json') ):
-        print("**WARNING** DO NOT ADD _pasta. files to database")
+        print("**Warning DO NOT ADD _pasta. files to database")
         return False
       if doc['-type'][0][0]=='x':
         #project, step, task
@@ -226,7 +226,7 @@ class Pasta:
             try:
               shasum  = generic_hash(doc['name'])
             except:
-              print('addData: fetch remote content failed. Data not added')
+              print('**ERROR bad01: fetch remote content failed. Data not added')
               return False
         elif doc['name']!='' and os.path.exists(self.basePath+doc['name']):          #file exists
           path = doc['name']
@@ -293,7 +293,7 @@ class Pasta:
             description = doc['objective'] if 'objective' in doc else '_'
             datalad.create(path,description=description) #TODO SB-Windows10  cfg_proc='text2git'
           except:
-            print('**ERROR** Tried to create new datalad folder which did already exist')
+            print('**ERROR bad02: Tried to create new datalad folder which did already exist')
             raise
           gitAttribute = '\n* annex.backend=SHA1\n**/.git* annex.largefiles=nothing\n'
           for fileI in self.vanillaGit:
@@ -365,7 +365,7 @@ class Pasta:
           self.cwd += dirName+os.sep
         self.hierStack.append(docID)
       except:
-        print('Could not change into hierarchy. id:'+docID+'  directory:'+dirName+'  cwd:'+self.cwd)
+        print('**ERROR bch01: Could not change into hierarchy. id|'+docID+'  directory:'+dirName+'  cwd:'+self.cwd)
     if self.debug and len(self.hierStack)+1!=len(self.cwd.split(os.sep)):
       logging.error('changeHierarchy error')
     return
@@ -392,7 +392,7 @@ class Pasta:
     from miscTools import bcolors, generic_hash
     logging.info('scanTree started')
     if len(self.hierStack) == 0:
-      print(f'{bcolors.FAIL}Warning - scan directory: No project selected{bcolors.ENDC}')
+      print(f'{bcolors.FAIL}**Warning - scan directory: No project selected{bcolors.ENDC}')
       return
     callback = kwargs.get('callback', None)
     while len(self.hierStack)>1:
@@ -460,7 +460,7 @@ class Pasta:
       ### separate into two cases
       # newly created file
       if origin == '':
-        logging.info('scanTree file not in database: '+target)
+        logging.info('Info: scanTree file not in database '+target)
         newDoc    = {'name':self.cwd+target}
         _ = self.addData('measurement', newDoc, hierStack, callback=callback)  #saved to datalad in here
       # move or delete file
@@ -513,7 +513,7 @@ class Pasta:
     import os, json
     from zipfile import ZipFile, ZIP_DEFLATED
     if zipFileName is None and self.cwd is None:
-      print("Specify zip file name")
+      print("**ERROR bbu01: Specify zip file name")
       return False
     if zipFileName is None: zipFileName="pasta_backup.zip"
     if os.sep not in zipFileName:
@@ -550,26 +550,26 @@ class Pasta:
         for doc in self.db.db:
           fileName = doc['_id']+'.json'
           if fileName not in filesInZip:
-            print("**ERROR** document not in zip file",doc['_id'])
+            print("**ERROR bbu02: document not in zip file |",doc['_id'])
             differenceFound = True
           else:
             filesInZip.remove(fileName)
             zipData = json.loads( zipFile.read(fileName) )
             if doc!=zipData:
-              print('  Data disagrees database, zipfile ',doc['_id'])
+              print('  Info: data disagrees database, zipfile ',doc['_id'])
               differenceFound = True
             comparedFiles += 1
           if '_attachments' in doc:
             for i in range(len(doc['_attachments'])):
               attachmentName = doc['_id']+'/v'+str(i)+'.json'
               if attachmentName not in filesInZip:
-                print("**ERROR** revision not in zip file",attachmentName)
+                print("**ERROR bbu03: revision not in zip file |",attachmentName)
                 differenceFound = True
               else:
                 filesInZip.remove(attachmentName)
                 zipData = json.loads( zipFile.read(attachmentName) )
                 if doc.get_attachment('v'+str(i)+'.json')!=zipData:
-                  print('  Data disagrees database, zipfile ',attachmentName)
+                  print('  Info: data disagrees database, zipfile ',attachmentName)
                   differenceFound = True
                 comparedAttachments += 1
         if len(filesInZip)>0:
@@ -652,13 +652,13 @@ class Pasta:
         _ = json.dumps(metaUser, cls=json.JSONEncoder)
       except TypeError as err:
         if str(err)=='Object of type Empty is not JSON serializable':
-          print('**ERROR metaUSER not json format',metaUser,'\n')
+          print('**ERROR bue01a: metaUSER not json format |',metaUser,'\n')
           metaUser = {'error':str(metaUser)}
       try:
         _ = json.dumps(metaVendor, cls=json.JSONEncoder)
       except TypeError as err:
         if str(err)=='Object of type Empty is not JSON serializable':
-          print('**ERROR metaVENDOR not json format',metaVendor,'\n')
+          print('**ERROR bue01b: metaVENDOR not json format |',metaVendor,'\n')
           metaVendor = {'error':str(metaVendor)}
       if extractorTest:
         if isinstance(content, Image):
@@ -727,7 +727,7 @@ class Pasta:
     logging.debug('useExtractor: finished')
     doc.update(document)
     if extractorTest:
-      print("Measurement type:",document['-type'])
+      print("Info: Measurement type ",document['-type'])
     ##if 'comment' not in doc: doc['comment']=''
     return
 
@@ -1100,8 +1100,7 @@ class Pasta:
               pathParent = self.db.getDoc(parentID)['-branch'][0]['path']
               path = pathParent+os.sep+path.split(os.sep)[-1]
             if not os.path.exists(self.basePath+path):        #if still does not exist
-              print("**ERROR** doc path was not found and parent path was not found;Return")
-              print(doc)
+              print("**ERROR bse01: doc path was not found and parent path was not found |"+doc)
               return False
             if self.confirm is None or self.confirm(None,"Move directory "+path+" -> "+self.cwd+dirName):
               os.rename(self.basePath+path, self.basePath+self.cwd+dirName)
@@ -1159,7 +1158,7 @@ class Pasta:
     from commonTools import commonTools as cT
     hierTree = self.outputHierarchy(True,True,False)
     if hierTree is None:
-      print('No hierarchy tree')
+      print('**ERROR bgc01: No hierarchy tree')
       return None, None
     result = cT.getChildren(hierTree,docID)
     return result['names'], result['ids']

@@ -24,7 +24,7 @@ class Database:
       self.client = CouchDB(user, password, url='http://127.0.0.1:5984', connect=True)
     except:
       logging.error('database:init Something unexpected has happend\n'+traceback.format_exc())
-      print('database:init Something unexpected has happend\n'+traceback.format_exc())
+      print('**ERROR dit01: Something unexpected has happend\n'+traceback.format_exc())
       raise
     self.databaseName = databaseName
     if self.databaseName in self.client.all_dbs():
@@ -34,7 +34,7 @@ class Database:
     # check if default documents exist and create
     if '-ontology-' not in self.db or kwargs.get('resetOntology', False):
       if '-ontology-' in self.db:
-        print('Remove old ontology')
+        print('Info: remove old ontology')
         self.db['-ontology-'].delete()
       logging.info('database:init ontology reinitialized')
       with open(softwarePath+'ontology.json', 'r') as fIn:
@@ -318,7 +318,7 @@ class Database:
       else:
         res = list(v.result)
     except:
-      print('Database / Network problem for path',thePath)
+      print('**ERROR dgv01: Database / Network problem for path |',thePath)
       res = []
     return res
 
@@ -342,7 +342,7 @@ class Database:
     try:
       designDoc.save()
     except:
-      print('**Error** database:saveView something unexpected has happend: log-file has traceback')
+      print('**ERROR dsv01: something unexpected has happend. Log-file has traceback')
       logging.error('database:saveView Something unexpected has happend'+traceback.format_exc())
     return
 
@@ -366,7 +366,7 @@ class Database:
       try:
         client2 = CouchDB(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
       except:
-        print('Could not connect to remote server: Abort replication.')
+        print('**ERROR drp01: Could not connect to remote server. Abort replication.')
         return False
       try:
         listAllDataBases = client2.all_dbs()
@@ -394,7 +394,7 @@ class Database:
           return True
         time.sleep(10)
     except:
-      print("**ERROR** replicate\n",traceback.format_exc())
+      print("**ERROR drp02: replicate error |\n",traceback.format_exc())
       return False
     return False  #should not reach here
 
@@ -536,14 +536,14 @@ class Database:
 
         #branch test
         if '-branch' not in doc:
-          outstring+= f'{bcolors.FAIL}**ERROR branch does not exist '+doc['_id']+f'{bcolors.ENDC}\n'
+          outstring+= f'{bcolors.FAIL}**ERROR dch01: branch does not exist '+doc['_id']+f'{bcolors.ENDC}\n'
           continue
         if len(doc['-branch'])>1 and doc['-type'] =='x':                 #text elements only one branch
-          outstring+= f'{bcolors.FAIL}**ERROR branch length >1 for text'+doc['_id']+' '+str(doc['-type'])+f'{bcolors.ENDC}\n'
+          outstring+= f'{bcolors.FAIL}**ERROR dch02: branch length >1 for text'+doc['_id']+' '+str(doc['-type'])+f'{bcolors.ENDC}\n'
         for branch in doc['-branch']:
           for item in branch['stack']:
             if not item.startswith('x-'):
-              outstring+= f'{bcolors.FAIL}**ERROR non-text in stack '+doc['_id']+f'{bcolors.ENDC}\n'
+              outstring+= f'{bcolors.FAIL}**ERROR dch03: non-text in stack '+doc['_id']+f'{bcolors.ENDC}\n'
 
           if len(branch['stack'])==0 and doc['-type']!=['x','project']: #if no inheritance
             if doc['-type'][0] == 'measurement' or  doc['-type'][0][0] == 'x':
@@ -553,18 +553,18 @@ class Database:
               if verbose:
                 outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure/sample '+doc['_id']+'|'+doc['name']+f'{bcolors.ENDC}\n'
           if not '-type' in doc or len(doc['-type'])==0:
-            outstring+= f'{bcolors.FAIL}**ERROR no type in '+doc['_id']+f'{bcolors.ENDC}\n'
+            outstring+= f'{bcolors.FAIL}**ERROR dch04: no type in '+doc['_id']+f'{bcolors.ENDC}\n'
             continue
           if doc['-type'][0][0]=='x':
             try:
               dirNamePrefix = branch['path'].split(os.sep)[-1].split('_')[0]
               if dirNamePrefix.isdigit() and branch['child']!=int(dirNamePrefix): #compare child-number to start of directory name
-                outstring+= f'{bcolors.FAIL}**ERROR child-number and dirName dont match '+doc['_id']+f'{bcolors.ENDC}\n'
+                outstring+= f'{bcolors.FAIL}**ERROR dch05: child-number and dirName dont match '+doc['_id']+f'{bcolors.ENDC}\n'
             except:
               pass  #handled next lines
           if branch['path'] is None:
             if doc['-type'][0][0] == 'x':
-              outstring+= f'{bcolors.FAIL}**ERROR branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
+              outstring+= f'{bcolors.FAIL}**ERROR dch06: branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
             elif doc['-type'][0] == 'measurement':
               if verbose:
                 outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+f'{bcolors.ENDC}\n'
@@ -579,7 +579,7 @@ class Database:
               for parentID in branch['stack']:                              #check if all parents in doc have a corresponding path
                 parentDoc = self.getDoc(parentID)
                 if not '-branch' in parentDoc:
-                  outstring+= f'{bcolors.FAIL}**ERROR branch not in parent with id '+parentID+f'{bcolors.ENDC}\n'
+                  outstring+= f'{bcolors.FAIL}**ERROR dch07: branch not in parent with id '+parentID+f'{bcolors.ENDC}\n'
                   continue
                 parentDocBranches = parentDoc['-branch']
                 onePathFound = False
@@ -587,37 +587,37 @@ class Database:
                   if parentBranch['path'] is not None and parentBranch['path'] in branch['path']:
                     onePathFound = True
                 if not onePathFound:
-                  outstring+= f'{bcolors.FAIL}**ERROR parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
+                  outstring+= f'{bcolors.FAIL}**ERROR dch08: parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
 
         #doc-type specific tests
         if '-type' in doc and doc['-type'][0] == 'sample':
           if 'qrCode' not in doc:
-            outstring+= f'{bcolors.FAIL}**ERROR qrCode not in sample '+doc['_id']+f'{bcolors.ENDC}\n'
+            outstring+= f'{bcolors.FAIL}**ERROR dch09: qrCode not in sample '+doc['_id']+f'{bcolors.ENDC}\n'
         elif '-type' in doc and doc['-type'][0] == 'measurement':
           if 'shasum' not in doc:
-            outstring+= f'{bcolors.FAIL}**ERROR: shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
+            outstring+= f'{bcolors.FAIL}**ERROR dch10: shasum not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
           if 'image' not in doc:
-            outstring+= f'{bcolors.FAIL}**ERROR: image not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
+            outstring+= f'{bcolors.FAIL}**ERROR dch11: image not in measurement '+doc['_id']+f'{bcolors.ENDC}\n'
           else:
             if doc['image'].startswith('data:image'):  #for jpg and png
               try:
                 imgdata = base64.b64decode(doc['image'][22:])
                 Image.open(io.BytesIO(imgdata))  #can convert, that is all that needs to be tested
               except:
-                outstring+= f'{bcolors.FAIL}**ERROR: jpg-image not valid '+doc['_id']+f'{bcolors.ENDC}\n'
+                outstring+= f'{bcolors.FAIL}**ERROR dch12: jpg-image not valid '+doc['_id']+f'{bcolors.ENDC}\n'
             elif doc['image'].startswith('<?xml'):
               #from https://stackoverflow.com/questions/63419010/check-if-an-image-file-is-a-valid-svg-file-in-python
               SVG_R = r'(?:<\?xml\b[^>]*>[^<]*)?(?:<!--.*?-->[^<]*)*(?:<svg|<!DOCTYPE svg)\b'
               SVG_RE = re.compile(SVG_R, re.DOTALL)
               if SVG_RE.match(doc['image']) is None:
-                outstring+= f'{bcolors.FAIL}**ERROR: svg-image not valid '+doc['_id']+f'{bcolors.ENDC}\n'
+                outstring+= f'{bcolors.FAIL}**ERROR dch13: svg-image not valid '+doc['_id']+f'{bcolors.ENDC}\n'
             elif doc['image']=='':
               outstring+= f'{bcolors.OKBLUE}**warning: image not valid '+doc['_id']+' '+doc['image']+f'{bcolors.ENDC}\nRecreate it\n'
             else:
-              outstring+= f'{bcolors.FAIL}**ERROR: image not valid '+doc['_id']+' '+doc['image']+f'{bcolors.ENDC}\n'
+              outstring+= f'{bcolors.FAIL}**ERROR dch14: image not valid '+doc['_id']+' '+doc['image']+f'{bcolors.ENDC}\n'
 
       except: #if test of document fails
-        outstring+= f'{bcolors.FAIL}**ERROR** critical error in '+doc['_id']+f'{bcolors.ENDC}\n'
+        outstring+= f'{bcolors.FAIL}**ERROR dch15: critical error in '+doc['_id']+f'{bcolors.ENDC}\n'
         outstring+= traceback.format_exc()
 
     ##TEST views
@@ -631,6 +631,6 @@ class Database:
           outstring+= f'{bcolors.OKBLUE}**warning: measurement without shasum: '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
       else:
         if item['key'] in shasumKeys:
-          outstring+= f'{bcolors.FAIL}**ERROR: shasum twice in view: '+item['key']+' '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
+          outstring+= f'{bcolors.FAIL}**ERROR dch16: shasum twice in view: '+item['key']+' '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
         shasumKeys.append(item['key'])
     return outstring

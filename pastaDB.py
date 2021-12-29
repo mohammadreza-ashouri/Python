@@ -113,6 +113,12 @@ else:
     success = True
     initViews, initConfig, resetOntology = False, True, False
     if args.command.startswith('test'):
+      #precede with configuration test
+      output = checkConfiguration(repair=False)
+      print(output)
+      if 'ERROR' in output:
+        success=False
+      #real backend test
       initViews, initConfig = True, False
       if args.command=='testDev':
         resetOntology = True
@@ -124,9 +130,9 @@ else:
           if json.loads(contents)['couchdb'] == 'Welcome':
             print('CouchDB server',url,'is working: username and password test upcoming')
         except:
-          print('CouchDB server',url,'is NOT working')
+          print('**ERROR pma01: CouchDB server not working |',url)
           if url=='http://127.0.0.1:5984':
-            raise NameError('Wrong local server.') from None
+            raise NameError('**ERROR pma01a: Wrong local server.') from None
     be = Pasta(configName=args.database, initViews=initViews, initConfig=initConfig,
                                          resetOntology=resetOntology)
 
@@ -144,7 +150,7 @@ else:
         doc = be.db.getDoc('-ontology-')
         print('Ontology exists on server')
       except:
-        print('Ontology does NOT exist on server')
+        print('**ERROR pma02: Ontology does NOT exist on server')
       print('local directory:',be.basePath)
       print('software directory:',be.softwarePath)
       os.chdir(be.softwarePath)
@@ -175,7 +181,7 @@ else:
       success = be.replicateDB()
 
     elif args.command=='syncRL':
-      print('syncRL not implemented yet')
+      print('**ERROR pma03: syncRL not implemented yet')
 
     elif args.command=='print':
       print(be.output(args.label,True))
@@ -202,7 +208,7 @@ else:
         doc = dict(be.getDoc(args.docID))
         path = doc['-branch'][0]['path']
       else:
-        print("SOMETHING STRANGE",args.path,args.docID)
+        print("**ERROR pma04: something strange",args.path,args.docID)
       if args.content is None:
         doc = {'-type':['measurement']}
       else:
@@ -211,7 +217,7 @@ else:
       if len(doc['-type'])>1:
         print("SUCCESS")
       else:
-        print("**ERROR**")
+        print("**ERROR pma05: docType invalid after extractorTest")
         success = False
 
     elif args.command=='redo':
@@ -222,7 +228,7 @@ else:
         be.db.updateDoc({'image':doc['image'], '-type':doc['-type']},args.docID)
         success=True
       else:
-        print('**ERROR** in redo - extraction')
+        print('**ERROR pma06: error after redo-extraction')
         success=False
 
     elif args.command=='createDoc':
@@ -258,7 +264,7 @@ else:
         if content[0]=='"' and content[-1]=='"':
           content = content[1:-1]
         elif content[0]=='"' or content[-1]=='"':
-          print('SOMETHING STRANGE occurs with content string')
+          print('**ERROR pma07: something strange occurs with content string')
         ## FOR DEBUGGING OF CONTENT STRING
         # print('---- Ensure beginning & end are correct ----')
         # print(content)
@@ -270,7 +276,7 @@ else:
 
       ## Default case for all: unknown
       else:
-        print("Command in pastaDB.py does not exist:",args.command)
+        print("**ERROR pma08: command in pastaDB.py does not exist |",args.command)
         be.exit()
         success = False
 
@@ -278,7 +284,7 @@ else:
     if success:
       print('SUCCESS')
     else:
-      print('**ERROR**')
+      print('**ERROR pma09: undefined')
   except:
-    print("Exception thrown during pastaDB.py:\n"+traceback.format_exc())
+    print("**ERROR pma10: exception thrown during pastaDB.py|\n"+traceback.format_exc())
     raise
