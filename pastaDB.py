@@ -133,11 +133,15 @@ else:
           print('**ERROR pma01: CouchDB server not working |',url)
           if url=='http://127.0.0.1:5984':
             raise NameError('**ERROR pma01a: Wrong local server.') from None
-    be = Pasta(configName=args.database, initViews=initViews, initConfig=initConfig,
-                                         resetOntology=resetOntology)
+    try:
+      be = Pasta(configName=args.database, initViews=initViews, initConfig=initConfig,
+                 resetOntology=resetOntology)
+    except:
+      print('**ERROR pma20: backend could not be started.')
+      be = None
 
     # depending on commands
-    if args.command.startswith('test'):
+    if args.command.startswith('test') and be:
       print('database server:',be.db.db.client.server_url)
       print('configName:',be.configName)
       print('database name:',be.db.db.database_name)
@@ -256,7 +260,10 @@ else:
       if args.docID!='':
         be.changeHierarchy(args.docID)
 
-      if args.command=='scanHierarchy':
+      if be is None:
+        print('Backend does not exist')
+
+      elif args.command=='scanHierarchy':
         be.scanTree()                 #there can not be a callback function
 
       elif args.command=='saveHierarchy':
@@ -277,14 +284,16 @@ else:
       ## Default case for all: unknown
       else:
         print("**ERROR pma08: command in pastaDB.py does not exist |",args.command)
-        be.exit()
+        if be:
+          be.exit()
         success = False
 
-    be.exit()
+    if be:
+      be.exit()
     if success:
       print('SUCCESS')
     else:
       print('**ERROR pma09: undefined')
   except:
-    print("**ERROR pma10: exception thrown during pastaDB.py|\n"+traceback.format_exc())
+    print("**ERROR pma10: exception thrown during pastaDB.py\n")
     raise
