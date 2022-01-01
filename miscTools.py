@@ -497,7 +497,7 @@ def errorCodes(verbose=False):
   fOut = open('../ReactElectron/app/renderer/errorCodes.js','w')
   fOut.write('export const errorCodes =\n')
   json.dump(knownErrcodes,fOut)
-  fOut.write(';')
+  fOut.write('; // eslint-disable-line max-len')
   print('..success: assembled error-codes')
   return
 
