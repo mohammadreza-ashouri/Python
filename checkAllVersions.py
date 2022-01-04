@@ -166,7 +166,8 @@ def compareDOM_ELECTRON():
       electronTime = now-datetime.datetime.fromtimestamp(os.path.getmtime(electronFile)).replace(microsecond=0)
       print("  Files are different\t\t\tTime since change\n   ",domFile,'\t\t',domTime,'\n   ',electronFile,'\t',electronTime)
       if not 'App.js' in domFile and not 'index.js' in domFile:
-        failure=True
+        if not 'errorCodes.js' in domFile:
+          failure=True
         if domTime<electronTime:
           print('    -> DOM is newer: copy file')
           shutil.copy(domFile,electronFile)
@@ -248,6 +249,7 @@ def testDOM():
     fOut.write(text)
   print('  -- Start cypress test: Be patient!')
   server = subprocess.Popen(['npm','start'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  time.sleep(60)
   result = subprocess.run(['npx','cypress','run','-q'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
   result = result.stdout.decode('utf-8').split('\n')
   failures = [line for line in result if 'failures": [' in line]
