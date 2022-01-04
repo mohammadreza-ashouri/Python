@@ -415,7 +415,7 @@ def checkConfiguration(repair=False):
       u,p = upOut(conf[key]['cred']).split(':')
       client = CouchDB(u, p, url='http://127.0.0.1:5984', connect=True)
       if not conf[key]['database'] in client.all_dbs():
-        output += '**ERROR mcc04: Database not on local server configuration |'+key+'\n'
+        output += '**ERROR mcc04: Database not on local server |'+key+'\n'
     if 'url' in conf[key]:
       # remote entry
       continue
@@ -464,7 +464,7 @@ def errorCodes(verbose=False):
     "mcc01":"Use automatic configuration repair",
     "mcc02":"Repair with configuration-editor",
     "mcc03":"Repair with configuration-editor and restart",
-    "mcc04":"Restart using this database",
+    "mcc04":"Restart software using this local configuration:",
     "mcc05":"Please create path manually",
     "dit01":"Likely userName / password not correct"
   }
