@@ -123,7 +123,9 @@ else:
       if args.command=='testDev':
         resetOntology = True
       # local and remote server test
-      urls = ['http://127.0.0.1:5984', config[config['-defaultRemote']]['url'] ]
+      urls = ['http://127.0.0.1:5984']
+      if not '://___' in config[config['-defaultRemote']]['url']:
+        urls.append(config[config['-defaultRemote']]['url'])
       for url in urls:
         try:
           contents = urllib.request.urlopen(url).read()
