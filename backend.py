@@ -54,7 +54,7 @@ class Pasta:
     if 'user' in configuration[configName]:
       n,s     = configuration[configName]['user'], configuration[configName]['password']
     else:
-      n, s      = upOut(configuration[configName]['cred']).split(':')
+      n,s      = upOut(configuration[configName]['cred']).split(':')
     databaseName = configuration[configName]['database']
     self.configName=configName
     # directories

@@ -119,7 +119,7 @@ else:
       if 'ERROR' in output:
         success=False
       #real backend test
-      initViews, initConfig = True, False
+      initViews, initConfig = True, True
       if args.command=='testDev':
         resetOntology = True
       # local and remote server test

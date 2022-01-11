@@ -410,7 +410,8 @@ def checkConfiguration(repair=False):
     if not 'database' in conf[key]:
       output += '**ERROR mcc02a: No database in config |'+key+'\n'
     if not 'cred' in conf[key]:
-      output += '**ERROR mcc03: No user-credentials (username,password) in config |'+key+'\n'
+      if not 'user' in conf[key] or not 'password' in conf[key]:
+        output += '**ERROR mcc03: No user-credentials (username,password) in config |'+key+'\n'
     elif 'path' in conf[key]:
       u,p = upOut(conf[key]['cred']).split(':')
       client = CouchDB(u, p, url='http://127.0.0.1:5984', connect=True)
