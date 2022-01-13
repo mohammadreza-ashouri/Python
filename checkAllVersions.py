@@ -336,6 +336,31 @@ def cleanAll():
   return
 
 
+def gitStatus():
+  """
+  Go through all subfolders and do a git status
+  """
+  for i in ['Python','ReactDOM','ReactElectron','Documents']:
+    print("\n\nENTER DIRECTORY:",i,'<====')
+    os.chdir(i)
+    os.system('git status')
+    os.chdir('..')
+  return
+
+def gitCommitPush(msg):
+  """
+  Go through all subfolders and do a git commit with message msg and then git push
+  """
+  for i in ['Python','ReactDOM','ReactElectron','Documents']:
+    print("\n\nENTER DIRECTORY:",i,'<====')
+    os.chdir(i)
+    os.system('git commit -a -m "'+msg+'"')
+    print(msg)
+    os.chdir('..')
+  return
+
+
+
 if __name__=='__main__':
   if len(sys.argv)>1:
     if 'Python' in sys.argv[1]:
@@ -350,6 +375,10 @@ if __name__=='__main__':
       testDocumentation()
     elif sys.argv[1]=='cleanAll':
       cleanAll()
+    elif sys.argv[1]=='gitStatus':
+      gitStatus()
+    elif sys.argv[1]=='gitCommitPush':
+      gitCommitPush(sys.argv[2])
     else:
       print("Did not understand. Possible options are: Python, DOM, Electron, Documentation, compare")
   else:
