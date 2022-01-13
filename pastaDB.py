@@ -239,7 +239,6 @@ else:
 
     elif args.command=='createDoc':
       content = args.content.replace("\n","\\n")
-      content = content.replace("':'",'":"').replace("','",'","').replace("{'",'{"').replace("'}",'"}')
       doc = json.loads(content)
       docType = doc['docType']
       del doc['docType']
