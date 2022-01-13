@@ -355,7 +355,7 @@ def gitCommitPush(msg):
     print("\n\nENTER DIRECTORY:",i,'<====')
     os.chdir(i)
     os.system('git commit -a -m "'+msg+'"')
-    print(msg)
+    os.system('git push')
     os.chdir('..')
   return
 
