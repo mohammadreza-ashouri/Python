@@ -190,7 +190,7 @@ class Database:
       oldDoc = {}            #this is an older revision of the document
       nothingChanged = True
       # handle branch
-      if '-branch' in change and len(change['-branch']['stack'])>0: #TODO Remove if not needed by Dec. 2021: and change['-branch']['path'] is not None:
+      if '-branch' in change and len(change['-branch']['stack'])>0: #TODO Remove if not needed by June 2022: and change['-branch']['path'] is not None:
         op = change['-branch'].pop('op')
         oldpath = change['-branch'].pop('oldpath',None)
         if change['-branch']['path'] is None:

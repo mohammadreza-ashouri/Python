@@ -269,9 +269,9 @@ else:
 
       elif args.command=='saveHierarchy':
         content = args.content.replace('\\n','\n')
-        if content[0]=='"' and content[-1]=='"':
+        if content[0]=="'" and content[-1]=="'":
           content = content[1:-1]
-        elif content[0]=='"' or content[-1]=='"':
+        elif content[0]=="'" or content[-1]=="'":
           print('**ERROR pma07: something strange occurs with content string')
         ## FOR DEBUGGING OF CONTENT STRING
         # print('---- Ensure beginning & end are correct ----')
@@ -296,5 +296,5 @@ else:
     else:
       print('**ERROR pma09: undefined')
   except:
-    print("**ERROR pma10: exception thrown during pastaDB.py\n")
+    print("**ERROR pma10: exception thrown during pastaDB.py"+traceback.format_exc()+"\n")
     raise

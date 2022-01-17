@@ -60,7 +60,7 @@ def curate(doc):
   Returns:
     bool: success of curation
   """
-  questionsLocal = [  #TODO use global items
+  questionsLocal = [  #T-O-D-O use global items
     {"type":"confirm", "name":"use_file",       "message":"Use this measurement?",       "default":True},
     {"type":"confirm", "name":"use_dir",        "message":"Use this directory?",         "default":True, "when": lambda x: not x["use_file"]},
     {"type":"input",   "name":"comment",        "message":"Comment, #tags, :field:1:?",  "default":"",   "when": lambda x:     x["use_file"]},
@@ -128,6 +128,7 @@ def curate(doc):
 ###########################################################
 ### MAIN FUNCTION
 ###########################################################
+print("WARNING*** DISCONTINUED SOME TIME AGO. THIS IS AN OLD AND DEPRECATED VERSION")
 pathSoftware = os.path.dirname(os.path.abspath(__file__))
 menuOutline = json.load(open(pathSoftware+'/userInterfaceCLI.json', 'r')) # keep menus separate from dataDictionary since only CLI needs menu
 if len(sys.argv)>1: configName=sys.argv[1]

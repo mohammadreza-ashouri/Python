@@ -98,7 +98,7 @@ def testPython():
   if lastLine=='SUCCESS':
     text = result.stdout.decode('utf-8').split('\n')[:-2]
     #### set string to old one
-    cmd  = ['pastaDB.py','saveHierarchy','-d','pasta_tutorial','-i',docID,'-c','"'+'\\n'.join(text)+'"']
+    cmd  = ['pastaDB.py','saveHierarchy','-d','pasta_tutorial','-i',docID,'-c',"'"+'\\n'.join(text)+"'"]
     # print('Command is: \n',' '.join(cmd))
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     lastLine = result.stdout.decode('utf-8').split('\n')[-2].strip()

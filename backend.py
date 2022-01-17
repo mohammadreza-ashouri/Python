@@ -137,7 +137,7 @@ class Pasta:
     Save doc to database, also after edit
 
     Args:
-        docType (string): docType to be stored
+        docType (string): docType to be stored, subtypes are / separated
         doc (dict): to be stored
         hierStack (list): hierStack from external functions
         localCopy (bool): copy a remote file to local version
@@ -1070,7 +1070,7 @@ class Pasta:
         doc = docDB
         doc['childNum'] = children[-1]
         del doc['edit']
-        self.addData(edit, doc, self.hierStack)
+        self.addData('/'.join(doc['-type']), doc, self.hierStack)
         levelOld     = levelNew
         continue
 
