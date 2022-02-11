@@ -1070,7 +1070,7 @@ class Pasta:
         doc = docDB
         doc['childNum'] = children[-1]
         del doc['edit']
-        self.addData('/'.join(doc['-type']), doc, self.hierStack)
+        self.addData('-edit-', doc, self.hierStack)
         levelOld     = levelNew
         continue
 
