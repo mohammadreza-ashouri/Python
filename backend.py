@@ -291,7 +291,7 @@ class Pasta:
           # datalad api version: produces undesired output
           try:
             description = doc['objective'] if 'objective' in doc else '_'
-            datalad.create(path,description=description) #TODO SB-Windows10  cfg_proc='text2git'
+            datalad.create(path,description=description)
           except:
             print('**ERROR bad02: Tried to create new datalad folder which did already exist')
             raise
@@ -704,7 +704,7 @@ class Pasta:
             dataset.unlock(path=outFileFull)
             appendix = '(was unlocked before)'
           if outFileFull.endswith('svg'):
-            with open(outFileFull,'w', encoding="utf-8") as f:  #TODO SB , encoding="utf-8"?? for svg
+            with open(outFileFull,'w', encoding="utf-8") as f:
               figfile.seek(0)
               shutil.copyfileobj(figfile, f)
           else:

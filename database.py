@@ -190,7 +190,7 @@ class Database:
       oldDoc = {}            #this is an older revision of the document
       nothingChanged = True
       # handle branch
-      if '-branch' in change and len(change['-branch']['stack'])>0: #TODO Remove if not needed by June 2022: and change['-branch']['path'] is not None:
+      if '-branch' in change and len(change['-branch']['stack'])>0: #TODO D: Remove if not needed by June 2022: and change['-branch']['path'] is not None:
         op = change['-branch'].pop('op')
         oldpath = change['-branch'].pop('oldpath',None)
         if change['-branch']['path'] is None:
@@ -588,6 +588,10 @@ class Database:
                     onePathFound = True
                 if not onePathFound:
                   outstring+= f'{bcolors.FAIL}**ERROR dch08: parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
+
+        #every doc should have a name
+        if not 'name' in doc:
+          outstring+= f'{bcolors.FAIL}**ERROR dch17: name not in '+doc['_id']+f'{bcolors.ENDC}\n'
 
         #doc-type specific tests
         if '-type' in doc and doc['-type'][0] == 'sample':
