@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import os, shutil, traceback, logging, subprocess
+import os, shutil, traceback, logging, subprocess, re
 import warnings, json
 import unittest
 from backend import Pasta
@@ -58,6 +58,8 @@ class TestStringMethods(unittest.TestCase):
       self.be.scanTree()
       oldString = self.be.outputHierarchy(False)
       print(oldString)
+      if len([m for m in re.finditer('\.txt',oldString)]) != 2:
+        self.assertTrue(False,'**ERROR one measurement could not be extracted')
       print(" === STATE 0B ===\n"+self.be.checkDB(verbose=False))
 
       print('\n*** TEST SET_EDIT_STRING: no change ***')
