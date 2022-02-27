@@ -26,6 +26,8 @@ class TestStringMethods(unittest.TestCase):
       ### CREATE PROJECTS AND SHOW
       print('*** CREATE PROJECTS AND SHOW ***')
       self.be.addData('x0', {'name': 'Intermetals at interfaces', 'objective': 'Does spray coating lead to intermetalic phase?', 'status': 'active', 'comment': '#intermetal #Fe #Al This is a test project'})
+      self.be.addData('x0', {'name': 'Surface evolution in tribology', 'objective': 'Why does the surface get rough during tribology?', 'status': 'passive', 'comment': '#tribology The answer is obvious'})
+      self.be.addData('x0', {'name': 'Steel', 'objective': 'Test strength of steel', 'status': 'paused', 'comment': '#Fe Obvious example without answer'})
       print(self.be.output('x0'))
 
       ### TEST PROJECT PLANING
@@ -101,6 +103,39 @@ class TestStringMethods(unittest.TestCase):
         print('** COULD NOT CHANGE IMAGE Zeiss.tif')
 
 
+      ### ADD OWN DATATYPE
+      print('\n*** ADD OWN DATATYPE ***')
+      # Update ontology
+      newOntology = self.be.db.db['-ontology-']
+      newOntology['my_instrument'] = [\
+                {'name': 'name',   'query': 'What is the name?', 'required':True},
+                {'name': 'vendor', 'query': 'What is the vendor?'},
+                {'name': 'model',  'query': 'What is the model?'},
+                {'name': "comment","query":"#tags comments :field:value:"},
+                {'name': 'kind',   'query': 'What is the kind?', "list":["oven","SEM"]},
+                {'name': 'procedure', 'query': 'What is the procedure?', "list":"procedure"},
+                {'heading': 'Requirements for room'},
+                {'name': 'size',   'query': 'What is the foot print area?', 'unit':'m^2'}
+                ]
+      newOntology.save()
+      # restart
+      self.be.exit()
+      self.be = Pasta(configName, initViews=True, initConfig=False)
+      # add data
+      self.be.addData('my_instrument', {'name': 'XP', 'vendor':'MTS', 'model':'Nanoindenter XP', 'comment':':room:10: #TODO'})
+      self.be.addData('my_instrument', {'name': 'Fischer', 'vendor':'Fischer', 'model':'Fischer Scope 300mN', 'comment':':room:12: #TODO'})
+      # look at data
+      print(self.be.output('my_instrument'))
+      # look at one data-set
+      print("One dataset")
+      view = self.be.db.getView('viewDocType/my_instrument')
+      for item in view:
+        if (item['value'][0]=='XP'):
+          doc = self.be.db.getDoc(item['id'])
+          del doc['-branch']
+          del doc['-client']
+          print(doc)
+      print("   room is a normal data-entry in the dataset. Machine learning can be used to add this entry into tables, without ever being told to.")
       print('\n*** DONE WITH VERIFY ***')
 
     except:
