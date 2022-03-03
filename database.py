@@ -1,6 +1,7 @@
 """Class for interaction with couchDB
 """
 import traceback, logging
+from serverActions import testUser
 
 class Database:
   """
@@ -367,6 +368,7 @@ class Database:
         client2 = CouchDB(dbInfo['user'], dbInfo['password'], url=dbInfo['url'], connect=True)
       except:
         print('**ERROR drp01: Could not connect to remote server. Abort replication.')
+        testUser(dbInfo['url'], None, dbInfo['user'], dbInfo['password'] )
         return False
       try:
         listAllDataBases = client2.all_dbs()
