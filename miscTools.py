@@ -418,14 +418,19 @@ def checkConfiguration(repair=False):
       if not conf[key]['database'] in client.all_dbs():
         output += '**ERROR mcc04: Database not on local server |'+key+'\n'
     if 'url' in conf[key]:
-      # remote entry
-      continue
-    # local entry
-    if 'path' in conf[key]:
-      if not os.path.exists(conf[key]['path']):
-        output += '**ERROR mcc05: Path does not exist |'+str(conf[key]['path'])+'\n'
+      #remote entry
+      if not conf[key]['url'].startswith('http://') or not conf[key]['url'].endswith(':5984') or \
+        len(conf[key]['url'].split('.'))!=4:
+        output += '**ERROR mcc04b: url incorrect |'+conf[key]['url']+'\n'
+        if repair:
+          conf[key]['url'] = conf[key]['url'].replace('https://','http://')
     else:
-      output += '**ERROR mcc02b: No path in config |'+key+'\n'
+      # local entry
+      if 'path' in conf[key]:
+        if not os.path.exists(conf[key]['path']):
+          output += '**ERROR mcc05: Path does not exist |'+str(conf[key]['path'])+'\n'
+      else:
+        output += '**ERROR mcc02b: No path in config |'+key+'\n'
   #end
   if repair:
     with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
