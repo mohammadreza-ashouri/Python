@@ -9,6 +9,7 @@ import argparse, traceback
 import urllib.request
 from backend import Pasta
 from miscTools import upOut, getExtractorConfig, printQRcodeSticker, checkConfiguration
+from serverActions import passwordDecrypt
 
 argparser = argparse.ArgumentParser(usage='''
 pastaDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
@@ -50,6 +51,8 @@ Possible commands are:
       -p should be specified is the path to file from base folder
     extractorScan: get list of all extractors and save into .pastaDB.json
       example: pastaDB.py extractorScan
+    decipher: decipher encrypted string
+      content: string
     importXLS: import first sheet of excel file into database
       before: ensure database configuration and project exist
       example: pastaDB.py importXLS -d instruments -i x-a803c556bb3b367b1e78901109bd5bf5 -c "~/path/to.xls" -l instrument
@@ -100,6 +103,10 @@ elif args.command.startswith('verifyConfiguration'):
   print(output)
   if '**ERROR' in output:
     success = False
+
+elif args.command=='decipher':
+  print(passwordDecrypt(args.content, 'pastaDB_2022').decode())
+  print('SUCCESS')
 
 
 ## Commands that require open PASTA database, but not specific project

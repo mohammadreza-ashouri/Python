@@ -1,6 +1,7 @@
 *.pyc
 *.log
 *.js
+*.key
 verify?.org
 
 ##extractors/pasta_*.py
