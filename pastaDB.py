@@ -105,7 +105,7 @@ elif args.command.startswith('verifyConfiguration'):
     success = False
 
 elif args.command=='decipher':
-  print(passwordDecrypt(args.content, 'pastaDB_2022').decode())
+  print(passwordDecrypt(args.content).decode())
   print('SUCCESS')
 
 

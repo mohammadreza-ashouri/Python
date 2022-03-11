@@ -11,33 +11,25 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+#encrypt data
 #https://stackoverflow.com/questions/2490334/simple-way-to-encode-a-string-according-to-a-password
 backend = default_backend()
 iterations = 100_000
 def _derive_key(password: bytes, salt: bytes, iterations: int = iterations) -> bytes:
-  """Derive a secret key from a given password and salt"""
-  kdf = PBKDF2HMAC(
-      algorithm=hashes.SHA256(), length=32, salt=salt,
-      iterations=iterations, backend=backend)
+  kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=iterations, backend=backend)
   return b64e(kdf.derive(password))
-def passwordEncrypt(message: bytes, password: str, iterations: int = iterations) -> bytes:
+def passwordEncrypt(message: bytes, iterations: int = iterations) -> bytes:
   salt = secrets.token_bytes(16)
-  key = _derive_key(password.encode(), salt, iterations)
-  return b64e(
-    b'%b%b%b' % (
-      salt,
-      iterations.to_bytes(4, 'big'),
-      b64d(Fernet(key).encrypt(message)),
-    )
-  )
-def passwordDecrypt(token: bytes, password: str) -> bytes:
+  key = _derive_key('pastaDB_2022'.encode(), salt, iterations)
+  return b64e(b'%b%b%b' % (salt, iterations.to_bytes(4, 'big'), b64d(Fernet(key).encrypt(message))))
+def passwordDecrypt(token: bytes) -> bytes:
   decoded = b64d(token)
   salt, iter, token = decoded[:16], decoded[16:20], b64e(decoded[20:])
   iterations = int.from_bytes(iter, 'big')
-  key = _derive_key(password.encode(), salt, iterations)
+  key = _derive_key('pastaDB_2022'.encode(), salt, iterations)
   return Fernet(key).decrypt(token)
 
-
+#global variables
 headers = requests.structures.CaseInsensitiveDict()
 headers["Content-Type"] = "application/json"
 
@@ -97,13 +89,13 @@ def createUserDatabase(url, auth, userName):
   d.text((30, 70),  "user-name: "+userName, fill=(240,240,240), font=font)
   d.text((30,110),  "password: " +userPW,   fill=(240,240,240), font=font)
   d.text((30,150),  "database: " +userDB,   fill=(240,240,240), font=font)
-  d.text((30,150),  "Remote configuration", fill=(240,240,240), font=font)
-  d.text((30,150),  "Server:   " +url, fill=(240,240,240), font=font)
+  d.text((30,190),  "Remote configuration", fill=(240,240,240), font=font)
+  d.text((30,230),  "Server:   " +url, fill=(240,240,240), font=font)
   img.save(userDB+'.png')
   #create key file
   data = {"configuration name":"remote","user-name":userName,"password":userPW,"database":userDB,\
     "Remote configuration":"true","Server":url}
-  data = passwordEncrypt(json.dumps(data).encode(), "pastaDB_2022")
+  data = passwordEncrypt(json.dumps(data).encode())
   fOut = open(userDB+'.key','bw')
   fOut.write(data)
   fOut.close()
