@@ -33,6 +33,7 @@ def testPython():
     print('  success: pylint-success')
   else:
     print('**FAILED : pylint not 100%. run "pylint [file]"')
+
   ### git test
   result = subprocess.run(['git','status'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
   if len([1 for i in result.stdout.decode('utf-8').split('\n') if (i.startswith('\tmodified:') and i!='\tmodified:   commonTools.py')])==0:
@@ -43,10 +44,12 @@ def testPython():
     # return
   # Git, expect clean git before testing
   #
+
   # run miscTools
   result = subprocess.run(['python3','./miscTools.py'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
   print(result.stdout.decode('utf-8').strip())
-  ### TESTS
+
+  ### TESTS  ###
   successAll = True
   for fileI in os.listdir('Tests'):
     if not fileI.startswith('test'): continue

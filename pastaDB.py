@@ -113,6 +113,7 @@ elif args.command=='decipher':
 else:
   try:
     # open database
+    curWorkingDirectory = os.path.abspath(os.path.curdir)
     with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
       config = json.load(f)
     if args.database=='':
@@ -217,6 +218,8 @@ else:
     elif args.command=='extractorTest':
       if args.path and not args.docID:
         path = args.path
+        if not os.path.exists(path):
+          path = os.path.relpath(curWorkingDirectory,be.basePath)+os.sep+path
       elif args.docID and not args.path:
         doc = dict(be.getDoc(args.docID))
         path = doc['-branch'][0]['path']
