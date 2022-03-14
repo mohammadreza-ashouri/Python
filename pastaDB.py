@@ -48,7 +48,7 @@ Possible commands are:
     newDB: add/update database configuration. item is e.g.
       '{"test":{"user":"Peter","password":"Parker",...}}'
     extractorTest: test the extractor of this file
-      -p should be specified is the path to file from base folder
+      -p should be specified is the path to file (best: from base folder)
     extractorScan: get list of all extractors and save into .pastaDB.json
       example: pastaDB.py extractorScan
     decipher: decipher encrypted string
@@ -56,6 +56,7 @@ Possible commands are:
     importXLS: import first sheet of excel file into database
       before: ensure database configuration and project exist
       example: pastaDB.py importXLS -d instruments -i x-a803c556bb3b367b1e78901109bd5bf5 -c "~/path/to.xls" -l instrument
+      -l is the document type
       afterwards: adopt ontology (views are automatically generated)
 ''')
 argparser.add_argument('command', help='see above...')
@@ -259,8 +260,13 @@ else:
     elif args.command=='importXLS':
       import pandas as pd
       from commonTools import commonTools as cT  #not globally imported since confuses translation
-      be.changeHierarchy(args.docID)
-      data = pd.read_excel(args.content, sheet_name=0).fillna('')
+      if args.docID!='':
+        be.changeHierarchy(args.docID)
+      data = None
+      if os.path.exists(args.content):
+        data = pd.read_excel(args.content, sheet_name=0).fillna('')
+      else:
+        data = pd.read_excel(curWorkingDirectory+os.sep+args.content, sheet_name=0).fillna('')
       for idx, row in data.iterrows():
         doc = dict((cT.camelCase(k)[0].lower()+cT.camelCase(k)[1:], v) for k, v in row.items())
         be.addData(args.label, doc )
