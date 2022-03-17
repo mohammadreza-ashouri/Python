@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import h5py
 
-def use(fileName, doc):
+def use(fileName, doc={}):
   """
   Args:
      fileName (string): full path file name
@@ -13,6 +13,8 @@ def use(fileName, doc):
   Returns:
     list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
   """
+  if '-type' not in doc:
+    doc['-type'] = []
 
   hdf = h5py.File(fileName)
   converter = None
@@ -23,7 +25,7 @@ def use(fileName, doc):
     converter = converter.split('/')[-1]
 
 
-  if converter == 'Micromaterials2hdf.cwl':
+  if converter in ['Micromaterials2hdf.cwl','nmd2hdf.cwl']:
     # Micromaterials indentation file
     hdf.close()
     from nanoIndent import Indentation
@@ -41,10 +43,23 @@ def use(fileName, doc):
       ax1.set_ylim(bottom=0)
       ax2.set_ylim(bottom=0)
       return ax1, ['svg', doc['-type'],                  i.metaVendor, i.metaUser]
-    else:                                               #default: plot force-depth curve
+    elif doc['-type'][2:] == ['indentation', 'one indent']:#: plot one indentation
       i.analyse()
       img = i.plot(False,False)
       return img, ['svg', doc['-type']+['indentation'], i.metaVendor, i.metaUser]
+    else:                                               #default: plot all force-depth curves
+      ax1 = plt.subplot(111)
+      while True:
+        i.analyse()
+        ax1.plot(i.h,i.p,'-')
+        if len(i.testList)==0:
+            break
+        i.nextTest()
+      ax1.set_xlabel(r"depth [$\mathrm{\mu m}$]")
+      ax1.set_ylabel(r"force [$\mathrm{mN}$]")
+      ax1.set_xlim(left=0)
+      ax1.set_ylim(bottom=0)
+      return ax1, ['svg', doc['-type']+['indentation'], i.metaVendor, i.metaUser]
 
 
   elif converter == 'mvl2hdf.cwl':
