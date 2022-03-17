@@ -54,7 +54,6 @@ def use(fileName, doc):
 
   except:
     print(traceback.format_exc())
-    pass
 
   # other data routines follow here
   # ....
