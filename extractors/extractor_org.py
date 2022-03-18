@@ -1,7 +1,8 @@
 """extract data from Org-mode .org file
 """
+import pypandoc
 
-def use(fileName, doc):
+def use(fileName, doc={}):
   """
   Args:
      fileName (string): full path file name
@@ -10,7 +11,8 @@ def use(fileName, doc):
   Returns:
     list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
   """
-  import pypandoc
+  if '-type' not in doc:
+    doc['-type'] = []
   try:
     fIn = open(fileName,'r')
     text = pypandoc.convert_text(fIn.read(), 'md', format='org')

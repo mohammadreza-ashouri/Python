@@ -1,10 +1,10 @@
-"""extract data from random .png file
+"""extract data from random .jpeg file
 """
 from io import BytesIO
 import requests
 from PIL import Image
 
-def use(fileName, doc):
+def use(fileName, doc={}):
   """
   Args:
      fileName (string): full path file name
@@ -13,16 +13,17 @@ def use(fileName, doc):
   Returns:
     list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
   """
-  # plain png
+  if '-type' not in doc:
+    doc['-type'] = []
+
+  # plain jpeg
   try:
     if "://" in fileName:
       response = requests.get(fileName)
       image = Image.open(BytesIO(response.content))
     else:
-      image = Image.open(fileName)
-    if 'Software' in image.info and 'matplotlib' in image.info['Software']:  #ignore python.matplotlib files since they are not measurements
-      raise ValueError
-    return image.convert('P'), ['jpg', doc['-type']+['image'], {}, {}]
+      image = Image.open(fileName).convert("L").convert("P")
+    return image, ['jpg', doc['-type']+['image'], {}, {}]
   except:
     pass
 

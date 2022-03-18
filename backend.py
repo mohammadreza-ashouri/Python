@@ -639,7 +639,7 @@ class Pasta:
           return
       absFilePath = self.basePath + filePath
       outFile = self.basePath + filePath.replace('.','_')+'_pasta'
-    pyFile = 'pasta_'+extension+'.py'
+    pyFile = 'extractor_'+extension+'.py'
     pyPath = self.softwarePath+os.sep+'extractors'+os.sep+pyFile
     if len(doc['-type'])==1:
       doc['-type'] += [extension]
@@ -647,19 +647,37 @@ class Pasta:
       # import module and use to get data
       module = importlib.import_module(pyFile[:-3])
       content, [imgType, docType, metaVendor, metaUser] = module.use(absFilePath, doc)
-      # test whether meta data JSON format
+      # tests whether meta data JSON format
       try:
+        for i in metaUser:
+          if isinstance(metaUser[i], np.int64):
+            metaUser[i] = int(metaUser[i])
+          if isinstance(metaUser[i], np.ndarray):
+            metaUser[i] = str(list(metaUser[i]))
         _ = json.dumps(metaUser, cls=json.JSONEncoder)
-      except TypeError as err:
-        if str(err)=='Object of type Empty is not JSON serializable':
-          print('**ERROR bue01a: metaUSER not json format |',metaUser,'\n')
-          metaUser = {'error':str(metaUser)}
+      except:
+        print('**ERROR bue01a: metaUSER not json format |',metaUser,'\n')
+        metaUser = {'error':str(metaUser)}
       try:
+        for i in metaVendor:
+          if isinstance(metaVendor[i], np.int64):
+            metaVendor[i] = int(metaVendor[i])
+          if isinstance(metaVendor[i], np.ndarray):
+            metaVendor[i] = str(list(metaVendor[i]))
         _ = json.dumps(metaVendor, cls=json.JSONEncoder)
-      except TypeError as err:
-        if str(err)=='Object of type Empty is not JSON serializable':
-          print('**ERROR bue01b: metaVENDOR not json format |',metaVendor,'\n')
-          metaVendor = {'error':str(metaVendor)}
+      except:
+        print('**ERROR bue01b: metaVENDOR not json format |',metaVendor,'\n')
+        metaVendor = {'error':str(metaVendor)}
+      if type(docType)==list:
+        document = {'-type': docType, 'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
+      elif type(docType)==dict:
+        document = docType
+        document['metaUser']  = metaUser
+        document['metaVendor']= metaVendor
+        document['shasum']    = shasum
+      else:
+        print('**ERROR bue01c: invalid docType type list,dict |',type(docType),'\n')
+      # end tests
       if extractorTest:
         if isinstance(content, Image):
           content.show()
@@ -712,16 +730,14 @@ class Pasta:
               figfile.seek(0)
               shutil.copyfileobj(figfile, f)
           dataset.save(path=outFileFull, message='Added document '+appendix)
-        document = {'image': content, '-type': docType,
-                    'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
+        document['image'] = content
       else:
         if imgType=='text':
-          document = {'content': content, '-type': docType,
-                      'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
+          document['content'] = content
         else:
-          document={'-type':None, 'metaUser':None, 'metaVendor':None, 'shasum':shasum}
+          document={'-type':None, 'metaUser':None, 'metaVendor':None, 'shasum':None}
     else:
-      document={'-type':None, 'metaUser':None, 'metaVendor':None, 'shasum':shasum}
+      document={'-type':None, 'metaUser':None, 'metaVendor':None, 'shasum':None}
       logging.warning('useExtractor could not find pyFile to convert '+pyFile)
     #combine into document
     logging.debug('useExtractor: finished')

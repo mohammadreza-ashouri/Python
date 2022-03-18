@@ -2,7 +2,7 @@
 """
 from Tif import Tif
 
-def use(fileName, doc):
+def use(fileName, doc={}):
   """
   Args:
      fileName (string): full path file name

@@ -11,4 +11,7 @@ def use(fileName, doc={}):
   Returns:
     list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
   """
+  if '-type' not in doc:
+    doc['-type'] = []
+
   return ex_use(fileName, doc)

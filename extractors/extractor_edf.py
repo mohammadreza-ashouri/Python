@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mne
 
-def use(fileName, doc):
+def use(fileName, doc={}):
   """
   Args:
      fileName (string): full path file name
@@ -14,10 +14,10 @@ def use(fileName, doc):
   Returns:
     list: image|content  [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
   """
-  try:
-    if len(doc['-type']) <= 3:
-      doc['-type'] = ['measurement', 'edf', 'ecg', 'heart']
+  if len(doc['-type']) <= 3:
+    doc['-type'] = ['measurement', 'edf', 'ecg', 'heart']
 
+  try:
     data = mne.io.read_raw_edf(fileName)
     metaVendor = {'frequency':data.info['sfreq'], 'measurement data': data.info['meas_date'].isoformat()}
     print(metaVendor)

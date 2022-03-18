@@ -39,8 +39,8 @@ Possible commands are:
       content: list of qrCodes and text
       note: requires set -qrPrinter in pasta.json
       example: pastaDB.py printQRCodes -c '[["my random name","Sample 1"], ["","Oven 450C"]]'
-    scanHierarchy, hierarchy: scan / print project
-      item: documentID for. To be identified by printing Project
+    scanHierarchy, hierarchy: scan project with docID
+      example: pastaDB.py scanHierarchy -i ....
     saveHierarchy: save hierarchy to database
     addDoc:
       content is required as json-string

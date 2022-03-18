@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 from nanoIndent import Indentation
 
-def use(fileName, doc):
+def use(fileName, doc={}):
   """
   Args:
      fileName (string): full path file name
@@ -12,6 +12,8 @@ def use(fileName, doc):
   Returns:
     list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
   """
+  if '-type' not in doc:
+    doc['-type'] = []
   #if Hysitron/Fischer-Scope file
   try:
     i = Indentation(fileName, verbose=1)

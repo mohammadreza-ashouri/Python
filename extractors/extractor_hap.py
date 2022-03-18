@@ -1,9 +1,8 @@
-"""extract data from .mss file
-- MTS, Agilent, Keysight, KLA, NanomechanicsInc nanoindentation raw data
-  proprietary binary files
+"""extractor data from .hap file
+- Fischer-Scope .hap file: unknown
 """
 
-def use(fileName, doc):
+def use(fileName, doc={}):
   """
   Args:
      fileName (string): full path file name
@@ -12,5 +11,8 @@ def use(fileName, doc):
   Returns:
     list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
   """
+  if '-type' not in doc:
+    doc['-type'] = []
+
   #final return if nothing successful
   return None, ['', [], {}, {}]
