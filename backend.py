@@ -668,9 +668,9 @@ class Pasta:
       except:
         print('**ERROR bue01b: metaVENDOR not json format |',metaVendor,'\n')
         metaVendor = {'error':str(metaVendor)}
-      if type(docType)==list:
+      if isinstance(docType, list):
         document = {'-type': docType, 'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
-      elif type(docType)==dict:
+      elif isinstance(docType, dict):
         document = docType
         document['metaUser']  = metaUser
         document['metaVendor']= metaVendor

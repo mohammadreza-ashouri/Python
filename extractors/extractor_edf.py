@@ -19,7 +19,7 @@ def use(fileName, doc={}):
 
   try:
     data = mne.io.read_raw_edf(fileName)
-    metaVendor = {'frequency':data.info['sfreq'], 'measurement data': data.info['meas_date'].isoformat()}
+    metaVendor = {'frequency':data.info['sfreq'], 'date': data.info['meas_date'].isoformat()}
     print(metaVendor)
     metaUser = {}
 

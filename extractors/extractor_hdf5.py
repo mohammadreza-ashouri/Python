@@ -53,7 +53,7 @@ def use(fileName, doc={}):
         i.analyse()
         ax1.plot(i.h,i.p,'-')
         if len(i.testList)==0:
-            break
+          break
         i.nextTest()
       ax1.set_xlabel(r"depth [$\mathrm{\mu m}$]")
       ax1.set_ylabel(r"force [$\mathrm{mN}$]")
