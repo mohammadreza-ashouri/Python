@@ -77,7 +77,7 @@ class Database:
         elif item['name'] == 'content':
           outputList.append('doc.content.slice(0,100)')
         elif '/' in item['name']:
-          outputList.append('doc'+''.join(['["'+i+'"]' for i in name.split('/')]))
+          outputList.append('doc'+''.join(['["'+i+'"]' for i in item['name'].split('/')]))
         else:
           outputList.append('doc["'+item['name']+'"]')
       outputList = ','.join(outputList)

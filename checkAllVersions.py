@@ -328,14 +328,14 @@ def testDocumentation():
 
 def cleanAll():
   """
-  Clean all versions
+  Clean all versions: currently not needed
   """
-  print('==== Clean all versions ====')
-  for root, _, files in os.walk('.'):
-    for name in files:
-      if name.endswith('.orig'):
-        print('  remove file:',os.path.join(root, name))
-        os.remove( os.path.join(root, name) )
+  # print('==== Clean all versions ====')
+  # for root, _, files in os.walk('.'):
+  #   for name in files:
+  #     if name.endswith('.orig'):
+  #       print('  remove file:',os.path.join(root, name))
+  #       os.remove( os.path.join(root, name) )
   return
 
 
@@ -383,7 +383,7 @@ if __name__=='__main__':
     elif sys.argv[1]=='gitCommitPush':
       gitCommitPush(sys.argv[2])
     else:
-      print("Did not understand. Possible options are: Python, DOM, Electron, Documentation, compare")
+      print("Did not understand. Possible options are: Python, DOM, Electron, Documentation, compare, gitStatus, gitCommitPush")
   else:
     testPython()
     compareDOM_ELECTRON()
