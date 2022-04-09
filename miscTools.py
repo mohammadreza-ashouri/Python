@@ -220,7 +220,7 @@ def getExtractorConfig(directory):
       with open(directory+os.sep+fileName,'r') as fIn:
         lines = fIn.readlines()
         extractors = []
-        baseType = ['measurement', fileName[6:-3]]
+        baseType = ['measurement', fileName.split('_')[1].split('.')[0]]
         ifInFile, headerState, header = False, True, []
         for idx,line in enumerate(lines):
           line = line.rstrip()

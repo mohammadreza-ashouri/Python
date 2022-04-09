@@ -76,8 +76,11 @@ class Database:
           outputList.append('doc["-type"].slice(1).join("/")')
         elif item['name'] == 'content':
           outputList.append('doc.content.slice(0,100)')
-        elif '/' in item['name']:
-          outputList.append('doc'+''.join(['["'+i+'"]' for i in item['name'].split('/')]))
+        elif '/' in item['name']:  #stacked requests i.e. metaVendor/date
+          parentString = 'doc'+''.join(['["'+i+'"]' for i in item['name'].split('/')[:-1]])
+          newString = 'doc'+''.join(['["'+i+'"]' for i in item['name'].split('/')])
+          newString = parentString +' ? '+ newString + ': ""'
+          outputList.append(newString)
         else:
           outputList.append('doc["'+item['name']+'"]')
       outputList = ','.join(outputList)

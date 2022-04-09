@@ -1,6 +1,6 @@
 """extract data from .ser file
 """
-import os, struct, traceback
+import os, struct, traceback, pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -56,6 +56,14 @@ def use(fileName, doc={}):
     i.width, i.height = i.widthPixel*i.pixelSize, i.heightPixel*i.pixelSize
 
     i.addScaleBar()
+
+    #simplify if meta data is a list of identical values
+    for j in metaVendor:
+      if isinstance(metaVendor[j],list):
+        if metaVendor[j][0]==metaVendor[j][1]:
+          metaVendor[j] = metaVendor[j][0]
+      elif isinstance(metaVendor[j], pathlib.PosixPath):
+        metaVendor[j] = str(metaVendor[j])
     return i.image, ['jpg', doc['-type'], metaVendor, metaUser]
 
     # else:

@@ -683,6 +683,8 @@ class Pasta:
           content.show()
         else:
           plt.show()
+        print("metaUser:", metaUser)
+        print("metaVendor:", metaVendor)
       # depending on imgType: produce image
       outFileFull = None
       if imgType == 'svg':  #no scaling

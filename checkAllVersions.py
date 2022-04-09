@@ -344,7 +344,7 @@ def gitStatus():
   Go through all subfolders and do a git status
   """
   for i in ['Python','ReactDOM','ReactElectron','Documents']:
-    print("\n\nENTER DIRECTORY:",i,'<====')
+    print("\n\n------------------------------\nENTER DIRECTORY:",i)
     os.chdir(i)
     os.system('git status')
     os.chdir('..')
@@ -355,7 +355,7 @@ def gitCommitPush(msg):
   Go through all subfolders and do a git commit with message msg and then git push
   """
   for i in ['Python','ReactDOM','ReactElectron','Documents']:
-    print("\n\nENTER DIRECTORY:",i,'<====')
+    print("\n\n------------------------------\nENTER DIRECTORY:",i)
     os.chdir(i)
     os.system('git commit -a -m "'+msg+'"')
     os.system('git push')
