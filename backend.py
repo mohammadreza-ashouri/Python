@@ -495,7 +495,7 @@ class Pasta:
     return
 
 
-  def backup(self, method='backup', zipFileName=None, **kwargs):
+  def backup(self, method='backup', zipFileName=None, docID=None, **kwargs):
     """
     backup, verify, restore information from/to database
     - documents are named: (docID).json
@@ -505,41 +505,79 @@ class Pasta:
     Args:
       method (string): backup, restore, compare
       zipFileName (string): specific unique name of zip-file
+      docID: project docID to restrict the backup
       kwargs (dict): additional parameter, i.e. callback
 
     Returns:
         bool: success
     """
-    import os, json
+    import os, json, subprocess
     from zipfile import ZipFile, ZIP_DEFLATED
-    if zipFileName is None and self.cwd is None:
-      print("**ERROR bbu01: Specify zip file name")
-      return False
-    if zipFileName is None: zipFileName="pasta_backup.zip"
+    dirNameProject = ''
+    if docID is not None:
+      docProject = self.db.getDoc(docID)
+      dirNameProject = docProject['-branch'][0]['path']
+      if zipFileName is None:
+        zipFileName = dirNameProject+'.eln'
+    if zipFileName is None:
+      if self.cwd is None:
+        print("**ERROR bbu01: Specify zip file name or database")
+        return False
+      zipFileName="pasta_backup.zip"
     if os.sep not in zipFileName:
       zipFileName = self.basePath+zipFileName
     if method=='backup':  mode = 'w'
     else:                 mode = 'r'
     print('  '+method.capitalize()+' to file: '+zipFileName)
+
     with ZipFile(zipFileName, mode, compression=ZIP_DEFLATED) as zipFile:
 
       # method backup, iterate through all database entries and save to file
       if method=='backup':
-        numAttachments = 0
-        for doc in self.db.db:
+        #write JSON files
+        listDocs = self.db.db
+        if docID is not None:
+          listDocs = self.db.getView('viewHierarchy/viewHierarchy', startKey=docID)
+          listDocs = [i['id'] for i in listDocs]
+        listFileNames = []
+        for doc in listDocs:
+          if isinstance(doc, str):
+            doc = self.db.getDoc(doc)
           fileName = doc['_id']+'.json'
+          listFileNames.append(fileName)
           zipFile.writestr(fileName, json.dumps(doc) )
-          if '_attachments' in doc:
-            numAttachments += len(doc['_attachments'])
-            for i in range(len(doc['_attachments'])):
-              attachmentName = doc['_id']+'/v'+str(i)+'.json'
-              zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
+          # if '_attachments' in doc:
+          #   numAttachments += len(doc['_attachments'])
+          #   for i in range(len(doc['_attachments'])):
+          #     attachmentName = doc['_id']+'/v'+str(i)+'.json'
+          #     zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
+        #write data-files
+        for path, _, files in os.walk(dirNameProject):
+          if path.startswith(dirNameProject+'/.git') or  path.startswith(dirNameProject+'/.datalad'):
+            continue
+          for iFile in files:
+            if iFile.startswith('.'):
+              continue
+            zipFile.write(path+os.sep+iFile, path+os.sep+iFile)
+        #write index.json
+        index = {}
+        index['jsonList'] = listFileNames
+        #  figure out git version: change to software dir and back
+        cwd = self.cwd
+        os.chdir(self.softwarePath)
+        cmd = ['git','show','-s','--format=%ci']
+        output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+        os.chdir(self.basePath+os.sep+cwd)
+        index['builder'] = 'PASTA_db version '+' '.join(output.stdout.decode('utf-8').split()[0:2])
+        index['version'] = '1.0'
+        zipFile.writestr('index.json', json.dumps(index))
+        #create some fun output
         compressed, fileSize = 0,0
         for doc in zipFile.infolist():
           compressed += doc.compress_size
           fileSize   += doc.file_size
         print(f'  File size: {fileSize:,} byte   Compressed: {compressed:,} byte')
-        print(f'  Num. documents (incl. ontology and views): {len(self.db.db):,},    num. attachments: {numAttachments:,}\n')
+        print(f'  Num. documents (incl. ontology and views): {len(self.db.db):,}\n')#,    num. attachments: {numAttachments:,}\n')
         return True
 
       # method compare

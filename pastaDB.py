@@ -30,7 +30,10 @@ Possible commands are:
     history: get history for docTypes
       example: pastaDB.py history
     saveBackup,loadBackup: save to file.zip / load from file.zip
+      - docId is optional as it reduces the scope of the backup
+      - database is optional as otherwise the default is used
       example: pastaDB.py saveBackup -d instruments
+      example: pastaDB.py saveBackup -i x-76b0995cf655bcd487ccbdd8f9c68e1b
     sync: synchronize / replicate with remote server
     print: print overview
       label: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
@@ -211,7 +214,7 @@ else:
         config['-qrPrinter']['printer'])
 
     elif args.command=='saveBackup':   #save to backup file.zip
-      be.backup('backup')
+      be.backup('backup', None, args.docID)
 
     elif args.command=='loadBackup':   #load from backup file.zip
       be.backup('restore')
