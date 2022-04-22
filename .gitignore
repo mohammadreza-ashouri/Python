@@ -13,4 +13,5 @@ NielsCode/
 __pycache__/
 .vscode/
 doxygen/
-temporaryTests/
+HelpfulScripts
+/

@@ -184,6 +184,7 @@ if exist "%ProgramFiles%\Apache CouchDB\bin" (goto end_couchdb)
 if not exist %downloadDir%/apache-couchdb-3.1.1.msi (python.exe -m wget -o %downloadDir% https://couchdb.neighbourhood.ie/downloads/3.1.1/win/apache-couchdb-3.1.1.msi)
 start /WAIT %downloadDir%\apache-couchdb-3.1.1.msi
 :end_couchdb
+REM https://docs.couchdb.org/en/3.2.0/install/windows.html
 
 echo Please note: user name and password are scrambled at first usage, aka they are not stored as plain text but in vault.
 set /p CDB_USER="Which user-name did you use? [admin] "
