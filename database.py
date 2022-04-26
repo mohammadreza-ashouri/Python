@@ -642,6 +642,7 @@ class Database:
           outstring+= f'{bcolors.OKBLUE}**warning: measurement without shasum: '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
       else:
         if item['key'] in shasumKeys:
-          outstring+= f'{bcolors.FAIL}**ERROR dch16: shasum twice in view: '+item['key']+' '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
+          key = item['key'] if item['key'] else '-empty-'
+          outstring+= f'{bcolors.FAIL}**ERROR dch16: shasum twice in view: '+key+' '+item['id']+' '+item['value']+f'{bcolors.ENDC}\n'
         shasumKeys.append(item['key'])
     return outstring

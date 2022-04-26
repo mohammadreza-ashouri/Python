@@ -28,7 +28,7 @@ def use(fileName, doc={}):
   if converter in ['Micromaterials2hdf.cwl','nmd2hdf.cwl']:
     # Micromaterials indentation file
     hdf.close()
-    from nanoIndent import Indentation
+    from nanoindentation import Indentation
     i = Indentation(fileName, nuMat=0.3)
     if doc['-type'][2:] == ['indentation', 'procedure']:#: plot indentation procedure
       ax1 = plt.subplot(111)

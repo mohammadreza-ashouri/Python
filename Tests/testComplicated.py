@@ -47,7 +47,6 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('x2',    {'name': 'Test task une', 'comment': 'A random comment', 'procedure': 'Secret potion for Asterix'})
       self.be.addData('x2',    {'name': 'Test task duo', 'comment': 'A comment', 'procedure': 'Secret potion for Obelix'})
       self.be.changeHierarchy(self.be.currentID)  #cd in task
-      self.be.addData('measurement', {'name': 'geolocation.txt', 'comment': 'Center of work'})
       self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/320px-Google_2015_logo.svg.png', 'comment': 'logo'})
       self.be.changeHierarchy(None)  #cd .. into step
       self.be.addData('x2',    {'name': 'Test task tres', 'comment': 'A long comment', 'procedure': 'Secret potion for all'})
@@ -99,8 +98,6 @@ class TestStringMethods(unittest.TestCase):
       # also enter empty data to test if tags are extracted
       # scan tree to register into database
       print('*** TEST MEASUREMENTS AND SCANNING 1 ***')
-      self.be.addData('measurement', {'name': 'filename.txt', 'comment': '#random #5 great stuff'})
-      self.be.addData('measurement', {'name': 'filename.jpg', 'comment': '#3 #other medium stuff'})
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
       stepDirName = self.be.basePath+self.be.db.getDoc(stepID)['-branch'][0]['path']

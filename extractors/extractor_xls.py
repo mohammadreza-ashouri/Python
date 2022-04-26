@@ -2,7 +2,7 @@
 - MTS, Agilent, Keysight, KLA, NanomechanicsInc nanoindentation exported data
 """
 import matplotlib.pyplot as plt
-from nanoIndent import Indentation
+from nanoindentation import Indentation
 
 def use(fileName, doc={}):
   """

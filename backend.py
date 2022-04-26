@@ -505,7 +505,7 @@ class Pasta:
     Args:
       method (string): backup, restore, compare
       zipFileName (string): specific unique name of zip-file
-      docID: project docID to restrict the backup
+      docID (string): project docID to restrict the backup
       kwargs (dict): additional parameter, i.e. callback
 
     Returns:
@@ -534,6 +534,7 @@ class Pasta:
 
       # method backup, iterate through all database entries and save to file
       if method=='backup':
+        numAttachments = 0
         #write JSON files
         listDocs = self.db.db
         if docID is not None:
@@ -546,11 +547,12 @@ class Pasta:
           fileName = doc['_id']+'.json'
           listFileNames.append(fileName)
           zipFile.writestr(fileName, json.dumps(doc) )
-          # if '_attachments' in doc:
-          #   numAttachments += len(doc['_attachments'])
-          #   for i in range(len(doc['_attachments'])):
-          #     attachmentName = doc['_id']+'/v'+str(i)+'.json'
-          #     zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
+          # Attachments
+          if docID is None and '_attachments' in doc:
+            numAttachments += len(doc['_attachments'])
+            for i in range(len(doc['_attachments'])):
+              attachmentName = doc['_id']+'/v'+str(i)+'.json'
+              zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
         #write data-files
         for path, _, files in os.walk(dirNameProject):
           if path.startswith(dirNameProject+'/.git') or  path.startswith(dirNameProject+'/.datalad'):
@@ -570,7 +572,8 @@ class Pasta:
         os.chdir(self.basePath+os.sep+cwd)
         index['builder'] = 'PASTA_db version '+' '.join(output.stdout.decode('utf-8').split()[0:2])
         index['version'] = '1.0'
-        zipFile.writestr('index.json', json.dumps(index))
+        if docID is not None:  #only add index.json in generall all purpose backup
+          zipFile.writestr('index.json', json.dumps(index))
         #create some fun output
         compressed, fileSize = 0,0
         for doc in zipFile.infolist():
@@ -1243,5 +1246,6 @@ class Pasta:
     outString = '{0: <32}|{1: <40}|{2: <25}'.format('SHAsum', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
     for item in self.db.getView('viewIdentify/viewSHAsum'):
-      outString += '{0: <32}|{1: <40}|{2: <25}'.format(item['key'], item['value'][-40:], item['id'])+'\n'
+      key = item['key'] if item['key'] else '-empty-'
+      outString += '{0: <32}|{1: <40}|{2: <25}'.format(key, item['value'][-40:], item['id'])+'\n'
     return outString

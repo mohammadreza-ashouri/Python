@@ -465,7 +465,7 @@ def errorCodes(verbose=False):
      verbose (bool): print information about printing statements
   """
   import os, re, json
-  ignoreFiles = ['checkAllVersions.py','pastaCLI.py','commonTools.py']
+  ignoreFiles = ['checkAllVersions.py','commonTools.py']
   knownErrcodes = {
     "mcc01":"Click 'MAINTENANCE' and 'AUTOMATICALLY REPAIR CONFIGURATION'",
     "mcc02":"Repair with configuration-editor",
