@@ -502,6 +502,8 @@ class Pasta:
     - all data is saved to one zip file
     - after restore-to-database, the database changed (new revision)
 
+    ./pastaDB.py saveBackup -i x-51f82a43fac0742033112b4a4742bee3; ark /home/sbrinckm/FZJ/pasta_misc/testing/IntermetalsAtInterfaces.eln
+
     Args:
       method (string): backup, restore, compare
       zipFileName (string): specific unique name of zip-file
@@ -524,6 +526,7 @@ class Pasta:
         print("**ERROR bbu01: Specify zip file name or database")
         return False
       zipFileName="pasta_backup.zip"
+    basePathZip = zipFileName[:-4]+os.sep
     if os.sep not in zipFileName:
       zipFileName = self.basePath+zipFileName
     if method=='backup':  mode = 'w'
@@ -536,6 +539,7 @@ class Pasta:
       if method=='backup':
         numAttachments = 0
         #write JSON files
+        index = {}
         listDocs = self.db.db
         if docID is not None:
           listDocs = self.db.getView('viewHierarchy/viewHierarchy', startKey=docID)
@@ -544,15 +548,23 @@ class Pasta:
         for doc in listDocs:
           if isinstance(doc, str):
             doc = self.db.getDoc(doc)
-          fileName = doc['_id']+'.json'
+          pathToFile = doc['-branch'][0]['path'] if doc['-branch'][0]['path'] else 'misc'
+          if pathToFile.startswith('https://'):
+            pathToFile='misc'
+          if doc['-type'][0][0]!='x' and pathToFile!='misc':
+            pathToFile = os.sep.join(pathToFile.split(os.sep)[:-1])
+          fileName = pathToFile+os.sep+doc['_id']+'.json'
+          print(fileName)
           listFileNames.append(fileName)
-          zipFile.writestr(fileName, json.dumps(doc) )
+          zipFile.writestr(basePathZip+fileName, json.dumps(doc) )
           # Attachments
           if docID is None and '_attachments' in doc:
             numAttachments += len(doc['_attachments'])
             for i in range(len(doc['_attachments'])):
               attachmentName = doc['_id']+'/v'+str(i)+'.json'
-              zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
+              zipFile.writestr(basePathZip+attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
+        index['files'] = [{'@id':i,'@type': 'File'} for i in listFileNames]
+        listFileNames = []
         #write data-files
         for path, _, files in os.walk(dirNameProject):
           if path.startswith(dirNameProject+'/.git') or  path.startswith(dirNameProject+'/.datalad'):
@@ -560,20 +572,21 @@ class Pasta:
           for iFile in files:
             if iFile.startswith('.'):
               continue
-            zipFile.write(path+os.sep+iFile, path+os.sep+iFile)
+            zipFile.write(path+os.sep+iFile, basePathZip+path+os.sep+iFile)
+            listFileNames.append(path+os.sep+iFile)
         #write index.json
-        index = {}
-        index['jsonList'] = listFileNames
+        index['files'] += [{'@id':i,'@type': 'Dataset'} for i in listFileNames]
         #  figure out git version: change to software dir and back
         cwd = self.cwd
         os.chdir(self.softwarePath)
         cmd = ['git','show','-s','--format=%ci']
         output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
         os.chdir(self.basePath+os.sep+cwd)
-        index['builder'] = 'PASTA_db version '+' '.join(output.stdout.decode('utf-8').split()[0:2])
+        index['@context'] = ['https://w3id.org/ro/crate/1.1/context', {}]
+        index['SoftwareApplication'] = 'PASTA_db version '+' '.join(output.stdout.decode('utf-8').split()[0:2])
         index['version'] = '1.0'
         if docID is not None:  #only add index.json in generall all purpose backup
-          zipFile.writestr('index.json', json.dumps(index))
+          zipFile.writestr(basePathZip+'ro-crate-metadata.json', json.dumps(index))
         #create some fun output
         compressed, fileSize = 0,0
         for doc in zipFile.infolist():
@@ -583,6 +596,7 @@ class Pasta:
         print(f'  Num. documents (incl. ontology and views): {len(self.db.db):,}\n')#,    num. attachments: {numAttachments:,}\n')
         return True
 
+      #TODO split into different methods
       # method compare
       if  method=='compare':
         filesInZip = zipFile.namelist()
