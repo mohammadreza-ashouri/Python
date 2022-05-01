@@ -209,28 +209,25 @@ echo Create basic .pasta.json configuration
 cd %HOMEDRIVE%%HOMEPATH%
 set softwareDirString=%softwareDir:\=\\%
 echo { > .pasta.json
-echo   "-softwareDir": "%softwareDir%\main",>> .pasta.json
-echo   "-userID": "%USERNAME%",>> .pasta.json
-echo   "-defaultLocal": "pasta_tutorial",>> .pasta.json
-echo   "-defaultRemote": "remote",>> .pasta.json
-echo   "-eargs": {"editor": "emacs", "ext": ".org", "style": "all"},>> .pasta.json
-echo   "-magicTags": ["P1","P2","P3","TODO","WAIT","DONE"],>> .pasta.json
+echo   "softwareDir": "%softwareDir%\main",>> .pasta.json
+echo   "userID": "%USERNAME%",>> .pasta.json
+echo   "default": "pasta_tutorial",>> .pasta.json
+echo   "magicTags": ["P1","P2","P3","TODO","WAIT","DONE"],>> .pasta.json
 echo.  >> .pasta.json
-echo   "pasta_tutorial": {>> .pasta.json
-echo     "user": "%CDB_USER%",>> .pasta.json
-echo     "password": "%CDB_PASSW%",>> .pasta.json
-echo     "database": "pasta_tutorial",>> .pasta.json
-echo     "path": "%softwareDirString%\\pasta_tutorial">> .pasta.json
+echo   "links": {>> .pasta.json
+echo     "pasta_tutorial": {>> .pasta.json
+echo       "local": {>> .pasta.json
+echo         "user": "%CDB_USER%",>> .pasta.json
+echo         "password": "%CDB_PASSW%",>> .pasta.json
+echo         "database": "pasta_tutorial",>> .pasta.json
+echo         "path": "%softwareDirString%\\pasta_tutorial">> .pasta.json
+echo       },>> .pasta.json
+echo       "remote": {}>> .pasta.json
+echo     }>> .pasta.json
 echo   },>> .pasta.json
 echo.  >> .pasta.json
-echo   "remote": {>> .pasta.json
-echo     "user": "____",>> .pasta.json
-echo     "password": "____",>> .pasta.json
-echo     "url": "https://____",>> .pasta.json
-echo     "database": "____">> .pasta.json
-echo   },>> .pasta.json
 echo.  >> .pasta.json
-echo   "-tableFormat-": {>> .pasta.json
+echo   "tableFormat": {>> .pasta.json
 echo     "x0":{"-label-":"Projects","-default-": [22,6,50,22]},>> .pasta.json
 echo     "measurement":{"-default-": [24,7,23,23,-5,-6,-6,-6]},>> .pasta.json
 echo     "sample":{"-default-": [23,23,23,23,-5]},>> .pasta.json

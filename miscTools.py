@@ -346,11 +346,12 @@ def printQRcodeSticker(codes={},
 
 
 
-def checkConfiguration(repair=False):
+def checkConfiguration(conf=None, repair=False):
   """
     Check configuration file .pasta.json for consistencies
 
   Args:
+      conf   (dict): configuration to check
       repair (bool): repair configuration
 
   Returns:
@@ -358,80 +359,61 @@ def checkConfiguration(repair=False):
   """
   import os, json
   from cloudant.client import CouchDB
-  try:
-    fConf = open(os.path.expanduser('~')+'/.pasta.json','r')
-  except:
-    return 'Verify configuration\n**ERROR mcc00: config file does not exist.\nFAILURE\n'
-  conf = json.load(fConf)
+  if conf is None:
+    try:
+      fConf = open(os.path.expanduser('~')+'/.pasta.json','r')
+    except:
+      return 'Verify configuration\n**ERROR mcc00: config file does not exist.\nFAILURE\n'
+    conf = json.load(fConf)
   output = ''
-  #test static entries
-  if not '-softwareDir' in conf:
-    output += '**ERROR mcc01a: No -softwareDir in config file\n'
-    if repair:
-      conf['-softwareDir'] = os.path.dirname(os.path.abspath(__file__))
-  if not '-userID' in conf:
-    output += '**ERROR mcc01b: No -userID in config file\n'
-    if repair:
-      conf['-userID'] = os.getlogin()
-  if not '-eargs' in conf:
-    output += '**ERROR mcc01c: No -eargs in config file\n'
-    if repair:
-      conf['-eargs'] = {"editor":"", "ext":"", "style":""}
-  if not '-magicTags' in conf:
-    output += '**ERROR mcc01d: No -magicTags in config file\n'
-    if repair:
-      conf['-magicTags'] = []
-  if not '-qrPrinter' in conf:
-    output += '**ERROR mcc01e: No -qrPrinter in config file\n'
-    if repair:
-      conf['-qrPrinter'] = []
-  if not '-tableFormat-' in conf:
-    output += '**ERROR mcc01f: No -tableFormat- in config file\n'
-    if repair:
-      conf['-tableFormat-'] = {}
-  if not '-extractors-' in conf:
-    output += '**ERROR mcc01g: No -extractors- in config file\n'
-    if repair:
-      conf['-extractors-'] = {}
-  if not "-defaultLocal" in conf:
-    output += '**ERROR mcc01h: No -defaultLocal in config file\n'
-    if repair:
-      conf['-defaultLocal'] = [i for i in conf.keys() if i[0]!='-' and 'path' in conf[i]][0]
-  else:
-    if not conf['-defaultLocal'] in conf:
-      output += '**ERROR mcc01i: -defaultLocal entry '+conf['-defaultLocal']+' not in config file\n'
-      if repair:
-        conf['-defaultLocal'] = [i for i in conf.keys() if i[0]!='-' and 'path' in conf[i]][0]
 
-  # go through all connection entries
-  for key in conf:
-    if key[0]=='-':
-      continue
-    if not 'database' in conf[key]:
-      output += '**ERROR mcc02a: No database in config |'+key+'\n'
-    if not 'cred' in conf[key]:
-      if not 'user' in conf[key] or not 'password' in conf[key]:
-        output += '**ERROR mcc03: No user-credentials (username,password) in config |'+key+'\n'
-    elif 'path' in conf[key]:
-      u,p = upOut(conf[key]['cred']).split(':')
-      client = CouchDB(u, p, url='http://127.0.0.1:5984', connect=True)
-      if not conf[key]['database'] in client.all_dbs():
-        output += '**ERROR mcc04: Database not on local server |'+key+'\n'
-    if 'url' in conf[key]:
-      #remote entry
-      if not conf[key]['url'].startswith('http://') or not conf[key]['url'].endswith(':5984') or \
-        len(conf[key]['url'].split('.'))!=4:
-        output += '**ERROR mcc04b: url incorrect |'+conf[key]['url']+'\n'
-        if repair:
-          conf[key]['url'] = conf[key]['url'].replace('https://','http://')
-    else:
-      # local entry
-      if 'path' in conf[key]:
-        if not os.path.exists(conf[key]['path']):
-          output += '**ERROR mcc05: Path does not exist |'+str(conf[key]['path'])+'\n'
-      else:
-        output += '**ERROR mcc02b: No path in config |'+key+'\n'
-  #end
+  possibleConnectionNames = [key for key in conf if not key.startswith('-')]
+  illegalNames = [key for key in conf if key.startswith('-')]
+  if not 'softwareDir' in conf:
+    output += '**ERROR mcc01a: No softwareDir in config file\n'
+    if repair:
+      conf['softwareDir'] = os.path.dirname(os.path.abspath(__file__))
+  if not 'userID' in conf:
+    output += '**ERROR mcc01b: No userID in config file\n'
+    if repair:
+      conf['userID'] = os.getlogin()
+  if not 'magicTags' in conf:
+    output += '**ERROR mcc01d: No magicTags in config file\n'
+    if repair:
+      conf['magicTags'] = []
+  if not 'qrPrinter' in conf:
+    output += '**ERROR mcc01e: No qrPrinter in config file\n'
+    if repair:
+      conf['qrPrinter'] = {}
+  if not 'tableFormat' in conf:
+    output += '**ERROR mcc01f: No tableFormat in config file\n'
+    if repair:
+      conf['tableFormat'] = {}
+  if not 'extractors' in conf:
+    output += '**ERROR mcc01g: No extractors in config file\n'
+    if repair:
+      conf['extractors'] = {}
+  if not "version" in conf or conf['version']!=1:
+    output += '**ERROR mcc01h: No or wrong version in config file\n'
+    if repair:
+      conf['version'] = 1
+  if not "links" in conf:
+    output += '**ERROR mcc01j: No links in config file; REPAIR MANUALLY\n'
+
+  if not "default" in conf:
+    output += '**ERROR mcc01k: No default links in config file\n'
+    if repair and len(illegalNames)==0:
+      conf['default'] = list(conf['links'].keys())[0]
+  else:
+    if not conf['default'] in conf['links']:
+      output += '**ERROR mcc01i: default entry '+conf['default']+' not in links\n'
+      if repair:
+        conf['default'] = list(conf['links'].keys())[0]
+  if len(illegalNames)>0:
+    output += '**ERROR mcc01l: - type entrys '+str(illegalNames)+' in config file\n'
+    if repair:
+      for key in illegalNames:
+        del conf[key]
   if repair:
     with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
       f.write(json.dumps(conf,indent=2))
