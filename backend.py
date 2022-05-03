@@ -54,7 +54,7 @@ class Pasta:
       if changed:
         with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
           f.write(json.dumps(configuration,indent=2))
-    n,s      = upOut(links[linkDefault]['local']['cred']).split(':')
+    n,s      = upOut(links[linkDefault]['local']['cred'])[0].split(':')
     databaseName = links[linkDefault]['local']['database']
     self.confLinkName= linkDefault
     self.confLink    = links[linkDefault]
@@ -834,7 +834,7 @@ class Pasta:
     """
     from miscTools import upOut
     remoteConf = dict(self.confLink['remote'])
-    remoteConf['user'], remoteConf['password'] = upOut(remoteConf['cred']).split(':')
+    remoteConf['user'], remoteConf['password'] = upOut(remoteConf['cred'])[0].split(':')
     success = self.db.replicateDB(remoteConf, removeAtStart)
     return success
 

@@ -83,12 +83,16 @@ def upOut(key):
   key (bool): key
   """
   import keyring as cred
-  key = cred.get_password('pastaDB',key)
-  if key is None:
-    key = ':'
-  else:
-    key = ':'.join(key.split('bcA:Maw'))
-  return key
+  keys = key.split() if ' ' in key else [key]
+  keys_ = []
+  for keyI in keys:
+    key_ = cred.get_password('pastaDB',keyI)
+    if key_ is None:
+      key_ = ':'
+    else:
+      key_ = ':'.join(key_.split('bcA:Maw'))
+    keys_.append(key_)
+  return keys_
 
 def upIn(key):
   """
@@ -367,7 +371,6 @@ def checkConfiguration(conf=None, repair=False):
     conf = json.load(fConf)
   output = ''
 
-  possibleConnectionNames = [key for key in conf if not key.startswith('-')]
   illegalNames = [key for key in conf if key.startswith('-')]
   if not 'softwareDir' in conf:
     output += '**ERROR mcc01a: No softwareDir in config file\n'
