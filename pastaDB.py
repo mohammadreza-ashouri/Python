@@ -121,7 +121,7 @@ else:
     with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
       config = json.load(f)
     if args.database=='':
-      args.database = config['-defaultLocal']
+      args.database = config['default']
     success = True
     initViews, initConfig, resetOntology = False, True, False
     if args.command.startswith('test'):
@@ -136,8 +136,8 @@ else:
         resetOntology = True
       # local and remote server test
       urls = ['http://127.0.0.1:5984']
-      if not '://___' in config[config['-defaultRemote']]['url']:
-        urls.append(config[config['-defaultRemote']]['url'])
+      if config['links'][args.database]['remote']!={}:
+        urls.append(config['links'][args.database]['remote']['url'])
       for url in urls:
         try:
           contents = urllib.request.urlopen(url).read()
@@ -148,16 +148,16 @@ else:
           if url=='http://127.0.0.1:5984':
             raise NameError('**ERROR pma01a: Wrong local server.') from None
     try:
-      be = Pasta(configName=args.database, initViews=initViews, initConfig=initConfig,
+      be = Pasta(linkDefault=args.database, initViews=initViews, initConfig=initConfig,
                  resetOntology=resetOntology)
     except:
-      print('**ERROR pma20: backend could not be started.')
+      print('**ERROR pma20: backend could not be started.\n'+traceback.format_exc()+'\n\n')
       be = None
 
     # depending on commands
     if args.command.startswith('test') and be:
       print('database server:',be.db.db.client.server_url)
-      print('configName:',be.configName)
+      print('default link:',be.confLinkName)
       print('database name:',be.db.db.database_name)
       designDocuments = be.db.db.design_documents()
       print('Design documents')

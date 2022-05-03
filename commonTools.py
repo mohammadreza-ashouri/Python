@@ -16,7 +16,7 @@ def PyJsHoisted_uuidv4_(this, arguments, var=var):
     @Js
     def PyJs_anonymous_0_(c, this, arguments, var=var):
         var = Scope({'c':c, 'this':this, 'arguments':arguments}, var)
-        var.registers(['r', 'v', 'c'])
+        var.registers(['c', 'v', 'r'])
         var.put('r', ((var.get('Math').callprop('random')*Js(16.0))|Js(0.0)))
         var.put('v', (var.get('r') if PyJsStrictEq(var.get('c'),Js('x')) else (var.get('r')&(Js(3)|Js(8)))))
         return var.get('v').callprop('toString', Js(16.0))
@@ -57,7 +57,7 @@ def PyJsHoisted_fillDocBeforeCreate_(data, docType, this, arguments, var=var):
         @Js
         def PyJs_anonymous_1_(item, this, arguments, var=var):
             var = Scope({'item':item, 'this':this, 'arguments':arguments}, var)
-            var.registers(['item', 'aList'])
+            var.registers(['aList', 'item'])
             var.put('aList', var.get('item').callprop('split', Js(':')))
             if var.get('data').get(var.get('aList').get('1')):
                 return var.get('undefined')
@@ -379,7 +379,7 @@ var.put('getChildren', PyJsHoisted_getChildren_)
 @Js
 def PyJsHoisted_camelCase_(str, this, arguments, var=var):
     var = Scope({'str':str, 'this':this, 'arguments':arguments}, var)
-    var.registers(['outString', 'str'])
+    var.registers(['str', 'outString'])
     @Js
     def PyJs_anonymous_7_(match, this, arguments, var=var):
         var = Scope({'match':match, 'this':this, 'arguments':arguments}, var)

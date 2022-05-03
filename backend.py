@@ -7,12 +7,12 @@ class Pasta:
   PYTHON BACKEND
   """
 
-  def __init__(self, configName=None, confirm=None, **kwargs):
+  def __init__(self, linkDefault=None, confirm=None, **kwargs):
     """
     open server and define database
 
     Args:
-        configName (string): name of configuration used; if not given, use the one defined by '-defaultLocal' in config file
+        linkDefault (string): name of configuration/link used; if not given, use the one defined by 'default' in config file
         confirm (function): confirm changes to database and file-tree
         kwargs (dict): additional parameters
           - initViews (bool): initialize views at startup
@@ -34,34 +34,35 @@ class Pasta:
     # open configuration file
     self.debug = True
     self.confirm = confirm
-    with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
-      configuration = json.load(f)
+    confFile = open(os.path.expanduser('~')+'/.pasta.json','r')
+    configuration = json.load(confFile)
+    confFile.close()
+    if configuration['version']!=1:
+      print('**ERROR Configuration version does not fit')
+      raise NameError
+    if linkDefault is None:
+      linkDefault = configuration['default']
+    links = configuration['links']
     changed = False
     if kwargs.get('initConfig', True):
-      for item in configuration:
-        if 'user' in configuration[item] and 'password' in configuration[item]:
-          configuration[item]['cred'] = upIn(configuration[item]['user']+':'+configuration[item]['password'])
-          del configuration[item]['user']
-          del configuration[item]['password']
+      for link,site in [(i,j) for i in links.keys() for j in ['local','remote']]:
+        if 'user' in links[link][site] and 'password' in links[link][site]:
+          links[link][site]['cred'] = upIn(links[link][site]['user']+':'+links[link][site]['password'])
+          del links[link][site]['user']
+          del links[link][site]['password']
           changed = True
       if changed:
         with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
           f.write(json.dumps(configuration,indent=2))
-    if configName is None:
-      configName = configuration['-defaultLocal']
-    remoteName= configuration['-defaultRemote']
-    n,s       = None,None
-    if 'user' in configuration[configName]:
-      n,s     = configuration[configName]['user'], configuration[configName]['password']
-    else:
-      n,s      = upOut(configuration[configName]['cred']).split(':')
-    databaseName = configuration[configName]['database']
-    self.configName=configName
+    n,s      = upOut(links[linkDefault]['local']['cred'])[0].split(':')
+    databaseName = links[linkDefault]['local']['database']
+    self.confLinkName= linkDefault
+    self.confLink    = links[linkDefault]
     # directories
     #    self.basePath (root of directory tree) is root of all projects
     #    self.cwd changes during program
     self.softwarePath = os.path.dirname(os.path.abspath(__file__))
-    self.basePath     = configuration[configName]['path']
+    self.basePath     = links[linkDefault]['local']['path']
     self.cwd          = ''
     if not self.basePath.endswith(os.sep):
       self.basePath += os.sep
@@ -72,22 +73,21 @@ class Pasta:
       sys.exit(1)
     sys.path.append(self.softwarePath+os.sep+'extractors')  #allow extractors
     # start logging
-    logging.basicConfig(filename=self.softwarePath+os.sep+'pasta.log', format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
+    logging.basicConfig(filename=self.softwarePath+os.sep+'pasta.log', \
+      format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)
     logging.getLogger('asyncio').setLevel(logging.WARNING)
     logging.getLogger('datalad').setLevel(logging.WARNING)
     logging.getLogger('PIL').setLevel(logging.WARNING)
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
-    logging.info('\nSTART PASTA '+configName)
+    logging.info('\nSTART PASTA '+linkDefault)
     # decipher configuration and store
-    self.userID   = configuration['-userID']
-    self.remoteDB = configuration[remoteName]
-    self.eargs   = configuration['-eargs']
-    self.magicTags= configuration['-magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
-    self.tableFormat = configuration['-tableFormat-']
+    self.userID   = configuration['userID']
+    self.magicTags= configuration['magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
+    self.tableFormat = configuration['tableFormat']
     # start database
-    self.db = Database(n, s, databaseName, confirm=self.confirm, softwarePath=self.softwarePath+os.sep, **kwargs)
+    self.db = Database(n,s,databaseName,confirm=self.confirm,softwarePath=self.softwarePath+os.sep, **kwargs)
     res = cT.ontology2Labels(self.db.ontology,self.tableFormat)
     self.dataLabels      = res['dataDict']
     self.hierarchyLabels = res['hierarchyDict']
@@ -821,12 +821,11 @@ class Pasta:
     return self.db.getDoc(docID)
 
 
-  def replicateDB(self, remoteDB=None, removeAtStart=False, **kwargs):
+  def replicateDB(self, removeAtStart=False, **kwargs):
     """
     Replicate local database to remote database
 
     Args:
-        remoteDB (string): if given, use this name for external db
         removeAtStart (bool): remove remote DB before starting new
         kwargs (dict): additional parameter
 
@@ -834,10 +833,9 @@ class Pasta:
         bool: replication success
     """
     from miscTools import upOut
-    if remoteDB is not None:
-      self.remoteDB['database'] = remoteDB
-    self.remoteDB['user'],self.remoteDB['password'] = upOut(self.remoteDB['cred']).split(':')
-    success = self.db.replicateDB(self.remoteDB, removeAtStart)
+    remoteConf = dict(self.confLink['remote'])
+    remoteConf['user'], remoteConf['password'] = upOut(remoteConf['cred'])[0].split(':')
+    success = self.db.replicateDB(remoteConf, removeAtStart)
     return success
 
 
@@ -1043,16 +1041,12 @@ class Pasta:
 
   def getEditString(self):
     """
-    Return Markdown string of hierarchy tree
+    Return org-mode markdown string of hierarchy tree
+      complicated style: this document and all its children and grandchildren...
 
     Returns:
         string: output incl. \n
     """
-    #simple editor style: only this document, no tree
-    if self.eargs['style']=='simple':
-      doc = self.db.getDoc(self.hierStack[-1])
-      return ', '.join(doc['tags'])+' '+doc['comment']
-    #complicated style: this document and all its children and grandchildren...
     return self.outputHierarchy(True,True,'tags')
 
 

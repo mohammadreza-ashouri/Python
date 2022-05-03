@@ -185,35 +185,34 @@ echo
 
 echo "Create PASTA configuration file .pasta.json in home directory"
 sudo -u $THEUSER echo "{" > /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"-softwareDir\": \"/home/${THEUSER}/${pasta_src}/main\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"-userID\": \"${THEUSER}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"-defaultLocal\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"-defaultRemote\": \"remote\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"-eargs\": {\"editor\": \"emacs\", \"ext\": \".org\", \"style\": \"all\"}," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"-magicTags\": [\"P1\",\"P2\",\"P3\",\"TODO\",\"WAIT\",\"DONE\"]," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"softwareDir\": \"/home/${THEUSER}/${pasta_src}/main\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"userID\": \"${THEUSER}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"default\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"magicTags\": [\"P1\",\"P2\",\"P3\",\"TODO\",\"WAIT\",\"DONE\"]," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"local\": {" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"database\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"path\": \"/home/${THEUSER}/${pasta}\"" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"links\": {" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"research\": {" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "      \"local\": {" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "        \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "        \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "        \"database\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "        \"path\": \"/home/${THEUSER}/${pasta}\"" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "      }," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "      \"remote\": {}" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    }," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    " >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    \"pasta_tutorial\": {" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "      \"local\": {" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "        \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "        \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "        \"database\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "        \"path\": \"/home/${THEUSER}/${pasta_src}/pasta_tutorial\"" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "      }," >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "      \"remote\": {}" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "    }" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"pasta_tutorial\": {" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"database\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"path\": \"/home/${THEUSER}/${pasta_src}/pasta_tutorial\"" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"remote\": {" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"user\": \"____\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"password\": \"____\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"url\": \"https://____\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"database\": \"____\"" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"-tableFormat-\": {" >> /home/$THEUSER/.pasta.json
+sudo -u $THEUSER echo "  \"tableFormat\": {" >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"x0\":{\"-label-\":\"Projects\",\"-default-\": [22,6,50,22]}," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"measurement\":{\"-default-\": [24,7,23,23,-5,-6,-6,-6]}," >> /home/$THEUSER/.pasta.json
 sudo -u $THEUSER echo "    \"sample\":{\"-default-\": [23,23,23,23,-5]}," >> /home/$THEUSER/.pasta.json
