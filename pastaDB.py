@@ -52,6 +52,8 @@ Possible commands are:
       '{"test":{"user":"Peter","password":"Parker",...}}'
     extractorTest: test the extractor of this file
       -p should be specified is the path to file (best: from base folder)
+      -c is optional: docType to test
+      example: pastaDB.py extractorTest -p sub.nii.gz -c 'measurement/gz/MRT_image/3D'
     extractorScan: get list of all extractors and save into .pastaDB.json
       example: pastaDB.py extractorScan
     decipher: decipher encrypted string
@@ -96,7 +98,7 @@ elif args.command=='extractorScan':
   extractors = {'/'.join(i):j for (i,j) in extractors}
   with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
     configuration = json.load(f)
-  configuration['-extractors-'] = extractors
+  configuration['extractors'] = extractors
   with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
     f.write(json.dumps(configuration, indent=2))
   print('SUCCESS')
