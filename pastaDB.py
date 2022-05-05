@@ -273,7 +273,7 @@ else:
       else:
         data = pd.read_excel(curWorkingDirectory+os.sep+args.content, sheet_name=0).fillna('')
       for idx, row in data.iterrows():
-        doc = dict((cT.camelCase(k)[0].lower()+cT.camelCase(k)[1:], v) for k, v in row.items())
+        doc = dict((k.lower(), v) for k, v in row.items())
         be.addData(args.label, doc )
       success=True
 

@@ -65,7 +65,9 @@ class Database:
       else:     #show all doctypes that have the same starting ..
         jsString = jsDefault.replace('$docType$', "doc['-type'].join('/').substring(0, "+str(len(docType))+")=='"+docType+"'").replace('$key$','doc["-branch"][0].stack[0]')
       outputList = []
-      for item in self.ontology[docType]:
+      for idx,item in enumerate(self.ontology[docType]):
+        if idx>16: #TODO read from config file
+          break
         if 'name' not in item:
           continue
         if item['name'] == 'image':
