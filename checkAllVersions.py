@@ -350,20 +350,57 @@ def gitStatus():
     os.chdir('..')
   return
 
-def gitCommitPush(msg):
+
+def gitCommitPush(msg, version=None):
   """
-  Go through all subfolders and do a git commit with message msg and then git push
+  Go through all subfolders and
+    - do a git commit with message msg
+    - tag it with a version number
+    - git push
+
+  Args:
+    msg: message for git commit
+    version: new version number; if not given, increment the last digit by one
   """
   for i in ['Python','ReactDOM','ReactElectron','Documents']:
     print("\n\n------------------------------\nENTER DIRECTORY:",i)
     os.chdir(i)
-    os.system('git commit -a -m "'+msg+'"')
-    os.system('git push')
+    if version is None and i=='Python':
+      result = subprocess.run(['git','tag'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+      version= result.stdout.decode('utf-8').strip()
+      verList= [int(i) for i in version[1:].split('.')]
+      verList[-1]+= 1
+      version= 'v'+'.'.join([str(i) for i in verList])
+    if i=='ReactElectron':
+      ### package.json ###
+      with open('package.json') as fIn:
+        packageOld = fIn.readlines()
+      packageNew = []
+      for line in packageOld:
+        line = line[:-1]
+        if '"version":' in line:
+           line = '  "version": "'+version[1:]+'",'
+        packageNew.append(line)
+      with open('package.json','w') as fOut:
+        fOut.write('\n'.join(packageNew)+'\n')
+      ### version in configuration.js ###
+      with open('app/renderer/components/ConfigPage.js') as fIn:
+        fileOld = fIn.readlines()
+      fileNew = []
+      for line in fileOld:
+        line = line[:-1]
+        if '<p style={flowText}>Version number:' in line:
+          line = '          <p style={flowText}>Version number: '+version[1:]+'</p>'
+        fileNew.append(line)
+      with open('app/renderer/components/ConfigPage.js','w') as fOut:
+        fOut.write('\n'.join(fileNew)+'\n')
+    # os.system('git commit -a -m "'+msg+'"')
+    # os.system('git tag -a '+version+' -m "'+msg+'"')
+    # os.system('git push')
     os.chdir('..')
   return
 
-
-
+###################################################################
 if __name__=='__main__':
   if len(sys.argv)>1:
     if 'Python' in sys.argv[1]:
@@ -381,7 +418,9 @@ if __name__=='__main__':
     elif sys.argv[1]=='gitStatus':
       gitStatus()
     elif sys.argv[1]=='gitCommitPush':
-      gitCommitPush(sys.argv[2])
+      msg     = sys.argv[2] if len(sys.argv)>2 else ''
+      version = sys.argv[3] if len(sys.argv)>3 else None
+      gitCommitPush(msg, version)
     else:
       print("Did not understand. Possible options are: Python, DOM, Electron, Documentation, compare, gitStatus, gitCommitPush")
   else:

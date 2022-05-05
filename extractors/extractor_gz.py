@@ -16,7 +16,7 @@ def use(fileName, doc={}):
     list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
   """
   if '-type' not in doc:
-    doc['-type'] = ['MRT_image']
+    doc['-type'] = []
   if fileName.endswith('.nii.gz'):
     img = nib.load(fileName)
     data = img.get_fdata()
@@ -38,13 +38,33 @@ def use(fileName, doc={}):
       ax.set_ylim3d(0, data.shape[1])
       ax.set_zlim3d(0, data.shape[2])
 
+      # x      = np.arange(data.shape[0])
+      # y      = np.arange(data.shape[1])
+      # z      = np.arange(data.shape[2])
+      # x0 = int(data.shape[0]/2)
+      # y0 = int(data.shape[1]/2)
+      # z0 = int(data.shape[2]/2)
+      # t0 = int(data.shape[3]/2)
+      # levels=np.linspace(np.min(data), np.max(data), 10 )
+      # print(levels)
+      # # Z, Y   = np.meshgrid(z[:z0], y)
+      # # ax.contourf(data[x0,:,:z0,t0], Y, Z, zdir='x', offset=x0, zorder=1)
+      # X, Y   = np.meshgrid(x, y)
+      # ax.contourf(X, Y,data[:,:,z0,t0], zdir='z', offset=z0, zorder=2)
+      # Z, Y   = np.meshgrid(z[z0:], y)
+      # ax.contourf(data[x0,:,z0:,t0], Y, Z, zdir='x', offset=x0, levels=levels)
+      # # Z, X   = np.meshgrid(z, x)
+      # # ax.contourf(X, data[:,y0,:,t0], Z, zdir='y', offset=y0)
+
+
     elif doc['-type'][2:] == ['MRT_image', 'inverted']:#: plot inverted gray scale
       ax = plt.subplot(111)
-      ax.imshow(data[:,:, int(data.shape[2]/2), int(data.shape[3]/2)], cmap='gray_r')
+      ax.imshow(data[:,:, int(data.shape[2]/2), int(data.shape[3]/2)], cmap='magma_r')
 
     else:                                             #default: plot gray scale
       ax = plt.subplot(111)
       ax.imshow(data[:,:, int(data.shape[2]/2), int(data.shape[3]/2)], cmap='gray')
+      doc['-type'] += ['MRT_image']
 
     ax.axis('off')
     buf = io.BytesIO()
