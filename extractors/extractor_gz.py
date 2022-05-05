@@ -57,11 +57,11 @@ def use(fileName, doc={}):
       # # ax.contourf(X, data[:,y0,:,t0], Z, zdir='y', offset=y0)
 
 
-    elif doc['-type'][2:] == ['MRT_image', 'inverted']:#: plot inverted gray scale
+    elif doc['-type'][2:] == ['MRT_image', 'inverted']:#: plot in color
       ax = plt.subplot(111)
       ax.imshow(data[:,:, int(data.shape[2]/2), int(data.shape[3]/2)], cmap='magma_r')
 
-    else:                                             #default: plot gray scale
+    else:                                             #default: default | plot gray scale
       ax = plt.subplot(111)
       ax.imshow(data[:,:, int(data.shape[2]/2), int(data.shape[3]/2)], cmap='gray')
       doc['-type'] += ['MRT_image']
