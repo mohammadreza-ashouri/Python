@@ -97,7 +97,7 @@ class Pasta:
         labels[i]=res['dataDict'][i]
       for i in res['hierarchyDict']:
         labels[i]=res['hierarchyDict'][i]
-      self.db.initViews(labels,self.magicTags)
+      self.db.initViews(labels,self.magicTags, configuration['GUI']['maxTabColumns'])
     # internal hierarchy structure
     self.hierStack = []
     self.currentID  = None
@@ -596,7 +596,7 @@ class Pasta:
         print(f'  Num. documents (incl. ontology and views): {len(self.db.db):,}\n')#,    num. attachments: {numAttachments:,}\n')
         return True
 
-      #TODO split into different methods
+      #TODO_P3 split into different methods once the save of backup is done
       # method compare
       if  method=='compare':
         filesInZip = zipFile.namelist()

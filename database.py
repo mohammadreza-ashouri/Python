@@ -46,13 +46,14 @@ class Database:
     return
 
 
-  def initViews(self, docTypesLabels, magicTags=['TODO','v1']):
+  def initViews(self, docTypesLabels, magicTags=['TODO','v1'], guiMaxColumns=16):
     """
     initialize all views
 
     Args:
       docTypesLabels (list): pair of (docType,docLabel) used to create views
       magicTags (list): magic tags used for view creation
+      guiMaxColumns (int): max. colums in view
     """
     # for the individual docTypes
     jsDefault = "if ($docType$) {emit($key$, [$outputList$]);}"
@@ -66,7 +67,7 @@ class Database:
         jsString = jsDefault.replace('$docType$', "doc['-type'].join('/').substring(0, "+str(len(docType))+")=='"+docType+"'").replace('$key$','doc["-branch"][0].stack[0]')
       outputList = []
       for idx,item in enumerate(self.ontology[docType]):
-        if idx>16: #TODO read from config file
+        if idx>guiMaxColumns:
           break
         if 'name' not in item:
           continue
@@ -198,7 +199,7 @@ class Database:
       oldDoc = {}            #this is an older revision of the document
       nothingChanged = True
       # handle branch
-      if '-branch' in change and len(change['-branch']['stack'])>0: #TODO D: Remove if not needed by June 2022: and change['-branch']['path'] is not None:
+      if '-branch' in change and len(change['-branch']['stack'])>0:
         op = change['-branch'].pop('op')
         oldpath = change['-branch'].pop('oldpath',None)
         if change['-branch']['path'] is None:
