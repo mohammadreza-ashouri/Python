@@ -359,8 +359,8 @@ def gitCommitPush(msg, version=None):
     - git push
 
   Args:
-    msg: message for git commit
-    version: new version number; if not given, increment the last digit by one
+    msg (string): message for git commit
+    version (string): new version number; if not given, increment the last digit by one
   """
   for i in ['Python','ReactDOM','ReactElectron','Documents']:
     print("\n\n------------------------------\nENTER DIRECTORY:",i)
@@ -379,7 +379,7 @@ def gitCommitPush(msg, version=None):
       for line in packageOld:
         line = line[:-1]
         if '"version":' in line:
-           line = '  "version": "'+version[1:]+'",'
+          line = '  "version": "'+version[1:]+'",'
         packageNew.append(line)
       with open('package.json','w') as fOut:
         fOut.write('\n'.join(packageNew)+'\n')
@@ -394,9 +394,9 @@ def gitCommitPush(msg, version=None):
         fileNew.append(line)
       with open('app/renderer/components/ConfigPage.js','w') as fOut:
         fOut.write('\n'.join(fileNew)+'\n')
-    # os.system('git commit -a -m "'+msg+'"')
-    # os.system('git tag -a '+version+' -m "'+msg+'"')
-    # os.system('git push')
+    os.system('git commit -a -m "'+msg+'"')
+    os.system('git tag -a '+version+' -m "'+msg+'"')
+    os.system('git push')
     os.chdir('..')
   return
 
@@ -418,9 +418,9 @@ if __name__=='__main__':
     elif sys.argv[1]=='gitStatus':
       gitStatus()
     elif sys.argv[1]=='gitCommitPush':
-      msg     = sys.argv[2] if len(sys.argv)>2 else ''
-      version = sys.argv[3] if len(sys.argv)>3 else None
-      gitCommitPush(msg, version)
+      message = sys.argv[2] if len(sys.argv)>2 else ''
+      versionString = sys.argv[3] if len(sys.argv)>3 else None
+      gitCommitPush(message, versionString)
     else:
       print("Did not understand. Possible options are: Python, DOM, Electron, Documentation, compare, gitStatus, gitCommitPush")
   else:

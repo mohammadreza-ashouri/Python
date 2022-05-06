@@ -77,7 +77,7 @@ def use(fileName, doc={}):
     diff = ImageChops.add(diff, diff, 2.0, -20)
     bbox = diff.getbbox()
     if bbox:
-        im = im.crop(bbox)
+      im = im.crop(bbox)
     #metadata
     metaVendor = dict(img.header)
     if os.path.exists(fileName[:-7]+'.json'):
