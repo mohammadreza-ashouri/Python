@@ -254,7 +254,7 @@ class Database:
         #    (isinstance(change[item], list) and change[item]!=newDoc[item] ):
         # Add to testBasic to test for it:
         #       myString = myString.replace('A long comment','A long   comment')
-        if change[item]!=newDoc[item]:
+        if item not in newDoc or change[item]!=newDoc[item]:
           if item not in ['-date','-client']:      #if only date/client change, no significant change
             nothingChanged = False
           if item == 'image':

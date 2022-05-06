@@ -351,7 +351,7 @@ def gitStatus():
   return
 
 
-def gitCommitPush(msg, version=None):
+def gitCommitPush(msg1, version=None, msg2=''):
   """
   Go through all subfolders and
     - do a git commit with message msg
@@ -359,8 +359,9 @@ def gitCommitPush(msg, version=None):
     - git push
 
   Args:
-    msg (string): message for git commit
+    msg1 (string): message for git commit
     version (string): new version number; if not given, increment the last digit by one
+    msg2 (string): message to the tag
   """
   for i in ['Python','ReactDOM','ReactElectron','Documents']:
     print("\n\n------------------------------\nENTER DIRECTORY:",i)
@@ -368,6 +369,7 @@ def gitCommitPush(msg, version=None):
     if version is None and i=='Python':
       result = subprocess.run(['git','tag'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
       version= result.stdout.decode('utf-8').strip()
+      version= version.split('\n')[-1]
       verList= [int(i) for i in version[1:].split('.')]
       verList[-1]+= 1
       version= 'v'+'.'.join([str(i) for i in verList])
@@ -394,9 +396,10 @@ def gitCommitPush(msg, version=None):
         fileNew.append(line)
       with open('app/renderer/components/ConfigPage.js','w') as fOut:
         fOut.write('\n'.join(fileNew)+'\n')
-    os.system('git commit -a -m "'+msg+'"')
-    os.system('git tag -a '+version+' -m "'+msg+'"')
+    os.system('git commit -a -m "'+msg1+'"')
+    os.system('git tag -a '+version+' -m "'+msg2+'"')
     os.system('git push')
+    os.system('git push origin '+version)
     os.chdir('..')
   return
 
@@ -419,10 +422,12 @@ if __name__=='__main__':
       gitStatus()
     elif sys.argv[1]=='gitCommitPush':
       message = sys.argv[2] if len(sys.argv)>2 else ''
-      versionString = sys.argv[3] if len(sys.argv)>3 else None
-      gitCommitPush(message, versionString)
+      tagString     = sys.argv[3] if len(sys.argv)>3 else ''
+      versionString = sys.argv[4] if len(sys.argv)>4 else None
+      gitCommitPush(message, versionString, tagString)
     else:
-      print("Did not understand. Possible options are: Python, DOM, Electron, Documentation, compare, gitStatus, gitCommitPush")
+      print('Did not understand. Possible options are: Python, DOM, Electron, Documentation, compare, gitStatus, gitCommitPush')
+      print('  gitCommitPush: commit_message tag_messag tag_version')
   else:
     testPython()
     compareDOM_ELECTRON()

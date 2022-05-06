@@ -434,11 +434,18 @@ def translateJS2PY():
   """
   import re, io
   import js2py
-  jsString = open('./commonTools.js', "r").read()
-  jsString = re.sub(r"export.+;", "", jsString)
-  jsFile = io.StringIO(jsString)
-  js2py.translate_file(jsFile, 'commonTools.py')
-  print('..success: translated commonTools.js->commonTools.py')
+  commonToolsHash = generic_hash('./commonTools.js')
+  with open('./commonTools.py') as fIn:
+    stortedHash     = fIn.readlines()[-1]
+  stortedHash = stortedHash.split('HASH:')[1].strip()
+  if commonToolsHash!=stortedHash:
+    jsString = open('./commonTools.js', "r").read()
+    jsString = re.sub(r"export.+;", "", jsString)
+    jsFile = io.StringIO(jsString)
+    js2py.translate_file(jsFile, 'commonTools.py')
+    with open('./commonTools.py','a') as fOut:
+      fOut.write('\n# HASH: '+commonToolsHash)
+    print('..success: translated commonTools.js->commonTools.py')
   return
 
 
