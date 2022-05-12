@@ -255,14 +255,14 @@ class Database:
         #    (isinstance(change[item], list) and change[item]!=newDoc[item] ):
         # Add to testBasic to test for it:
         #       myString = myString.replace('A long comment','A long   comment')
-        if item not in newDoc or change[item]!=newDoc[item]:
-          if item not in ['-date','-client']:      #if only date/client change, no significant change
+        if change[item]!=newDoc[item]:
+          if item not in ['-date','-client','-user']:      #if only date/client change, no significant change
             nothingChanged = False
           if item == 'image':
             oldDoc[item] = 'image changed'       #don't backup images: makes database big and are only thumbnails anyhow
           else:
-            oldDoc[item] = newDoc[item]
-          newDoc[item] = change[item]
+            oldDoc[item] = newDoc[item] if item in newDoc else ''  #define defaults if value does not exist
+          newDoc[item] = change[item] if item in newDoc else ''    #define defaults if value does not exist
       if nothingChanged:
         logging.info('database:updateDoc no change of content: '+newDoc['name'])
         return newDoc

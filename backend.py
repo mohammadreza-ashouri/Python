@@ -97,7 +97,9 @@ class Pasta:
         labels[i]=res['dataDict'][i]
       for i in res['hierarchyDict']:
         labels[i]=res['hierarchyDict'][i]
-      self.db.initViews(labels,self.magicTags, configuration['GUI']['maxTabColumns'])
+      maxTabColumns = configuration['GUI']['maxTabColumns'] \
+        if 'GUI' in configuration and 'maxTabColumns' in configuration['GUI'] else 20
+      self.db.initViews(labels,self.magicTags, maxTabColumns)
     # internal hierarchy structure
     self.hierStack = []
     self.currentID  = None
