@@ -283,7 +283,7 @@ def main():
     elif command == 'u':
       listUsers(url, auth)
     elif command == 'd':
-      listDB(url, auth)
+      listDB(url, auth, True)
     elif command == 't' and userName and userPassword and len(userName)>2 and len(userPassword)>2:
       testUser(url, auth, userName, userPassword)
     else:

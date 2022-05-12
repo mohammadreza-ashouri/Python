@@ -834,6 +834,9 @@ class Pasta:
     """
     from miscTools import upOut
     remoteConf = dict(self.confLink['remote'])
+    if remoteConf=={}: #empty entry: fails
+      print("**ERROR brp01: You tried to replicate although, remote is not defined")
+      return False
     remoteConf['user'], remoteConf['password'] = upOut(remoteConf['cred'])[0].split(':')
     success = self.db.replicateDB(remoteConf, removeAtStart)
     return success
