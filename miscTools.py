@@ -459,7 +459,7 @@ def errorCodes(verbose=False):
   import os, re, json
   ignoreFiles = ['checkAllVersions.py','commonTools.py']
   knownErrcodes = {
-    "mcc01":"Click 'MAINTENANCE' and 'AUTOMATICALLY REPAIR CONFIGURATION'",
+    "mcc01":"Click *MAINTENANCE* and *AUTOMATICALLY REPAIR CONFIGURATION*",
     "mcc02":"Repair with configuration-editor",
     "mcc03":"Repair with configuration-editor and restart",
     "mcc04":"Restart software using this local configuration:",
@@ -493,10 +493,9 @@ def errorCodes(verbose=False):
       print('\n\n'+fileName+'\n  '+'\n  '.join(prints))
   fOut = open('../Documents/errorCodes.md','w')
   fOut.write(output)
+  jsonString = json.dumps(knownErrcodes).replace('"',"'")
   fOut = open('../ReactElectron/app/renderer/errorCodes.js','w')
-  fOut.write('export const errorCodes =\n')
-  json.dump(knownErrcodes,fOut)
-  fOut.write('; // eslint-disable-line max-len')
+  fOut.write('export const errorCodes =\n'+jsonString+'; // eslint-disable-line max-len')
   print('..success: assembled error-codes')
   return
 

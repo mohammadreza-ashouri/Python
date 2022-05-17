@@ -169,6 +169,7 @@ def compareDOM_ELECTRON():
       electronTime = now-datetime.datetime.fromtimestamp(os.path.getmtime(electronFile)).replace(microsecond=0)
       print("  Files are different\t\t\tTime since change\n   ",domFile,'\t\t',domTime,'\n   ',electronFile,'\t',electronTime)
       if not 'App.js' in domFile and not 'index.js' in domFile:
+        os.system('kdiff3 '+domFile+' '+electronFile)
         if not 'errorCodes.js' in domFile:
           failure=True
         if domTime<electronTime:
@@ -192,6 +193,7 @@ def compareDOM_ELECTRON():
       domTime =      now-datetime.datetime.fromtimestamp(os.path.getmtime(domFile)).replace(microsecond=0)
       electronTime = now-datetime.datetime.fromtimestamp(os.path.getmtime(electronFile)).replace(microsecond=0)
       print("  Files are different\t\t\tTime since change\n   ",domFile,'\t\t',domTime,'\n   ',electronFile,'\t',electronTime)
+      os.system('kdiff3 '+domFile+' '+electronFile)
       failure=True
       if domTime<electronTime:
         print('    -> DOM is newer: copy file')
