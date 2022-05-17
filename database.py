@@ -188,6 +188,7 @@ class Database:
     tracebackString = '|'.join([item.split('\n')[1].strip() for item in tracebackString])  #| separated list of stack excluding last
     change['-client'] = tracebackString
     newDoc = self.db[docID]  #this is the document that stays live
+    initialDocCopy = dict(newDoc)
     if 'edit' in change:     #if delete
       oldDoc = dict(newDoc)
       for item in oldDoc:
@@ -242,7 +243,7 @@ class Database:
           continue
         if item=='image' and change['image']=='':          #skip if non-change in image
           continue
-        if change[item] is None:                             #skip empty entrances
+        if change[item] is None or item not in newDoc:      #skip empty entries
           continue
         ## Discussion: What if content only differs by whitespace changes?
         # These changes should occur in the database, the user wanted it so
@@ -261,14 +262,20 @@ class Database:
           if item == 'image':
             oldDoc[item] = 'image changed'       #don't backup images: makes database big and are only thumbnails anyhow
           else:
-            oldDoc[item] = newDoc[item] if item in newDoc else ''  #define defaults if value does not exist
-          newDoc[item] = change[item] if item in newDoc else ''    #define defaults if value does not exist
+            oldDoc[item] = newDoc[item]
+          newDoc[item] = change[item]
       if nothingChanged:
         logging.info('database:updateDoc no change of content: '+newDoc['name'])
         return newDoc
     #For both cases: delete and update
     if self.confirm is None or self.confirm({'new':newDoc,'old':oldDoc},"Update this document?"):
-      newDoc.save()
+      try:
+        newDoc.save()
+      except:
+        print('**ERROR: could not update document. Likely version conflict. Initial and current version:')
+        print(initialDocCopy)
+        print(newDoc)
+        return None
       attachmentName = 'v0.json'
       if '_attachments' in newDoc:
         attachmentName = 'v'+str(len(newDoc['_attachments']))+'.json'

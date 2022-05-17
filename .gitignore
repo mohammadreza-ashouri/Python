@@ -3,6 +3,7 @@
 *.js
 *.key
 verify?.org
+*.png
 
 ##extractors/pasta_*.py
 ## use to untrack previously tracked files
