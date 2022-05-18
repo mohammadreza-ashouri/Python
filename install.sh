@@ -183,55 +183,55 @@ sudo -H pip3 install -r requirements.txt           >> installLog.txt
 echo
 
 
-echo "Create PASTA configuration file .pasta.json in home directory"
-sudo -u $THEUSER echo "{" > /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"softwareDir\": \"/home/${THEUSER}/${pasta_src}/main\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"userID\": \"${THEUSER}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"default\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"magicTags\": [\"P1\",\"P2\",\"P3\",\"TODO\",\"WAIT\",\"DONE\"]," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"links\": {" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"research\": {" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "      \"local\": {" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "        \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "        \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "        \"database\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "        \"path\": \"/home/${THEUSER}/${pasta}\"" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "      }," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "      \"remote\": {}" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    }," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    " >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"pasta_tutorial\": {" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "      \"local\": {" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "        \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "        \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "        \"database\": \"pasta_tutorial\"," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "        \"path\": \"/home/${THEUSER}/${pasta_src}/pasta_tutorial\"" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "      }," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "      \"remote\": {}" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    }" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  \"tableFormat\": {" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"x0\":{\"-label-\":\"Projects\",\"-default-\": [22,6,50,22]}," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"measurement\":{\"-default-\": [24,7,23,23,-5,-6,-6,-6]}," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"sample\":{\"-default-\": [23,23,23,23,-5]}," >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "    \"procedure\":{\"-default-\": [20,20,20,40]}" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "  }" >> /home/$THEUSER/.pasta.json
-sudo -u $THEUSER echo "}" >> /home/$THEUSER/.pasta.json
-sudo chown $THEUSER:$THEUSER /home/$THEUSER/.pasta.json
+echo "Create PASTA configuration file .pastaELN.json in home directory"
+sudo -u $THEUSER echo "{" > /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "  \"softwareDir\": \"/home/${THEUSER}/${pasta_src}/main\"," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "  \"userID\": \"${THEUSER}\"," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "  \"default\": \"pasta_tutorial\"," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "  \"magicTags\": [\"P1\",\"P2\",\"P3\",\"TODO\",\"WAIT\",\"DONE\"]," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "  \"links\": {" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "    \"research\": {" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "      \"local\": {" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "        \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "        \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "        \"database\": \"pasta_tutorial\"," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "        \"path\": \"/home/${THEUSER}/${pasta}\"" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "      }," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "      \"remote\": {}" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "    }," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "    " >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "    \"pasta_tutorial\": {" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "      \"local\": {" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "        \"user\": \"${CDB_USER}\"," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "        \"password\": \"${CDB_PASSW}\"," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "        \"database\": \"pasta_tutorial\"," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "        \"path\": \"/home/${THEUSER}/${pasta_src}/pasta_tutorial\"" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "      }," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "      \"remote\": {}" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "    }" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "  }," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "  " >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "  \"tableFormat\": {" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "    \"x0\":{\"-label-\":\"Projects\",\"-default-\": [22,6,50,22]}," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "    \"measurement\":{\"-default-\": [24,7,23,23,-5,-6,-6,-6]}," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "    \"sample\":{\"-default-\": [23,23,23,23,-5]}," >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "    \"procedure\":{\"-default-\": [20,20,20,40]}" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "  }" >> /home/$THEUSER/.pastaELN.json
+sudo -u $THEUSER echo "}" >> /home/$THEUSER/.pastaELN.json
+sudo chown $THEUSER:$THEUSER /home/$THEUSER/.pastaELN.json
 echo
 
 
 echo "Run a very short test for 5sec?"
 cd /home/$THEUSER/$pasta_src/main
-sudo PYTHONPATH=/home/$THEUSER/$pasta_src/main:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 pastaDB.py test
+sudo PYTHONPATH=/home/$THEUSER/$pasta_src/main:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 pastaELN.py test
 echo
 echo 'If this test is not successful, it is likely that you entered the wrong username'
-echo "  and password. Open the file /home/$THEUSER/.pasta.json with an editor and correct"
+echo "  and password. Open the file /home/$THEUSER/.pastaELN.json with an editor and correct"
 echo '  the entries after "user" and "password". "-userID" does not matter. Entries under'
 echo '  "remote" do not matter, either.'
-sudo PYTHONPATH=/home/$THEUSER/$pasta_src/main:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 pastaDB.py extractorScan
+sudo PYTHONPATH=/home/$THEUSER/$pasta_src/main:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 pastaELN.py extractorScan
 echo
 echo "Run a short test for 20-40sec?"
 sudo PYTHONPATH=/home/$THEUSER/$pasta_src/main:/home/$THEUSER/$pasta_src/experimental-micromechanics/src -u $THEUSER python3 Tests/testTutorial.py

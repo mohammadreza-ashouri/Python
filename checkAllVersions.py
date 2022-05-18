@@ -18,7 +18,7 @@ def testPython():
   os.chdir('Python')
   ### pylint
   success = True
-  for fileName in ['backend.py', 'database.py', 'pastaDB.py', 'miscTools.py', 'checkAllVersions.py']:
+  for fileName in ['backend.py', 'database.py', 'pastaELN.py', 'miscTools.py', 'checkAllVersions.py']:
     result = subprocess.run(['pylint',fileName], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
     if 'rated at 10.00/10' not in result.stdout.decode('utf-8'):
       print(fileName+'|'+result.stdout.decode('utf-8').strip())
@@ -81,7 +81,7 @@ def testPython():
 
 
   ## test read and write structure
-  cmd = 'pastaDB.py -d pasta_tutorial print'.split(' ')
+  cmd = 'pastaELN.py -d pasta_tutorial print'.split(' ')
   result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
   #### determine docID
   docID = None
@@ -95,28 +95,28 @@ def testPython():
     os.chdir('..')
     return
   #### get current string
-  cmd = ['pastaDB.py']+'hierarchy -d pasta_tutorial -i'.split(' ')+[docID]
+  cmd = ['pastaELN.py']+'hierarchy -d pasta_tutorial -i'.split(' ')+[docID]
   result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
   lastLine = result.stdout.decode('utf-8').split('\n')[-2].strip()
   if lastLine=='SUCCESS':
     text = result.stdout.decode('utf-8').split('\n')[:-2]
     #### set string to old one
-    cmd  = ['pastaDB.py','saveHierarchy','-d','pasta_tutorial','-i',docID,'-c',"'"+'\\n'.join(text)+"'"]
+    cmd  = ['pastaELN.py','saveHierarchy','-d','pasta_tutorial','-i',docID,'-c',"'"+'\\n'.join(text)+"'"]
     # print('Command is: \n',' '.join(cmd))
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     lastLine = result.stdout.decode('utf-8').split('\n')[-2].strip()
     if lastLine=='SUCCESS':
-      print('  success pastaDB.py  setEditString2')
+      print('  success pastaELN.py  setEditString2')
     else:
       successAll = False
-      print('**FAILED pastaDB.py  setEditString2')
+      print('**FAILED pastaELN.py  setEditString2')
       print(result.stdout.decode('utf-8'))
   else:
     successAll = False
-    print('**FAILED pastaDB.py hierarchy: ')
+    print('**FAILED pastaELN.py hierarchy: ')
     print(result.stdout.decode('utf-8'))
 
-  ## Blocking Test all other pastaDB.py commands
+  ## Blocking Test all other pastaELN.py commands
   tests = ['test -d pasta_tutorial',
            'scanHierarchy -d pasta_tutorial -i '+docID,
            'print -d pasta_tutorial',
@@ -125,21 +125,21 @@ def testPython():
            'print -d pasta_tutorial -l sample',
            'print -d pasta_tutorial -l procedure']
   for test in tests:
-    cmd = ['pastaDB.py']+test.split(' ')
+    cmd = ['pastaELN.py']+test.split(' ')
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     lastLine = result.stdout.decode('utf-8').split('\n')[-2].strip()
     if lastLine=='SUCCESS':
-      print('  success pastaDB.py ',test)
+      print('  success pastaELN.py ',test)
     else:
       successAll = False
-      print('**FAILED pastaDB.py ',test)
+      print('**FAILED pastaELN.py ',test)
       print(result.stdout.decode('utf-8'))
-  ## NON-Blocking Test all other pastaDB.py commands
+  ## NON-Blocking Test all other pastaELN.py commands
   tests = [
            'extractorTest -d pasta_tutorial -p IntermetalsAtInterfaces/002_SEMImages/Zeiss.tif',
            'extractorTest -d pasta_tutorial -p IntermetalsAtInterfaces/002_SEMImages/Zeiss.tif -c measurement/tif/image/scale/adaptive']
   for test in tests:
-    cmd = ['pastaDB.py']+test.split(' ')
+    cmd = ['pastaELN.py']+test.split(' ')
     _   = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   os.chdir('..')
   if successAll:

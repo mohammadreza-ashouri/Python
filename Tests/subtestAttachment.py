@@ -20,8 +20,8 @@ class TestStringMethods(unittest.TestCase):
 
     try:
       ### ADD MORE DATA
-      self.be.addData('instrument', {'name': 'G200X', 'vendor':'KLA', 'model':'KLA G200X'})
-      self.be.addData('instrument', {'name': 'B1', 'vendor':'Synthon', 'model':'Berkovich tip'})
+      self.be.addData('instrument', {'-name': 'G200X', 'vendor':'KLA', 'model':'KLA G200X'})
+      self.be.addData('instrument', {'-name': 'B1', 'vendor':'Synthon', 'model':'Berkovich tip'})
       output = self.be.output('instrument',True)
       idKLA, idSynthon = None, None
       for line in output.split('\n'):

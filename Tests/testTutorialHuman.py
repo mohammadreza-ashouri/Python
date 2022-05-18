@@ -25,7 +25,7 @@ class TestStringMethods(unittest.TestCase):
     try:
       ### CREATE PROJECTS AND SHOW
       print('*** CREATE PROJECTS AND SHOW ***')
-      self.be.addData('x0', {'name': 'Intermetals at interfaces', 'objective': 'Does spray coating lead to intermetalic phase?', 'status': 'active', 'comment': '#intermetal #Fe #Al This is a test project'})
+      self.be.addData('x0', {'-name': 'Intermetals at interfaces', 'objective': 'Does spray coating lead to intermetalic phase?', 'status': 'active', 'comment': '#intermetal #Fe #Al This is a test project'})
       print(self.be.output('x0'))
 
       ### TEST PROJECT PLANING
@@ -33,18 +33,18 @@ class TestStringMethods(unittest.TestCase):
       viewProj = self.be.db.getView('viewDocType/x0')
       projID1  = [i['id'] for i in viewProj if 'Intermetals at interfaces'==i['value'][0]][0]
       self.be.changeHierarchy(projID1)
-      self.be.addData('x1',    {'comment': 'This is hard! #TODO', 'name': 'Get steel and Al-powder'})
-      self.be.addData('x1',    {'comment': 'This will take a long time. #WAIT', 'name': 'Get spray machine'})
+      self.be.addData('x1',    {'comment': 'This is hard! #TODO', '-name': 'Get steel and Al-powder'})
+      self.be.addData('x1',    {'comment': 'This will take a long time. #WAIT', '-name': 'Get spray machine'})
       self.be.changeHierarchy(self.be.currentID)
-      self.be.addData('x2',    {'name': 'Get quotes', 'comment': 'Dont forget company-A', 'procedure': 'Guidelines of procurement'})
-      self.be.addData('x2',    {'name': 'Buy machine','comment': 'Delivery time will be 6month'})
+      self.be.addData('x2',    {'-name': 'Get quotes', 'comment': 'Dont forget company-A', 'procedure': 'Guidelines of procurement'})
+      self.be.addData('x2',    {'-name': 'Buy machine','comment': 'Delivery time will be 6month'})
       self.be.changeHierarchy(None)
-      self.be.addData('x1',    {'name': 'SEM images'})
+      self.be.addData('x1',    {'-name': 'SEM images'})
       semStepID = self.be.currentID
       self.be.changeHierarchy(semStepID)
       semDirName = self.be.basePath+self.be.cwd
       self.be.changeHierarchy(None)
-      self.be.addData('x1',    {'name': 'Nanoindentation'})
+      self.be.addData('x1',    {'-name': 'Nanoindentation'})
       self.be.changeHierarchy(self.be.currentID)
       indentDirName = self.be.basePath+self.be.cwd
       self.be.changeHierarchy(None)
@@ -58,13 +58,13 @@ class TestStringMethods(unittest.TestCase):
         fOut.write('* Put sample in nanoindenter\n* Do indentation\nDo not forget to\n- calibrate tip\n- *calibrate stiffness*\n')
       with open(sopDir+os.sep+'SEM.md','w') as fOut:
         fOut.write('# Put sample in SEM\n# Do scanning\nDo not forget to\n- contact the pole-piece\n- **USE GLOVES**\n')
-      self.be.addData('procedure', {'name': 'StandardOperatingProcedures'+os.sep+'SEM.md', 'comment': '#v1'})
-      self.be.addData('procedure', {'name': 'StandardOperatingProcedures'+os.sep+'Nanoindentation.org', 'comment': '#v1'})
+      self.be.addData('procedure', {'-name': 'StandardOperatingProcedures'+os.sep+'SEM.md', 'comment': '#v1'})
+      self.be.addData('procedure', {'-name': 'StandardOperatingProcedures'+os.sep+'Nanoindentation.org', 'comment': '#v1'})
       print(self.be.output('procedure'))
 
       ### TEST SAMPLES
       print('*** TEST SAMPLES ***')
-      self.be.addData('sample',    {'name': 'AlFe cross-section', 'chemistry': 'Al99.9; FeMnCr ', 'qrCode': '13214124 99698708', 'comment': 'after OPS polishing'})
+      self.be.addData('sample',    {'-name': 'AlFe cross-section', 'chemistry': 'Al99.9; FeMnCr ', 'qrCode': '13214124 99698708', 'comment': 'after OPS polishing'})
       print(self.be.output('sample'))
       print(self.be.outputQR())
 
@@ -82,7 +82,7 @@ class TestStringMethods(unittest.TestCase):
       ### USE GLOBAL FILES
       print('*** USE GLOBAL FILES ***')
       self.be.changeHierarchy(semStepID)
-      self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Misc_pollen.jpg'})
+      self.be.addData('measurement', {'-name': 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Misc_pollen.jpg'})
       print(self.be.output('measurement'))
       # self.assertTrue(os.path.exists(semDirName+'Misc_pollen_pasta.jpg'),'Wikipedia PASTA not created')
 

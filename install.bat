@@ -205,48 +205,48 @@ cd %softwareDir%\main
 pip.exe install -r requirements.txt  >nul
 echo.
 
-echo Create basic .pasta.json configuration
+echo Create basic .pastaELN.json configuration
 cd %HOMEDRIVE%%HOMEPATH%
 set softwareDirString=%softwareDir:\=\\%
-echo { > .pasta.json
-echo   "softwareDir": "%softwareDir%\main",>> .pasta.json
-echo   "userID": "%USERNAME%",>> .pasta.json
-echo   "default": "pasta_tutorial",>> .pasta.json
-echo   "magicTags": ["P1","P2","P3","TODO","WAIT","DONE"],>> .pasta.json
-echo.  >> .pasta.json
-echo   "links": {>> .pasta.json
-echo     "pasta_tutorial": {>> .pasta.json
-echo       "local": {>> .pasta.json
-echo         "user": "%CDB_USER%",>> .pasta.json
-echo         "password": "%CDB_PASSW%",>> .pasta.json
-echo         "database": "pasta_tutorial",>> .pasta.json
-echo         "path": "%softwareDirString%\\pasta_tutorial">> .pasta.json
-echo       },>> .pasta.json
-echo       "remote": {}>> .pasta.json
-echo     }>> .pasta.json
-echo   },>> .pasta.json
-echo.  >> .pasta.json
-echo.  >> .pasta.json
-echo   "tableFormat": {>> .pasta.json
-echo     "x0":{"-label-":"Projects","-default-": [22,6,50,22]},>> .pasta.json
-echo     "measurement":{"-default-": [24,7,23,23,-5,-6,-6,-6]},>> .pasta.json
-echo     "sample":{"-default-": [23,23,23,23,-5]},>> .pasta.json
-echo     "procedure":{"-default-": [20,20,20,40]}>> .pasta.json
-echo   }>> .pasta.json
-echo }>> .pasta.json
+echo { > .pastaELN.json
+echo   "softwareDir": "%softwareDir%\main",>> .pastaELN.json
+echo   "userID": "%USERNAME%",>> .pastaELN.json
+echo   "default": "pasta_tutorial",>> .pastaELN.json
+echo   "magicTags": ["P1","P2","P3","TODO","WAIT","DONE"],>> .pastaELN.json
+echo.  >> .pastaELN.json
+echo   "links": {>> .pastaELN.json
+echo     "pasta_tutorial": {>> .pastaELN.json
+echo       "local": {>> .pastaELN.json
+echo         "user": "%CDB_USER%",>> .pastaELN.json
+echo         "password": "%CDB_PASSW%",>> .pastaELN.json
+echo         "database": "pasta_tutorial",>> .pastaELN.json
+echo         "path": "%softwareDirString%\\pasta_tutorial">> .pastaELN.json
+echo       },>> .pastaELN.json
+echo       "remote": {}>> .pastaELN.json
+echo     }>> .pastaELN.json
+echo   },>> .pastaELN.json
+echo.  >> .pastaELN.json
+echo.  >> .pastaELN.json
+echo   "tableFormat": {>> .pastaELN.json
+echo     "x0":{"-label-":"Projects","-default-": [22,6,50,22]},>> .pastaELN.json
+echo     "measurement":{"-default-": [24,7,23,23,-5,-6,-6,-6]},>> .pastaELN.json
+echo     "sample":{"-default-": [23,23,23,23,-5]},>> .pastaELN.json
+echo     "procedure":{"-default-": [20,20,20,40]}>> .pastaELN.json
+echo   }>> .pastaELN.json
+echo }>> .pastaELN.json
 echo.
 
 
 REM Run a two short tests of the python backend
 echo Run a very short (5sec) test of the python backend
 cd %softwareDir%\main
-python pastaDB.py test
+python pastaELN.py test
 echo.
 echo If this test is not successful, it is likely that you entered the wrong username
-echo.  and password. Open the file %HOMEDRIVE%%HOMEPATH%\.pasta.json in an editor and
+echo.  and password. Open the file %HOMEDRIVE%%HOMEPATH%\.pastaELN.json in an editor and
 echo.  correct the entries after "user" and "password". "-userID" does not matter.
 echo.  Entries under "remote" do not matter.
-python pastaDB.py extractorScan
+python pastaELN.py extractorScan
 echo.
 echo Run a short (20-80sec) test of the python backend
 python Tests\testTutorial.py

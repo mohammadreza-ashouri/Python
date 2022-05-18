@@ -23,7 +23,7 @@ class TestStringMethods(unittest.TestCase):
       # Update ontology
       newOntology = self.be.db.db['-ontology-']
       newOntology['x3'] = [
-                {'name': 'name',   'query': 'What is the name?', 'required':True},
+                {'name': '-name',   'query': 'What is the name?', 'required':True},
                 {'name': "comment","query":"#tags comments :field:value:"}
       ]
       newOntology.save()

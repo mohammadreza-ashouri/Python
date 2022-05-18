@@ -94,7 +94,7 @@ class Database:
     # general views: Hierarchy, Identify
     jsHierarchy  = '''
       if ('-type' in doc) {
-        doc['-branch'].forEach(function(branch) {emit(branch.stack.concat([doc._id]).join(' '),[branch.child,doc['-type'],doc.name]);});
+        doc['-branch'].forEach(function(branch) {emit(branch.stack.concat([doc._id]).join(' '),[branch.child,doc['-type'],doc['-name']]);});
       }
     '''
     jsPath = '''
@@ -104,10 +104,10 @@ class Database:
       }
     '''
     self.saveView('viewHierarchy',{'viewHierarchy':jsHierarchy,'viewPaths':jsPath})
-    jsSHA= "if (doc['-type'][0]==='measurement'){emit(doc.shasum, doc.name);}"
+    jsSHA= "if (doc['-type'][0]==='measurement'){emit(doc.shasum, doc['-name']);}"
     jsQR = "if (doc.qrCode.length > 0)"
-    jsQR+= '{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc.name);});}'
-    jsTags=str(magicTags)+".forEach(function(tag){if(doc.tags.indexOf('#'+tag)>-1) emit('#'+tag, doc.name);});"
+    jsQR+= "{doc.qrCode.forEach(function(thisCode) {emit(thisCode, doc['-name']);});}"
+    jsTags=str(magicTags)+".forEach(function(tag){if(doc.tags.indexOf('#'+tag)>-1) emit('#'+tag, doc['-name']);});"
     views = {'viewQR':jsQR, 'viewSHAsum':jsSHA, 'viewTags':jsTags}
     self.saveView('viewIdentify', views)
     return
@@ -217,9 +217,9 @@ class Database:
             if oldpath is not None:
               for branch in newDoc['-branch']:
                 if branch['path'].startswith(oldpath):
-                  if os.path.basename(branch['path']) == newDoc['name'] and \
+                  if os.path.basename(branch['path']) == newDoc['-name'] and \
                      os.path.basename(change['-branch']['path'])!='':
-                    newDoc['name'] = os.path.basename(change['-branch']['path'])
+                    newDoc['-name'] = os.path.basename(change['-branch']['path'])
                   branch['path'] = branch['path'].replace(oldpath ,change['-branch']['path'])
                   branch['stack']= change['-branch']['stack']
                   break
@@ -265,7 +265,7 @@ class Database:
             oldDoc[item] = newDoc[item]
           newDoc[item] = change[item]
       if nothingChanged:
-        logging.info('database:updateDoc no change of content: '+newDoc['name'])
+        logging.info('database:updateDoc no change of content: '+newDoc['-name'])
         return newDoc
     #For both cases: delete and update
     if self.confirm is None or self.confirm({'new':newDoc,'old':oldDoc},"Update this document?"):
@@ -521,7 +521,7 @@ class Database:
         #   doc.delete()
         #   continue
         ## output size of document
-        # print('Name: {0: <16.16}'.format(doc['name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
+        # print('Name: {0: <16.16}'.format(doc['-name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
         if repair:
           # print("before",doc.keys(),doc['_id'])
           # if doc['_id']== "x-028456be353dd7b5092c48841d6dfec8":
@@ -568,7 +568,7 @@ class Database:
                 outstring+= f'{bcolors.WARNING}**warning branch stack length = 0: no parent '+doc['_id']+f'{bcolors.ENDC}\n'
             else:
               if verbose:
-                outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure/sample '+doc['_id']+'|'+doc['name']+f'{bcolors.ENDC}\n'
+                outstring+= f'{bcolors.OKBLUE}**ok-ish branch stack length = 0: no parent for procedure/sample '+doc['_id']+'|'+doc['-name']+f'{bcolors.ENDC}\n'
           if not '-type' in doc or len(doc['-type'])==0:
             outstring+= f'{bcolors.FAIL}**ERROR dch04: no type in '+doc['_id']+f'{bcolors.ENDC}\n'
             continue
@@ -584,7 +584,7 @@ class Database:
               outstring+= f'{bcolors.FAIL}**ERROR dch06: branch path is None '+doc['_id']+f'{bcolors.ENDC}\n'
             elif doc['-type'][0] == 'measurement':
               if verbose:
-                outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['name']+f'{bcolors.ENDC}\n'
+                outstring+= f'{bcolors.OKBLUE}**warning measurement branch path is None=no data '+doc['_id']+' '+doc['-name']+f'{bcolors.ENDC}\n'
             else:
               if verbose:
                 outstring+= f'{bcolors.OKGREEN}..info: procedure/sample with empty path '+doc['_id']+f'{bcolors.ENDC}\n'
@@ -607,7 +607,7 @@ class Database:
                   outstring+= f'{bcolors.FAIL}**ERROR dch08: parent does not have corresponding path '+doc['_id']+'| parentID '+parentID+f'{bcolors.ENDC}\n'
 
         #every doc should have a name
-        if not 'name' in doc:
+        if not '-name' in doc:
           outstring+= f'{bcolors.FAIL}**ERROR dch17: name not in '+doc['_id']+f'{bcolors.ENDC}\n'
 
         #doc-type specific tests

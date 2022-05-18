@@ -27,16 +27,16 @@ class TestStringMethods(unittest.TestCase):
 
     try:
       ### create some project and move into it
-      self.be.addData('x0', {'name': 'Test project1', 'objective': 'Test objective1', 'status': 'active', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
+      self.be.addData('x0', {'-name': 'Test project1', 'objective': 'Test objective1', 'status': 'active', 'comment': '#tag1 #tag2 :field1:1: :field2:max: A random text'})
       viewProj = self.be.db.getView('viewDocType/x0')
       projID  = [i['id'] for i in viewProj][0]
       self.be.changeHierarchy(projID)
 
       ### add external data
-      self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/320px-Google_2015_logo.svg.png', 'comment': 'small'}, localCopy=True)
+      self.be.addData('measurement', {'-name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/320px-Google_2015_logo.svg.png', 'comment': 'small'}, localCopy=True)
       print("====== STATE * ====")
       print(self.be.checkDB(verbose=False))
-      self.be.addData('measurement', {'name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/640px-Google_2015_logo.svg.png', 'comment': 'large'})
+      self.be.addData('measurement', {'-name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/640px-Google_2015_logo.svg.png', 'comment': 'large'})
       projDirName = self.be.basePath+self.be.cwd
       shutil.copy(self.be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
       self.be.scanTree()

@@ -12,55 +12,55 @@ from miscTools import upOut, getExtractorConfig, printQRcodeSticker, checkConfig
 from serverActions import passwordDecrypt
 
 argparser = argparse.ArgumentParser(usage='''
-pastaDB.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
+pastaELN.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
 
 Possible commands are:
     help: help information
-      example: pastaDB.py help
+      example: pastaELN.py help
     test: test PASTA setup
-      example: pastaDB.py test -d instruments
+      example: pastaELN.py test -d instruments
     updatePASTA: git pull in source
-      example: pastaDB updatePASTA
+      example: pastaELN.py updatePASTA
     verifyDB: test PASTA database
-      example: pastaDB.py verifyDB
-      example: pastaDB.py verifyDBdev (repair function)
+      example: pastaELN.py verifyDB
+      example: pastaELN.py verifyDBdev (repair function)
     verifyConfiguration: test PASTA configuration
-      example: pastaDB.py verifyConfiguration
-      example: pastaDB.py verifyConfigurationDev (repair function)
+      example: pastaELN.py verifyConfiguration
+      example: pastaELN.py verifyConfigurationDev (repair function)
     history: get history for docTypes
-      example: pastaDB.py history
+      example: pastaELN.py history
     saveBackup,loadBackup: save to file.zip / load from file.zip
       - docId is optional as it reduces the scope of the backup
       - database is optional as otherwise the default is used
-      example: pastaDB.py saveBackup -d instruments
-      example: pastaDB.py saveBackup -i x-76b0995cf655bcd487ccbdd8f9c68e1b
+      example: pastaELN.py saveBackup -d instruments
+      example: pastaELN.py saveBackup -i x-76b0995cf655bcd487ccbdd8f9c68e1b
     sync: synchronize / replicate with remote server
     print: print overview
       label: possible docLabels 'Projects', 'Samples', 'Measurements', 'Procedures'
-      example: pastaDB.py print -d instruments -l instrument
+      example: pastaELN.py print -d instruments -l instrument
     printQRCodes: print qr-codes
       content: list of qrCodes and text
       note: requires set -qrPrinter in pasta.json
-      example: pastaDB.py printQRCodes -c '[["my random name","Sample 1"], ["","Oven 450C"]]'
+      example: pastaELN.py printQRCodes -c '[["my random name","Sample 1"], ["","Oven 450C"]]'
     scanHierarchy, hierarchy: scan project with docID
-      example: pastaDB.py scanHierarchy -i ....
+      example: pastaELN.py scanHierarchy -i ....
     saveHierarchy: save hierarchy to database
     addDoc:
       content is required as json-string
-      example: pastaDB.py createDoc --content "{'name':'Instruments','status':'passive','objective':'List of all instruments in IEK2','comment':'result of task force July 2020','docType':'project'}"
+      example: pastaELN.py createDoc --content "{'-name':'Instruments','status':'passive','objective':'List of all instruments in IEK2','comment':'result of task force July 2020','docType':'project'}"
     newDB: add/update database configuration. item is e.g.
       '{"test":{"user":"Peter","password":"Parker",...}}'
     extractorTest: test the extractor of this file
       -p should be specified is the path to file (best: from base folder)
       -c is optional: docType to test
-      example: pastaDB.py extractorTest -p sub.nii.gz -c 'measurement/gz/MRT_image/3D'
-    extractorScan: get list of all extractors and save into .pastaDB.json
-      example: pastaDB.py extractorScan
+      example: pastaELN.py extractorTest -p sub.nii.gz -c 'measurement/gz/MRT_image/3D'
+    extractorScan: get list of all extractors and save into .pastaELN.json
+      example: pastaELN.py extractorScan
     decipher: decipher encrypted string
       content: string
     importXLS: import first sheet of excel file into database
       before: ensure database configuration and project exist
-      example: pastaDB.py importXLS -d instruments -i x-a803c556bb3b367b1e78901109bd5bf5 -c "~/path/to.xls" -l instrument
+      example: pastaELN.py importXLS -d instruments -i x-a803c556bb3b367b1e78901109bd5bf5 -c "~/path/to.xls" -l instrument
       -l is the document type
       afterwards: adopt ontology (views are automatically generated)
 ''')
@@ -77,10 +77,10 @@ if args.command=='newDB':
   #use new database configuration and store in local-config file
   newDB = json.loads(args.item)
   label = list(newDB.keys()).pop()
-  with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
+  with open(os.path.expanduser('~')+'/.pastaELN.json','r') as f:
     configuration = json.load(f)
   configuration[label] = newDB[label]
-  with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
+  with open(os.path.expanduser('~')+'/.pastaELN.json','w') as f:
     f.write(json.dumps(configuration, indent=2))
 
 elif args.command=='help':
@@ -96,10 +96,10 @@ elif args.command=='extractorScan':
   extractors = [extractors[i]['plots'] for i in extractors if len(extractors[i]['plots'])>0 ] #remove empty entries
   extractors = [i for sublist in extractors for i in sublist]   #flatten list
   extractors = {'/'.join(i):j for (i,j) in extractors}
-  with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
+  with open(os.path.expanduser('~')+'/.pastaELN.json','r') as f:
     configuration = json.load(f)
   configuration['extractors'] = extractors
-  with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
+  with open(os.path.expanduser('~')+'/.pastaELN.json','w') as f:
     f.write(json.dumps(configuration, indent=2))
   print('SUCCESS')
 
@@ -120,7 +120,7 @@ else:
   try:
     # open database
     curWorkingDirectory = os.path.abspath(os.path.curdir)
-    with open(os.path.expanduser('~')+'/.pasta.json','r') as f:
+    with open(os.path.expanduser('~')+'/.pastaELN.json','r') as f:
       config = json.load(f)
     if args.database=='':
       args.database = config['default']
@@ -305,7 +305,7 @@ else:
 
       ## Default case for all: unknown
       else:
-        print("**ERROR pma08: command in pastaDB.py does not exist |",args.command)
+        print("**ERROR pma08: command in pastaELN.py does not exist |",args.command)
         if be:
           be.exit()
         success = False
@@ -317,5 +317,5 @@ else:
     else:
       print('**ERROR pma09: undefined')
   except:
-    print("**ERROR pma10: exception thrown during pastaDB.py"+traceback.format_exc()+"\n")
+    print("**ERROR pma10: exception thrown during pastaELN.py"+traceback.format_exc()+"\n")
     raise

@@ -352,7 +352,7 @@ def printQRcodeSticker(codes={},
 
 def checkConfiguration(conf=None, repair=False):
   """
-    Check configuration file .pasta.json for consistencies
+    Check configuration file .pastaELN.json for consistencies
 
   Args:
       conf   (dict): configuration to check
@@ -365,7 +365,7 @@ def checkConfiguration(conf=None, repair=False):
   from cloudant.client import CouchDB
   if conf is None:
     try:
-      fConf = open(os.path.expanduser('~')+'/.pasta.json','r')
+      fConf = open(os.path.expanduser('~')+'/.pastaELN.json','r')
     except:
       return 'Verify configuration\n**ERROR mcc00: config file does not exist.\nFAILURE\n'
     conf = json.load(fConf)
@@ -413,12 +413,12 @@ def checkConfiguration(conf=None, repair=False):
       if repair:
         conf['default'] = list(conf['links'].keys())[0]
   if len(illegalNames)>0:
-    output += '**ERROR mcc01l: - type entrys '+str(illegalNames)+' in config file\n'
+    output += '**ERROR mcc01l: - type entries '+str(illegalNames)+' in config file\n'
     if repair:
       for key in illegalNames:
         del conf[key]
   if repair:
-    with open(os.path.expanduser('~')+'/.pasta.json','w') as f:
+    with open(os.path.expanduser('~')+'/.pastaELN.json','w') as f:
       f.write(json.dumps(conf,indent=2))
   if output=='':
     output='Verify configuration\nSUCCESS\n'
@@ -434,7 +434,7 @@ def translateJS2PY():
   """
   import re, io
   import js2py
-  commonToolsHash = generic_hash('./commonTools.js')
+  commonToolsHash = generic_hash('../ReactDOM/src/commonTools.js')
   with open('./commonTools.py') as fIn:
     stortedHash     = fIn.readlines()[-1]
   stortedHash = stortedHash.split('HASH:')[1].strip()
