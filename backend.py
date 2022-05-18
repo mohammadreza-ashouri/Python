@@ -62,6 +62,9 @@ class Pasta:
     #    self.basePath (root of directory tree) is root of all projects
     #    self.cwd changes during program
     self.softwarePath = os.path.dirname(os.path.abspath(__file__))
+    self.extractorPath = configuration['extractorDir'] if 'extractorDir' in configuration else \
+                         self.softwarePath+os.sep+'extractors'
+    sys.path.append(self.extractorPath)  #allow extractors
     self.basePath     = links[linkDefault]['local']['path']
     self.cwd          = ''
     if not self.basePath.endswith(os.sep):
@@ -71,7 +74,6 @@ class Pasta:
     else:
       print('**ERROR bin01: Base folder did not exist |'+self.basePath)
       sys.exit(1)
-    sys.path.append(self.softwarePath+os.sep+'extractors')  #allow extractors
     # start logging
     logging.basicConfig(filename=self.softwarePath+os.sep+'pasta.log', \
       format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
@@ -682,7 +684,7 @@ class Pasta:
       absFilePath = self.basePath + filePath
       outFile = self.basePath + filePath.replace('.','_')+'_pasta'
     pyFile = 'extractor_'+extension+'.py'
-    pyPath = self.softwarePath+os.sep+'extractors'+os.sep+pyFile
+    pyPath = self.extractorPath+os.sep+pyFile
     if len(doc['-type'])==1:
       doc['-type'] += [extension]
     if os.path.exists(pyPath):
