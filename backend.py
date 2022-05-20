@@ -659,7 +659,7 @@ class Pasta:
     if os.path.exists(pyPath):
       # import module and use to get data
       module  = importlib.import_module(pyFile[:-3])
-      content = module.use(absFilePath, doc)
+      content = module.use(absFilePath, '/'.join(doc['-type']) )
       #combine into document
       doc.update(content)
     return
