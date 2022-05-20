@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+"""TEST using the FULL set of python-requirements """
 import os, shutil, traceback, logging, subprocess, re
 import warnings, json
 import unittest

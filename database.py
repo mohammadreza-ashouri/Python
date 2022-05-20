@@ -1,6 +1,6 @@
 """Class for interaction with couchDB
 """
-import traceback, logging
+import traceback
 from serverActions import testUser
 
 class Database:
@@ -24,7 +24,6 @@ class Database:
     try:
       self.client = CouchDB(user, password, url='http://127.0.0.1:5984', connect=True)
     except:
-      logging.error('database:init Something unexpected has happend\n'+traceback.format_exc())
       print('**ERROR dit01: Something unexpected has happend\n'+traceback.format_exc())
       raise
     self.databaseName = databaseName
@@ -37,7 +36,6 @@ class Database:
       if '-ontology-' in self.db:
         print('Info: remove old ontology')
         self.db['-ontology-'].delete()
-      logging.info('database:init ontology reinitialized')
       with open(softwarePath+'ontology.json', 'r') as fIn:
         doc = json.load(fIn)
       _ = self.db.create_document(doc)
@@ -88,7 +86,6 @@ class Database:
           outputList.append('doc["'+item['name']+'"]')
       outputList = ','.join(outputList)
       jsString = jsString.replace('$outputList$', outputList)
-      logging.info('database:init view '+docType+' not defined. Use default one:'+jsString)
       viewCode[docType.replace('/','__')]=jsString
     self.saveView('viewDocType', viewCode)
     # general views: Hierarchy, Identify
@@ -232,7 +229,6 @@ class Database:
             if originalLength!=len(newDoc['-branch']):
               nothingChanged = False
           else:
-            logging.error('database:updateDoc: op(eration) unknown, exit update')
             return newDoc
       #handle other items
       # change has to be dict, not Document
@@ -265,7 +261,6 @@ class Database:
             oldDoc[item] = newDoc[item]
           newDoc[item] = change[item]
       if nothingChanged:
-        logging.info('database:updateDoc no change of content: '+newDoc['-name'])
         return newDoc
     #For both cases: delete and update
     if self.confirm is None or self.confirm({'new':newDoc,'old':oldDoc},"Update this document?"):
@@ -359,7 +354,6 @@ class Database:
       designDoc.save()
     except:
       print('**ERROR dsv01: something unexpected has happend. Log-file has traceback')
-      logging.error('database:saveView Something unexpected has happend'+traceback.format_exc())
     return
 
 
@@ -396,18 +390,15 @@ class Database:
       db2 = client2[dbInfo['database']]
       replResult = rep.create_replication(self.db, db2, create_target=False, continuous=False)
       print('Start replication '+replResult['_id']+'.')
-      logging.info('database:replicateDB Replication started '+replResult['_id'])
       #try every 10sec whether replicaton success. Do that for max. of 5min
       startTime = time.time()
       while True:
         if (time.time()-startTime)/60.>5.:
           print("Waited for 5min. No replication success in that time")
-          logging.info("Waited for 5min. No replication success in that time")
           return True
         replResult.fetch()        # get updated, latest version from the server
         if '_replication_state' in replResult:
           print("Replication success state: "+replResult['_replication_state'])
-          logging.info("Replication success state: "+replResult['_replication_state'])
           return True
         time.sleep(10)
     except:

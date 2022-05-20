@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """
+TEST using the MINIMAL set of python-requirements, but not run on all installations
 TEST IF EXTERNAL DATA CAN BE READ,...
 """
 import os, shutil, traceback, time
@@ -15,7 +16,6 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', message='invalid escape sequence')
     warnings.filterwarnings('ignore', category=ResourceWarning, module='PIL')
     warnings.filterwarnings('ignore', category=ImportWarning)
-    warnings.filterwarnings('ignore', module='js2py')
 
     configName = 'pasta_tutorial'
     self.be = Pasta(configName)

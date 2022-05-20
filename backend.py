@@ -19,7 +19,7 @@ class Pasta:
           - initConfig (bool): skip initialization of .pastaELN.json configuration file
           - resetOntology (bool): reset ontology on database from one on file
     """
-    import os, logging, json, sys
+    import os, json, sys
     from database import Database
     from miscTools import upIn, upOut
     from commonTools import commonTools as cT
@@ -74,16 +74,6 @@ class Pasta:
     else:
       print('**ERROR bin01: Base folder did not exist |'+self.basePath)
       sys.exit(1)
-    # start logging
-    logging.basicConfig(filename=self.softwarePath+os.sep+'pasta.log', \
-      format='%(asctime)s|%(levelname)s:%(message)s', datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
-    logging.getLogger('urllib3').setLevel(logging.WARNING)
-    logging.getLogger('requests').setLevel(logging.WARNING)
-    logging.getLogger('asyncio').setLevel(logging.WARNING)
-    logging.getLogger('datalad').setLevel(logging.WARNING)
-    logging.getLogger('PIL').setLevel(logging.WARNING)
-    logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
-    logging.info('\nSTART PASTA '+linkDefault)
     # decipher configuration and store
     self.userID   = configuration['userID']
     self.magicTags= configuration['magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
@@ -117,7 +107,7 @@ class Pasta:
       deleteDB (bool): remove database
       kwargs (dict): additional parameter
     """
-    import os, time, logging
+    import os
     if deleteDB:
       #uninit / delete everything of git-annex and datalad
       for root, dirs, files in os.walk(self.basePath):
@@ -128,8 +118,6 @@ class Pasta:
     os.chdir(self.softwarePath)  #where program started
     self.db.exit(deleteDB)
     self.alive     = False
-    logging.info('\nEND PASTA')
-    logging.shutdown()
     return
 
 
@@ -151,7 +139,7 @@ class Pasta:
     Returns:
         bool: success
     """
-    import logging, sys, os, json
+    import sys, os, json
     from urllib import request
     import datalad.api as datalad
     from commonTools import commonTools as cT
@@ -161,7 +149,6 @@ class Pasta:
 
     if hierStack is None:
       hierStack=[]
-    logging.debug('addData beginning doc: '+docType+' | hierStack'+str(hierStack))
     callback = kwargs.get('callback', None)
     forceNewImage=kwargs.get('forceNewImage',False)
     doc['-user']  = self.userID
@@ -334,7 +321,6 @@ class Pasta:
       # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       # print("datalad save",output.stdout.decode('utf-8'))
     self.currentID = doc['_id']
-    logging.debug('addData ending doc '+doc['_id']+' '+doc['-type'][0])
     return True
 
 
@@ -351,7 +337,7 @@ class Pasta:
         dirName (string): use this name to change into
         kwargs (dict): additional parameter
     """
-    import os, logging
+    import os
     if docID is None or (docID[0]=='x' and docID[1]!='-'):  # none, 'project', 'step', 'task' are given: close
       self.hierStack.pop()
       if self.cwd is not None:
@@ -370,8 +356,6 @@ class Pasta:
         self.hierStack.append(docID)
       except:
         print('**ERROR bch01: Could not change into hierarchy. id|'+docID+'  directory:'+dirName+'  cwd:'+self.cwd)
-    if self.debug and len(self.hierStack)+1!=len(self.cwd.split(os.sep)):
-      logging.error('changeHierarchy error')
     return
 
 
@@ -390,11 +374,10 @@ class Pasta:
     Raises:
       ValueError: could not add new measurement to database
     """
-    import logging, os, shutil
+    import os, shutil
     import datalad.api as datalad
     from datalad.support import annexrepo
     from miscTools import bcolors, generic_hash
-    logging.info('scanTree started')
     if len(self.hierStack) == 0:
       print(f'{bcolors.FAIL}**Warning - scan directory: No project selected{bcolors.ENDC}')
       return
@@ -448,7 +431,6 @@ class Pasta:
               if os.path.exists(path):
                 os.unlink(target)
                 shutil.copy(path,target)
-                logging.info("Repaired broken link "+path+' -> '+target)
                 break
         parentID = None
         itemTarget = -1
@@ -464,7 +446,6 @@ class Pasta:
       ### separate into two cases
       # newly created file
       if origin == '':
-        logging.info('Info: scanTree file not in database '+target)
         newDoc    = {'-name':self.cwd+target}
         _ = self.addData('measurement', newDoc, hierStack, callback=callback)  #saved to datalad in here
       # move or delete file
@@ -656,13 +637,12 @@ class Pasta:
           - extractorTest: test the extractor and show image
           - saveToFile: save data to files
     """
-    import logging, os, importlib, base64, shutil, json
+    import os, importlib, base64, shutil, json
     from io import StringIO, BytesIO
     import numpy as np
     import matplotlib.pyplot as plt
     from PIL.Image import Image
     import datalad.api as datalad
-    logging.debug('useExtractors started for path '+filePath)
     maxSize = kwargs.get('maxSize', 600)
     extractorTest    = kwargs.get('extractorTest', False)
     exitAfterDataLad = kwargs.get('exitAfterDataLad',False)
@@ -784,9 +764,7 @@ class Pasta:
           document={'-type':None, 'metaUser':None, 'metaVendor':None, 'shasum':None}
     else:
       document={'-type':None, 'metaUser':None, 'metaVendor':None, 'shasum':None}
-      logging.warning('useExtractor could not find pyFile to convert '+pyFile)
     #combine into document
-    logging.debug('useExtractor: finished')
     doc.update(document)
     if extractorTest:
       print("Info: Measurement type ",document['-type'])
@@ -842,7 +820,7 @@ class Pasta:
     Returns:
         string: output incl. \n
     """
-    import os, logging
+    import os
     from datalad.support import annexrepo
     ### check database itself for consistency
     output = self.db.checkDB(verbose=verbose, **kwargs)
@@ -879,7 +857,6 @@ class Pasta:
         extension = '*'+extension.lower()
         if extension in self.vanillaGit:
           continue
-        logging.info(relPath+' not in database')
         count += 1
     output += 'Number of files on disk that are not in database '+str(count)+' (see log for details)\n'
     listPaths = [i for i in listPaths if not "://" in i ]
@@ -1006,10 +983,9 @@ class Pasta:
     Returns:
         string: output incl. \n
     """
-    import re, logging
+    import re
     from commonTools import commonTools as cT
     if len(self.hierStack) == 0:
-      logging.warning('pasta.outputHierarchy No project selected')
       return 'Warning: pasta.outputHierarchy No project selected'
     hierString = ' '.join(self.hierStack)
     view = self.db.getView('viewHierarchy/viewHierarchy', startKey=hierString)
@@ -1053,7 +1029,7 @@ class Pasta:
     Returns:
        success of function: true/false
     """
-    import re, os, logging, tempfile
+    import re, os, tempfile
     import datalad.api as datalad
     from commonTools import commonTools as cT
     from miscTools import createDirName
@@ -1165,7 +1141,6 @@ class Pasta:
               os.rename(self.basePath+path, self.basePath+self.cwd+dirName)
               dlDataset.save(path=self.basePath+path, message='SetEditString move directory: origin')
               dlDataset.save(path=self.basePath+self.cwd+dirName, message='SetEditString move directory: target')
-              logging.info("moved folder "+self.basePath+path+' -> '+self.basePath+self.cwd+dirName)
         if edit=='-edit-':
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
           if path is not None:
