@@ -1,36 +1,37 @@
 """extract data from .csv file
 """
-from nanoTrib_surface import Surface
+from io import StringIO
+import numpy as np
+import matplotlib.pyplot as plt
 
-def use(fileName, doc={}):
+def use(filePath, recipe=''):
   """
   Args:
-     fileName (string): full path file name
-     doc (dict): supplied to guide image creation doc['-type']
-
+     filePath (string): full path file name
+     recipe (string): supplied to guide recipes
+                      recipe is / separated hierarchical elements parent->child
   Returns:
-    list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
+    dict: containing image, metaVendor, metaUser, recipe
   """
-  if '-type' not in doc:
-    doc['-type'] = []
+  # Extractor for fancy instrument
+  data = np.loadtxt(filePath, delimiter=',')
+  ax1 = plt.subplot(111)
+  if recipe.endswith('red'):              #: Draw with red curve
+    ax1.plot(data[:,0], data[:,1],'r')
+  else:                                   #: Default | blueish curve
+    ax1.plot(data[:,0], data[:,1])
+  metaUser = {'max':data[:,1].max(), 'min':data[:,1].min()}
+  recipe = 'csv'
 
-  # VK-X1000 Series
-  try:
-    with open(fileName,'r') as inFile:
-      _     = inFile.readline()
-      line2 = inFile.readline()
-      line3 = inFile.readline()
-      if line2 == '"Model";"VK-X1000 Series"\n' and line3 == '"Data type";"ImageDataCsv"\n':
-        s = Surface(fileName)
-        if s is None:
-          raise ValueError
-        s.createImage()
-        return s.image, ['jpg', doc['-type']+['surface'], s.meta, {}]
-  except:
-    pass
+  #convert axes to svg image
+  figfile = StringIO()
+  plt.savefig(figfile, format='svg')
+  image = figfile.getvalue()
+
+  # return everything
+  return {'image':image, 'recipe':recipe, 'metaVendor':{}, 'metaUser':metaUser}
 
   #other datatypes follow here
   #...
-
   #final return if nothing successful
-  return None, ['', [], {}, {}]
+  return {}

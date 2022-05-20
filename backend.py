@@ -634,141 +634,34 @@ class Pasta:
         doc (dict): pass known data/measurement type, can be used to create image; This doc is altered
         kwargs (dict): additional parameter
           - maxSize of image
-          - extractorTest: test the extractor and show image
           - saveToFile: save data to files
     """
-    import os, importlib, base64, shutil, json
-    from io import StringIO, BytesIO
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from PIL.Image import Image
+    import os, importlib, shutil
     import datalad.api as datalad
-    maxSize = kwargs.get('maxSize', 600)
-    extractorTest    = kwargs.get('extractorTest', False)
     exitAfterDataLad = kwargs.get('exitAfterDataLad',False)
-    saveToFile       = kwargs.get('saveToFile',False)
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = filePath
-      outFile = self.basePath+self.cwd+os.path.basename(filePath).split('.')[0]+'_pasta'
       projectDB = self.cwd.split(os.sep)[0]
       dataset = datalad.Dataset(self.basePath+projectDB)
     else:
       parentPath = filePath.split(os.sep)[0]
-      if not extractorTest:
-        dataset = datalad.Dataset(self.basePath+parentPath)
-        if dataset.id:
-          dataset.save(path=self.basePath+filePath, message='Added locked document')
-        if exitAfterDataLad:
-          return
+      dataset = datalad.Dataset(self.basePath+parentPath)
+      if dataset.id:
+        dataset.save(path=self.basePath+filePath, message='Added locked document')
+      if exitAfterDataLad:
+        return
       absFilePath = self.basePath + filePath
-      outFile = self.basePath + filePath.replace('.','_')+'_pasta'
     pyFile = 'extractor_'+extension+'.py'
     pyPath = self.extractorPath+os.sep+pyFile
     if len(doc['-type'])==1:
       doc['-type'] += [extension]
     if os.path.exists(pyPath):
       # import module and use to get data
-      module = importlib.import_module(pyFile[:-3])
-      content, [imgType, docType, metaVendor, metaUser] = module.use(absFilePath, doc)
-      # tests whether meta data JSON format
-      try:
-        for i in metaUser:
-          if isinstance(metaUser[i], np.int64):
-            metaUser[i] = int(metaUser[i])
-          if isinstance(metaUser[i], np.ndarray):
-            metaUser[i] = str(list(metaUser[i]))
-        _ = json.dumps(metaUser, cls=json.JSONEncoder)
-      except:
-        print('**ERROR bue01a: metaUSER not json format |',metaUser,'\n')
-        metaUser = {'error':str(metaUser)}
-      try:
-        for i in metaVendor:
-          if isinstance(metaVendor[i], np.int64):
-            metaVendor[i] = int(metaVendor[i])
-          if isinstance(metaVendor[i], np.ndarray):
-            metaVendor[i] = str(list(metaVendor[i]))
-        _ = json.dumps(metaVendor, cls=json.JSONEncoder)
-      except:
-        print('**ERROR bue01b: metaVENDOR not json format |',metaVendor,'\n')
-        metaVendor = {'error':str(metaVendor)}
-      if isinstance(docType, list):
-        document = {'-type': docType, 'metaUser':metaUser, 'metaVendor':metaVendor, 'shasum':shasum}
-      elif isinstance(docType, dict):
-        document = docType
-        document['metaUser']  = metaUser
-        document['metaVendor']= metaVendor
-        document['shasum']    = shasum
-      else:
-        print('**ERROR bue01c: invalid docType type list,dict |',type(docType),'\n')
-      # end tests
-      if extractorTest:
-        if isinstance(content, Image):
-          content.show()
-        else:
-          plt.show()
-        print("metaUser:", metaUser)
-        print("metaVendor:", metaVendor)
-      # depending on imgType: produce image
-      outFileFull = None
-      if imgType == 'svg':  #no scaling
-        figfile = StringIO()
-        plt.savefig(figfile, format='svg')
-        content = figfile.getvalue()
-        # 'data:image/svg+xml;utf8,<svg' + figfile.getvalue().split('<svg')[1]
-        outFileFull = outFile+'.svg'
-      elif imgType == 'jpg':
-        ratio = maxSize / content.size[np.argmax(content.size)]
-        content = content.resize((np.array(content.size)*ratio).astype(int)).convert('RGB')
-        figfile = BytesIO()
-        content.save(figfile, format='JPEG')
-        imageData = base64.b64encode(figfile.getvalue()).decode()
-        content = 'data:image/jpg;base64,' + imageData
-        outFileFull = outFile+'.jpg'
-      elif imgType == 'png':
-        ratio = maxSize / content.size[np.argmax(content.size)]
-        content = content.resize((np.array(content.size)*ratio).astype(int))
-        figfile = BytesIO()
-        content.save(figfile, format='PNG')
-        imageData = base64.b64encode(figfile.getvalue()).decode()
-        content = 'data:image/png;base64,' + imageData
-        outFileFull = outFile+'.png'
-      #clear figures for next extraction
-      plt.cla()
-      plt.clf()
-      if outFileFull is not None:
-        if self.cwd is not None and not extractorTest and saveToFile:
-          # write to file
-          appendix = ''
-          if os.path.exists(outFileFull):
-             #all files are by default locked in git-annex
-             #  - unlock them
-             #  - change them
-             #  - save locks them automatically
-            dataset.unlock(path=outFileFull)
-            appendix = '(was unlocked before)'
-          if outFileFull.endswith('svg'):
-            with open(outFileFull,'w', encoding="utf-8") as f:
-              figfile.seek(0)
-              shutil.copyfileobj(figfile, f)
-          else:
-            with open(outFileFull,'wb') as f:
-              figfile.seek(0)
-              shutil.copyfileobj(figfile, f)
-          dataset.save(path=outFileFull, message='Added document '+appendix)
-        document['image'] = content
-      else:
-        if imgType=='text':
-          document['content'] = content
-        else:
-          document={'-type':None, 'metaUser':None, 'metaVendor':None, 'shasum':None}
-    else:
-      document={'-type':None, 'metaUser':None, 'metaVendor':None, 'shasum':None}
-    #combine into document
-    doc.update(document)
-    if extractorTest:
-      print("Info: Measurement type ",document['-type'])
-    ##if 'comment' not in doc: doc['comment']=''
+      module  = importlib.import_module(pyFile[:-3])
+      content = module.use(absFilePath, doc)
+      #combine into document
+      doc.update(content)
     return
 
 

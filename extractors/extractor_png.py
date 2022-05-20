@@ -2,40 +2,45 @@
 """
 import base64
 from io import BytesIO
-from PIL import Image
 import numpy as np
+from PIL import Image
 
-def use(fileName, doc={}):
+def use(filePath, recipe=''):
   """
   Args:
-     fileName (string): full path file name
-     doc (dict): supplied to guide image creation doc['-type']
-
+     filePath (string): full path file name
+     recipe (string): supplied to guide recipes
+                      recipe is / separated hierarchical elements parent->child
   Returns:
-    list: image|content, [('png'|'jpg'|'svg'|'text'), type, metaVendor, metaUser]
+    dict: containing image, metaVendor, metaUser, recipe
   """
-  if 'type' not in doc or doc['type'] is None:
-    doc['type'] = []
-  # plain png
-  try:
-    image = Image.open(fileName)
-    metaVendor = image.info
-    maskBlackPixel = np.array(image)[:,:,0]<128
-    metaUser   = {'number black pixel', len(maskBlackPixel[maskBlackPixel]),
-                  'number all pixel', np.prod(image.size)}
+  # Extractor
+  image = Image.open(filePath)
+  metaVendor = image.info
+  if recipe.endswith('crop'):                   #: Crop 3/4 of the image
+    imgArr = np.array(image)[:,:,0]
+    newHeight = int(imgArr.shape[0]/2)
+    newWidth  = int(imgArr.shape[1]/2)
+    imgArr = imgArr[:newHeight, :newWidth]
+    recipe = 'image/png/crop'
+  else:                                         #: Default | uncropped
+    imgArr = np.array(image)[:,:,0]
+    recipe = 'image/png'
+  maskBlackPixel = imgArr<128
+  metaUser   = {'number black pixel', len(maskBlackPixel[maskBlackPixel]),
+                'number all pixel', np.prod(image.size)}
 
-    image = image.convert('P')
-    figfile = BytesIO()
-    image.save(figfile, format="PNG")
-    imageData = base64.b64encode(figfile.getvalue()).decode()
-    image = "data:image/png;base64," + imageData
-    return {'image':image, 'type':doc['type']+['image'],\
-            'metaVendor':metaVendor, 'metaUser':metaUser}
-  except:  #embed into try: except if multiple possibilities; makes debugging harder since there tracestack
-    pass
+  # convert PIL image to base64
+  imageData = Image.fromarray(imgArr).convert('P')
+  figfile = BytesIO()
+  imageData.save(figfile, format="PNG")
+  imageData = base64.b64encode(figfile.getvalue()).decode()
+  imageData = "data:image/png;base64," + imageData
 
-  #other datatypes follow here
+  # return everything
+  return {'image':imageData, 'recipe':recipe, 'metaVendor':metaVendor, 'metaUser':metaUser}
+
+  #other datatypes could follow here if statements are used
   #...
-
   #final return if nothing successful
   return {}
