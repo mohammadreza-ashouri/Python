@@ -636,12 +636,14 @@ class Pasta:
           - maxSize of image
           - saveToFile: save data to files
     """
-    import os, importlib, shutil
+    import os, importlib, shutil, urllib, tempfile
     import datalad.api as datalad
     exitAfterDataLad = kwargs.get('exitAfterDataLad',False)
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
-      absFilePath = filePath
+      absFilePath = tempfile.gettempdir()+os.sep+os.path.basename(filePath)
+      testfile = urllib.URLopener()
+      testfile.retrieve(filePath, absFilePath)
       projectDB = self.cwd.split(os.sep)[0]
       dataset = datalad.Dataset(self.basePath+projectDB)
     else:
