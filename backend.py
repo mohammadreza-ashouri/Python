@@ -642,8 +642,7 @@ class Pasta:
     extension = os.path.splitext(filePath)[1][1:]
     if '://' in filePath:
       absFilePath = tempfile.gettempdir()+os.sep+os.path.basename(filePath)
-      testfile = urllib.URLopener()
-      testfile.retrieve(filePath, absFilePath)
+      urllib.request.urlretrieve(filePath, absFilePath)
       projectDB = self.cwd.split(os.sep)[0]
       dataset = datalad.Dataset(self.basePath+projectDB)
     else:
