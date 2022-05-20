@@ -17,14 +17,15 @@ def use(filePath, recipe=''):
   # Extractor
   image = Image.open(filePath)
   metaVendor = image.info
+  imgArr = np.array(image)
+  if len(imgArr.shape)==3:
+    imgArr = imgArr[:,:,0]
   if recipe.endswith('crop'):                   #: Crop 3/4 of the image
-    imgArr = np.array(image)[:,:,0]
     newHeight = int(imgArr.shape[0]/2)
     newWidth  = int(imgArr.shape[1]/2)
     imgArr = imgArr[:newHeight, :newWidth]
     recipe = 'image/png/crop'
   else:                                         #: Default | uncropped
-    imgArr = np.array(image)[:,:,0]
     recipe = 'image/png'
   maskBlackPixel = imgArr<128
   metaUser   = {'number black pixel', len(maskBlackPixel[maskBlackPixel]),
