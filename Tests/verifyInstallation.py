@@ -16,7 +16,7 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ResourceWarning, module='PIL')
     warnings.filterwarnings('ignore', category=ImportWarning)
 
-    reply = input("Do you really want to continue: This will delete things! [y/N]")
+    reply = input("Do you really want to continue: This will delete things! [y/N] ")
     if reply != 'y':
       return
 
