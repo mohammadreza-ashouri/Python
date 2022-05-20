@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """TEST using the MINIMAL set of python-requirements and run after installation
-This test is skiped during checkAllVersions since it create one and only one link in the .pastaELN.json
+This test is HAS TO BE skiped during checkAllVersions since it resets everything
 """
 import os, shutil, traceback, logging, subprocess
 import warnings, json
@@ -16,9 +16,19 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', category=ResourceWarning, module='PIL')
     warnings.filterwarnings('ignore', category=ImportWarning)
 
+    reply = input("Do you really want to continue: This will delete things! [y/N]")
+    if reply != 'y':
+      return
+
+
+
     configName = 'research'
-    self.be = Pasta(configName, initViews=True, initConfig=False)
+    self.be = Pasta(configName, initConfig=False)
+    self.dirName = self.be.basePath
+    self.be.exit(deleteDB=True)
+    shutil.rmtree(self.dirName)
     os.makedirs(self.dirName)
+    self.be = Pasta(configName, initViews=True, initConfig=False)
 
     try:
       ### CREATE PROJECTS AND SHOW
