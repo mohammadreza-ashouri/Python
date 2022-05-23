@@ -12,7 +12,7 @@ from miscTools import upOut, getExtractorConfig, printQRcodeSticker, checkConfig
 from serverActions import passwordDecrypt
 
 argparser = argparse.ArgumentParser(usage='''
-pastaELN.py <command> [-i docID] [-c content] [-l labels] [-d database] [-p path]
+pastaELN.py <command> [-i docID] [-c content] [-l labels] [-d database]
 
 Possible commands are:
     help: help information
@@ -50,10 +50,6 @@ Possible commands are:
       example: pastaELN.py createDoc --content "{'-name':'Instruments','status':'passive','objective':'List of all instruments in IEK2','comment':'result of task force July 2020','docType':'project'}"
     newDB: add/update database configuration. item is e.g.
       '{"test":{"user":"Peter","password":"Parker",...}}'
-    extractorTest: test the extractor of this file
-      -p should be specified is the path to file (best: from base folder)
-      -c is optional: docType to test
-      example: pastaELN.py extractorTest -p sub.nii.gz -c 'measurement/gz/MRT_image/3D'
     extractorScan: get list of all extractors and save into .pastaELN.json
       example: pastaELN.py extractorScan
     decipher: decipher encrypted string
@@ -66,9 +62,8 @@ Possible commands are:
 ''')
 argparser.add_argument('command', help='see above...')
 argparser.add_argument('-i','--docID',   help='docID of project; always a long alpha-numeric code', default='')
-argparser.add_argument('-c','--content', help='content to save/store/extractorTest', default=None)
+argparser.add_argument('-c','--content', help='content to save/store', default=None)
 argparser.add_argument('-l','--label',   help='label used for printing', default='x0')
-argparser.add_argument('-p','--path',    help='path for extractor test', default='')
 argparser.add_argument('-d','--database',help='name of database configuration', default='') #required for be = Pasta(args.database)
 args = argparser.parse_args()
 
@@ -91,11 +86,12 @@ elif args.command=='up':
   print('up:',upOut(args.docID))
 
 elif args.command=='extractorScan':
-  pathToExtractors = os.path.dirname(os.path.abspath(__file__))+os.sep+'extractors'
+  pathToExtractors = os.path.dirname(os.path.abspath(__file__))+os.sep+'extractors' #TODO
   extractors = getExtractorConfig(pathToExtractors)
   extractors = [extractors[i]['plots'] for i in extractors if len(extractors[i]['plots'])>0 ] #remove empty entries
   extractors = [i for sublist in extractors for i in sublist]   #flatten list
   extractors = {'/'.join(i):j for (i,j) in extractors}
+  print('Found extractors',extractors)
   with open(os.path.expanduser('~')+'/.pastaELN.json','r') as f:
     configuration = json.load(f)
   configuration['extractors'] = extractors
@@ -220,27 +216,6 @@ else:
 
     elif args.command=='loadBackup':   #load from backup file.zip
       be.backup('restore')
-
-    elif args.command=='extractorTest':
-      if args.path and not args.docID:
-        path = args.path
-        if not os.path.exists(path):
-          path = os.path.relpath(curWorkingDirectory,be.basePath)+os.sep+path
-      elif args.docID and not args.path:
-        doc = dict(be.getDoc(args.docID))
-        path = doc['-branch'][0]['path']
-      else:
-        print("**ERROR pma04: something strange",args.path,args.docID)
-      if args.content is None:
-        doc = {'-type':['measurement']}
-      else:
-        doc = {'-type':args.content.split('/')}
-      be.useExtractors(path,"empty_md5sum",doc,extractorTest=True)
-      if len(doc['-type'])>1:
-        print("SUCCESS")
-      else:
-        print("**ERROR pma05: docType invalid after extractorTest")
-        success = False
 
     elif args.command=='redo':
       doc = dict(be.getDoc(args.docID))

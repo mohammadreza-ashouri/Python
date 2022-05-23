@@ -219,7 +219,7 @@ def getExtractorConfig(directory):
   import os
   configuration = {}
   for fileName in os.listdir(directory):
-    if fileName.endswith('.py') and fileName!='scanExtractors.py':
+    if fileName.endswith('.py') and fileName!='testExtractor.py':
       #start with file
       with open(directory+os.sep+fileName,'r') as fIn:
         lines = fIn.readlines()
@@ -234,12 +234,12 @@ def getExtractorConfig(directory):
             line = line.replace('"""','')
             header.append(line)
             continue
-          if "if doc['-type'][2:] == [" in line and "#:" in line:
+          if "if" in line and "#:" in line:
             specialType = line.split('== [')[1].split(']:')[0]
             specialType = [i.strip()[1:-1] for i in specialType.split(',')]
             extractors.append([ baseType+specialType, line.split('#:')[1].strip() ])
             ifInFile = True
-          elif "else:" in line and "#default:" in line:
+          elif "else:" in line and "#:" in line:
             extractors.append([ baseType+[specialType[0]], line.split('#default:')[1].strip() ])
           elif "return" in line and not ifInFile:
             try:
