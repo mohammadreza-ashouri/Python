@@ -36,7 +36,7 @@ class Database:
       if '-ontology-' in self.db:
         print('Info: remove old ontology')
         self.db['-ontology-'].delete()
-      with open(softwarePath+'ontology.json', 'r') as fIn:
+      with open(softwarePath+'ontology.json', 'r', encoding='utf-8') as fIn:
         doc = json.load(fIn)
       _ = self.db.create_document(doc)
     # check if default views exist and create them
@@ -428,24 +428,25 @@ class Database:
             collection[docType] = [date]
     #determine bins for histogram
     firstSubmit = datetime.now().timestamp()
-    for key in collection:
+    for key in collection.items():
       if np.min(collection[key]) < firstSubmit:
         firstSubmit = np.min(collection[key])
     bins = np.linspace(firstSubmit, datetime.now().timestamp(), 100 )
     #calculate histgram and save it
-    for key in collection:
+    collectionCopy = dict(collection)
+    for key in collection.items():
       hist, _ = np.histogram(collection[key], bins)
-      collection[key] = hist
-    collection['-bins-'] = (bins[:-1]+bins[1:])/2
+      collectionCopy[key] = hist
+    collectionCopy['-bins-'] = (bins[:-1]+bins[1:])/2
     #calculate score
-    bias = np.exp(( collection['-bins-']-collection['-bins-'][-1] ) / 1.e7)
+    bias = np.exp(( collectionCopy['-bins-']-collectionCopy['-bins-'][-1] ) / 1.e7)
     score = {}
-    for key in collection:
-      score[key] = np.sum(collection[key]*bias)
+    for key in collectionCopy.items():
+      score[key] = np.sum(collectionCopy[key]*bias)
     #reformat dates into string
-    collection['-bins-'] = [datetime.fromtimestamp(i).isoformat() for i in collection['-bins-']]
-    collection['-score-']= score
-    return collection
+    collectionCopy['-bins-'] = [datetime.fromtimestamp(i).isoformat() for i in collectionCopy['-bins-']]
+    collectionCopy['-score-']= score
+    return collectionCopy
 
 
   def checkDB(self, verbose=True, **kwargs):

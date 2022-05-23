@@ -33,7 +33,7 @@ def createDirName(name,docType,thisChildNumber):
   #steps, tasks
   if isinstance(thisChildNumber, str):
     thisChildNumber = int(thisChildNumber)
-  return ('{:03d}'.format(thisChildNumber))+'_'+cT.camelCase(name)
+  return (f'{:03d}'.format(thisChildNumber))+'_'+cT.camelCase(name)
 
 
 
@@ -71,10 +71,10 @@ def generic_hash(path, forceFile=False):
     with open(path, 'rb') as stream:
       shasum = blob_hash(stream, size)
   else:                     #Remote file
-    site = request.urlopen(path)
-    meta = site.headers
-    size = int(meta.get_all('Content-Length')[0])
-    shasum = blob_hash(site, size)
+    with request.urlopen(path) as site:
+      meta = site.headers
+      size = int(meta.get_all('Content-Length')[0])
+      shasum = blob_hash(site, size)
   return shasum
 
 
@@ -157,28 +157,6 @@ def blob_hash(stream, size):
   return hasher.hexdigest()
 
 
-def imageToString(url):
-  """
-  *DEPRECATED*
-  convert png file to b64-string
-  - not really used
-
-  future: test if jpeg and png strings are the same
-  do I need to save jpeg, png as marker in list ['png',64byte]
-  https://stackoverflow.com/questions/16065694/is-it-possible-to-create-encoded-base64-url-from-image-object
-
-  Args:
-      url (string): path to image
-
-  Returns:
-    string: image as string
-  """
-  import base64
-  encoded = base64.b64encode(open(url, 'rb').read())
-  aString = encoded.decode()
-  return aString
-
-
 def stringToImage(aString, show=True):
   """
   *DEPRECATED*
@@ -221,7 +199,7 @@ def getExtractorConfig(directory):
   for fileName in os.listdir(directory):
     if fileName.endswith('.py') and fileName!='testExtractor.py':
       #start with file
-      with open(directory+os.sep+fileName,'r') as fIn:
+      with open(directory+os.sep+fileName,'r', encoding='utf-8') as fIn:
         lines = fIn.readlines()
         extractors = []
         baseType = ['measurement', fileName.split('_')[1].split('.')[0]]
@@ -365,7 +343,7 @@ def checkConfiguration(conf=None, repair=False):
   from cloudant.client import CouchDB
   if conf is None:
     try:
-      fConf = open(os.path.expanduser('~')+'/.pastaELN.json','r')
+      fConf = open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8')
     except:
       return 'Verify configuration\n**ERROR mcc00: config file does not exist.\nFAILURE\n'
     conf = json.load(fConf)
@@ -418,7 +396,7 @@ def checkConfiguration(conf=None, repair=False):
       for key in illegalNames:
         del conf[key]
   if repair:
-    with open(os.path.expanduser('~')+'/.pastaELN.json','w') as f:
+    with open(os.path.expanduser('~')+'/.pastaELN.json','w', encoding='utf-8') as f:
       f.write(json.dumps(conf,indent=2))
   if output=='':
     output='Verify configuration\nSUCCESS\n'
@@ -435,15 +413,15 @@ def translateJS2PY():
   import re, io
   import js2py
   commonToolsHash = generic_hash('../ReactDOM/src/commonTools.js')
-  with open('./commonTools.py') as fIn:
+  with open('./commonTools.py', encoding='utf-8') as fIn:
     stortedHash     = fIn.readlines()[-1]
   stortedHash = stortedHash.split('HASH:')[1].strip()
   if commonToolsHash!=stortedHash:
-    jsString = open('./commonTools.js', "r").read()
+    jsString = open('./commonTools.js', "r", encoding='utf-8').read()
     jsString = re.sub(r"export.+;", "", jsString)
     jsFile = io.StringIO(jsString)
     js2py.translate_file(jsFile, 'commonTools.py')
-    with open('./commonTools.py','a') as fOut:
+    with open('./commonTools.py','a', encoding='utf-8') as fOut:
       fOut.write('\n# HASH: '+commonToolsHash)
     print('..success: translated commonTools.js->commonTools.py')
   return
@@ -473,7 +451,7 @@ def errorCodes(verbose=False):
   for fileName in os.listdir('.'):
     if not fileName.endswith('.py') or fileName in ignoreFiles:
       continue
-    content = open(fileName,'r').read().split('\n')
+    content = open(fileName,'r', encoding='utf-8').read().split('\n')
     errors = [' '+i.split('**ERROR')[1] for i in content if '**ERROR' in i and 'if' not in i]   #SKIP ME ErrorCode
     errors = [i for i in errors if '#SKIP ME ErrorCode' not in i]
     errors = [i.replace(")","").replace("\\n'",'').replace("+f'{bcolors.ENDC}","").replace(",'","") for i in errors]
@@ -491,10 +469,10 @@ def errorCodes(verbose=False):
     prints = [i.strip() for i in content if i.strip().startswith('print') and "**ERROR" not in i]  #SKIP ME ErrorCode
     if verbose:
       print('\n\n'+fileName+'\n  '+'\n  '.join(prints))
-  fOut = open('../Documents/errorCodes.md','w')
+  fOut = open('../Documents/errorCodes.md','w', encoding='utf-8')
   fOut.write(output)
   jsonString = json.dumps(knownErrcodes).replace('"',"'")
-  fOut = open('../ReactElectron/app/renderer/errorCodes.js','w')
+  fOut = open('../ReactElectron/app/renderer/errorCodes.js','w', encoding='utf-8')
   fOut.write('export const errorCodes =\n'+jsonString+'; // eslint-disable-line max-len')
   print('..success: assembled error-codes')
   return

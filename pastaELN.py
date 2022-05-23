@@ -72,10 +72,10 @@ if args.command=='newDB':
   #use new database configuration and store in local-config file
   newDB = json.loads(args.item)
   label = list(newDB.keys()).pop()
-  with open(os.path.expanduser('~')+'/.pastaELN.json','r') as f:
+  with open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8') as f:
     configuration = json.load(f)
   configuration[label] = newDB[label]
-  with open(os.path.expanduser('~')+'/.pastaELN.json','w') as f:
+  with open(os.path.expanduser('~')+'/.pastaELN.json','w', encoding='utf-8') as f:
     f.write(json.dumps(configuration, indent=2))
 
 elif args.command=='help':
@@ -92,10 +92,10 @@ elif args.command=='extractorScan':
   extractors = [i for sublist in extractors for i in sublist]   #flatten list
   extractors = {'/'.join(i):j for (i,j) in extractors}
   print('Found extractors',extractors)
-  with open(os.path.expanduser('~')+'/.pastaELN.json','r') as f:
+  with open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8') as f:
     configuration = json.load(f)
   configuration['extractors'] = extractors
-  with open(os.path.expanduser('~')+'/.pastaELN.json','w') as f:
+  with open(os.path.expanduser('~')+'/.pastaELN.json','w', encoding='utf-8') as f:
     f.write(json.dumps(configuration, indent=2))
   print('SUCCESS')
 
@@ -116,7 +116,7 @@ else:
   try:
     # open database
     curWorkingDirectory = os.path.abspath(os.path.curdir)
-    with open(os.path.expanduser('~')+'/.pastaELN.json','r') as f:
+    with open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8') as f:
       config = json.load(f)
     if args.database=='':
       args.database = config['default']
@@ -138,9 +138,9 @@ else:
         urls.append(config['links'][args.database]['remote']['url'])
       for url in urls:
         try:
-          contents = urllib.request.urlopen(url).read()
-          if json.loads(contents)['couchdb'] == 'Welcome':
-            print('CouchDB server',url,'is working: username and password test upcoming')
+          with urllib.request.urlopen(url).read() as contents:
+            if json.loads(contents)['couchdb'] == 'Welcome':
+              print('CouchDB server',url,'is working: username and password test upcoming')
         except:
           print('**ERROR pma01: CouchDB server not working |',url)
           if url=='http://127.0.0.1:5984':

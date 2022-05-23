@@ -34,9 +34,8 @@ class Pasta:
     # open configuration file
     self.debug = True
     self.confirm = confirm
-    confFile = open(os.path.expanduser('~')+'/.pastaELN.json','r')
-    configuration = json.load(confFile)
-    confFile.close()
+    with open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8') as confFile:
+      configuration = json.load(confFile)
     if configuration['version']!=1:
       print('**ERROR Configuration version does not fit')
       raise NameError
@@ -52,7 +51,7 @@ class Pasta:
           del links[link][site]['password']
           changed = True
       if changed:
-        with open(os.path.expanduser('~')+'/.pastaELN.json','w') as f:
+        with open(os.path.expanduser('~')+'/.pastaELN.json','w', encoding='utf-8') as f:
           f.write(json.dumps(configuration,indent=2))
     n,s      = upOut(links[linkDefault]['local']['cred'])[0].split(':')
     databaseName = links[linkDefault]['local']['database']
@@ -242,7 +241,7 @@ class Pasta:
                   if ignore=='dir':
                     projPath = self.basePath + path.split(os.sep)[0]
                     dirPath =  os.path.relpath(os.path.split(self.basePath+path)[0] , projPath)
-                    with open(projPath+os.sep+'.gitignore','a') as fOut:
+                    with open(projPath+os.sep+'.gitignore','a', encoding='utf-8') as fOut:
                       fOut.write(dirPath+os.sep+'\n')
                     if sys.platform=='win32':
                       win32api.SetFileAttributes(projPath+os.sep+'.gitignore',win32con.FILE_ATTRIBUTE_HIDDEN)
@@ -290,11 +289,11 @@ class Pasta:
           for fileI in self.vanillaGit:
             gitAttribute += fileI+' annex.largefiles=nothing\n'
           gitIgnore = '\n'.join(self.gitIgnore)
-          with open(path+os.sep+'.gitattributes','w') as fOut:
+          with open(path+os.sep+'.gitattributes','w', encoding='utf-8') as fOut:
             fOut.write(gitAttribute+'\n')
           if sys.platform=='win32':
             win32api.SetFileAttributes(path+os.sep+'.gitattributes',win32con.FILE_ATTRIBUTE_HIDDEN)
-          with open(path+os.sep+'.gitignore','w') as fOut:
+          with open(path+os.sep+'.gitignore','w', encoding='utf-8') as fOut:
             fOut.write(gitIgnore+'\n')
           if sys.platform=='win32':
             win32api.SetFileAttributes(path+os.sep+'.gitignore',win32con.FILE_ATTRIBUTE_HIDDEN)
@@ -310,7 +309,7 @@ class Pasta:
             win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_pastaELN.json',win32con.FILE_ATTRIBUTE_ARCHIVE)
         else:
           dataset.unlock(path=self.basePath+path+os.sep+'.id_pastaELN.json')
-      with open(self.basePath+path+os.sep+'.id_pastaELN.json','w') as f:  #local path, update in any case
+      with open(self.basePath+path+os.sep+'.id_pastaELN.json','w', encoding='utf-8') as f:  #local path, update in any case
         f.write(json.dumps(doc))
       if sys.platform=='win32':
         win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_pastaELN.json',win32con.FILE_ATTRIBUTE_HIDDEN)
@@ -416,7 +415,7 @@ class Pasta:
 
     # loop all entries and separate into moved,new,deleted
     print("Number of changed files:",len(shasumDict))
-    for shasum in shasumDict:
+    for shasum in shasumDict.items():
       origin, target = shasumDict[shasum]
       print("  File changed:",origin,target)
       # originDir, _ = os.path.split(self.cwd+origin)
@@ -695,7 +694,7 @@ class Pasta:
     """
     from miscTools import upOut
     remoteConf = dict(self.confLink['remote'])
-    if remoteConf=={}: #empty entry: fails
+    if not remoteConf: #empty entry: fails
       print("**ERROR brp01: You tried to replicate although, remote is not defined")
       return False
     remoteConf['user'], remoteConf['password'] = upOut(remoteConf['cred'])[0].split(':')
@@ -843,9 +842,9 @@ class Pasta:
         string: output incl. \n
     """
     outString = []
-    outString.append( '{0: <10}'.format('Tags') )
-    outString.append( '{0: <60}'.format('Name') )
-    outString.append( '{0: <10}'.format('ID') )
+    outString.append(f'{0: <10}'.format('Tags') )
+    outString.append(f'{0: <60}'.format('Name') )
+    outString.append(f'{0: <10}'.format('ID') )
     outString = '|'.join(outString)+'\n'
     outString += '-'*106+'\n'
     view = None
@@ -855,9 +854,9 @@ class Pasta:
       view = self.db.getView('viewIdentify/viewTags',preciseKey='#'+tag)
     for lineItem in view:
       rowString = []
-      rowString.append('{0: <10}'.format(lineItem['key']))
-      rowString.append('{0: <60}'.format(lineItem['value']))
-      rowString.append('{0: <10}'.format(lineItem['id']))
+      rowString.append(f'{0: <10}'.format(lineItem['key']))
+      rowString.append(f'{0: <60}'.format(lineItem['value']))
+      rowString.append(f'{0: <10}'.format(lineItem['id']))
       outString += '|'.join(rowString)+'\n'
     return outString
 
@@ -928,7 +927,7 @@ class Pasta:
     from commonTools import commonTools as cT
     from miscTools import createDirName
     # write backup
-    with open(tempfile.gettempdir()+os.sep+'tempSetEditString.txt','w') as fOut:
+    with open(tempfile.gettempdir()+os.sep+'tempSetEditString.txt','w', encoding='utf-8') as fOut:
       fOut.write(text)
     dlDataset = datalad.Dataset(self.basePath+self.cwd.split(os.sep)[0])
     # add the prefix to org-mode structure lines
@@ -1098,10 +1097,10 @@ class Pasta:
     Returns:
         string: output incl. \n
     """
-    outString = '{0: <36}|{1: <36}|{2: <36}'.format('QR', 'Name', 'ID')+'\n'
+    outString = f'{0: <36}|{1: <36}|{2: <36}'.format('QR', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
     for item in self.db.getView('viewIdentify/viewQR'):
-      outString += '{0: <36}|{1: <36}|{2: <36}'.format(item['key'][:36], item['value'][:36], item['id'][:36])+'\n'
+      outString += f'{0: <36}|{1: <36}|{2: <36}'.format(item['key'][:36], item['value'][:36], item['id'][:36])+'\n'
     return outString
 
 
@@ -1112,9 +1111,9 @@ class Pasta:
     Returns:
         string: output incl. \n
     """
-    outString = '{0: <32}|{1: <40}|{2: <25}'.format('SHAsum', 'Name', 'ID')+'\n'
+    outString = f'{0: <32}|{1: <40}|{2: <25}'.format('SHAsum', 'Name', 'ID')+'\n'
     outString += '-'*110+'\n'
     for item in self.db.getView('viewIdentify/viewSHAsum'):
       key = item['key'] if item['key'] else '-empty-'
-      outString += '{0: <32}|{1: <40}|{2: <25}'.format(key, item['value'][-40:], item['id'])+'\n'
+      outString += f'{0: <32}|{1: <40}|{2: <25}'.format(key, item['value'][-40:], item['id'])+'\n'
     return outString
