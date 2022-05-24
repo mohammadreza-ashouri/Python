@@ -2,6 +2,7 @@
 """
 Misc methods and diffinitions for json, colors
 """
+import sys
 
 class bcolors:
   """
@@ -409,7 +410,7 @@ def translateJS2PY():
   """
   import re, io
   import js2py
-  commonToolsHash = generic_hash('../ReactDOM/src/commonTools.js')
+  commonToolsHash = generic_hash('../DOM/src/commonTools.js')
   with open('./commonTools.py', encoding='utf-8') as fIn:
     stortedHash     = fIn.readlines()[-1]
   stortedHash = stortedHash.split('HASH:')[1].strip()
@@ -448,7 +449,8 @@ def errorCodes(verbose=False):
   for fileName in os.listdir('.'):
     if not fileName.endswith('.py') or fileName in ignoreFiles:
       continue
-    with open(fileName,'r', encoding='utf-8').read().split('\n') as content:
+    with open(fileName,'r', encoding='utf-8') as fIn:
+      content = fIn.read().split('\n')
       errors = [' '+i.split('**ERROR')[1] for i in content if '**ERROR' in i and 'if' not in i]   #SKIP ME ErrorCode
       errors = [i for i in errors if '#SKIP ME ErrorCode' not in i]
       errors = [i.replace(")","").replace("\\n'",'').replace("+f'{bcolors.ENDC}","").replace(",'","") for i in errors]
@@ -466,10 +468,10 @@ def errorCodes(verbose=False):
     prints = [i.strip() for i in content if i.strip().startswith('print') and "**ERROR" not in i]  #SKIP ME ErrorCode
     if verbose:
       print('\n\n'+fileName+'\n  '+'\n  '.join(prints))
-  with open('../Documents/errorCodes.md','w', encoding='utf-8') as fOut:
+  with open('../Documentation/errorCodes.md','w', encoding='utf-8') as fOut:
     fOut.write(output)
   jsonString = json.dumps(knownErrcodes).replace('"',"'")
-  with open('../ReactElectron/app/renderer/errorCodes.js','w', encoding='utf-8') as fOut:
+  with open('../Electron/app/renderer/errorCodes.js','w', encoding='utf-8') as fOut:
     fOut.write('export const errorCodes =\n'+jsonString+'; // eslint-disable-line max-len')
   print('..success: assembled error-codes')
   return

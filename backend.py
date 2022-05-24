@@ -415,8 +415,7 @@ class Pasta:
 
     # loop all entries and separate into moved,new,deleted
     print("Number of changed files:",len(shasumDict))
-    for shasum in shasumDict.items():
-      origin, target = shasumDict[shasum]
+    for _, (origin, target) in shasumDict.items():
       print("  File changed:",origin,target)
       # originDir, _ = os.path.split(self.cwd+origin)
       targetDir, _ = os.path.split(self.cwd+target)
@@ -1097,10 +1096,10 @@ class Pasta:
     Returns:
         string: output incl. \n
     """
-    outString = f'{0: <36}|{1: <36}|{2: <36}'.format('QR', 'Name', 'ID')+'\n'
+    outString = f"{'QR': <36}|{'Name': <36}|{'ID': <36}\n"
     outString += '-'*110+'\n'
     for item in self.db.getView('viewIdentify/viewQR'):
-      outString += f'{0: <36}|{1: <36}|{2: <36}'.format(item['key'][:36], item['value'][:36], item['id'][:36])+'\n'
+      outString += f"{item['key'][:36]: <36}|{item['value'][:36]: <36}|{item['id'][:36]: <36}\n"
     return outString
 
 

@@ -5,12 +5,13 @@ from io import BytesIO
 import numpy as np
 from PIL import Image
 
-def use(filePath, recipe=''):
+def use(filePath, recipe='', saveFileName=None):
   """
   Args:
      filePath (string): full path file name
      recipe (string): supplied to guide recipes
                       recipe is / separated hierarchical elements parent->child
+    safeFileName (string): if given, save the image to this file-name
   Returns:
     dict: containing image, metaVendor, metaUser, recipe
   """
@@ -31,6 +32,10 @@ def use(filePath, recipe=''):
   metaUser   = {'number black pixel', len(maskBlackPixel[maskBlackPixel]),
                 'number all pixel', np.prod(image.size)}
 
+  #save to file
+  if saveFileName is not None:
+    plt.savefig(saveFileName, dpi=150, bbox_inches='tight')
+
   # convert PIL image to base64
   imageData = Image.fromarray(imgArr).convert('P')
   figfile = BytesIO()
@@ -44,4 +49,4 @@ def use(filePath, recipe=''):
   #other datatypes could follow here if statements are used
   #...
   #final return if nothing successful
-  return {}
+  #return {}
