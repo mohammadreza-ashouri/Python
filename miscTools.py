@@ -33,7 +33,7 @@ def createDirName(name,docType,thisChildNumber):
   #steps, tasks
   if isinstance(thisChildNumber, str):
     thisChildNumber = int(thisChildNumber)
-  return (f'{:03d}'.format(thisChildNumber))+'_'+cT.camelCase(name)
+  return f'{thisChildNumber:03d}'+'_'+cT.camelCase(name)
 
 
 
