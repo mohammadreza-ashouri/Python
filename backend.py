@@ -661,6 +661,7 @@ class Pasta:
       content = module.use(absFilePath, '/'.join(doc['-type']) )
       #combine into document
       doc.update(content)
+      doc['shasum']    = shasum
     return
 
 

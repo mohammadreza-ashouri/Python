@@ -138,7 +138,8 @@ else:
         urls.append(config['links'][args.database]['remote']['url'])
       for url in urls:
         try:
-          with urllib.request.urlopen(url).read() as contents:
+          with urllib.request.urlopen(url) as package:
+            contents = package.read()
             if json.loads(contents)['couchdb'] == 'Welcome':
               print('CouchDB server',url,'is working: username and password test upcoming')
         except:

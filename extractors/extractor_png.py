@@ -8,10 +8,11 @@ from PIL import Image
 def use(filePath, recipe='', saveFileName=None):
   """
   Args:
-     filePath (string): full path file name
-     recipe (string): supplied to guide recipes
-                      recipe is / separated hierarchical elements parent->child
-    safeFileName (string): if given, save the image to this file-name
+    filePath (string): full path file name
+    recipe (string): supplied to guide recipes
+                     recipe is / separated hierarchical elements parent->child
+    saveFileName (string): if given, save the image to this file-name
+
   Returns:
     dict: containing image, metaVendor, metaUser, recipe
   """
@@ -33,11 +34,11 @@ def use(filePath, recipe='', saveFileName=None):
                 'number all pixel', np.prod(image.size)}
 
   #save to file
+  imageData = Image.fromarray(imgArr).convert('P')
   if saveFileName is not None:
-    plt.savefig(saveFileName, dpi=150, bbox_inches='tight')
+    imageData.save(saveFileName)
 
   # convert PIL image to base64
-  imageData = Image.fromarray(imgArr).convert('P')
   figfile = BytesIO()
   imageData.save(figfile, format="PNG")
   imageData = base64.b64encode(figfile.getvalue()).decode()
