@@ -122,7 +122,7 @@ def symlink_hash(path):
   from hashlib import sha1
   hasher = sha1()
   data = os.readlink(path).encode('utf8', 'surrogateescape')
-  hasher.update(('blob %u\0' % len(data)).encode('ascii'))
+  hasher.update('blob {len(data)}\0'.encode('ascii'))
   hasher.update(data)
   return hasher.hexdigest()
 
@@ -144,16 +144,16 @@ def blob_hash(stream, size):
   """
   from hashlib import sha1
   hasher = sha1()
-  hasher.update(('blob %u\0' % size).encode('ascii'))
-  nread = 0
+  hasher.update(f'blob {size}\0'.encode('ascii'))
+  nRead = 0
   while True:
     data = stream.read(65536)     # read 64K at a time for storage requirements
     if data == b'':
       break
-    nread += len(data)
+    nRead += len(data)
     hasher.update(data)
-  if nread != size:
-    raise ValueError('%s: expected %u bytes, found %u bytes' % (stream.name, size, nread))
+  if nRead != size:
+    raise ValueError(f'{stream.name}: expected {size} bytes, found {nRead} bytes')
   return hasher.hexdigest()
 
 
@@ -342,11 +342,8 @@ def checkConfiguration(conf=None, repair=False):
   import os, json
   from cloudant.client import CouchDB
   if conf is None:
-    try:
-      fConf = open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8')
-    except:
-      return 'Verify configuration\n**ERROR mcc00: config file does not exist.\nFAILURE\n'
-    conf = json.load(fConf)
+    with open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8') as fConf:
+      conf = json.load(fConf)
   output = ''
 
   illegalNames = [key for key in conf if key.startswith('-')]
@@ -417,9 +414,9 @@ def translateJS2PY():
     stortedHash     = fIn.readlines()[-1]
   stortedHash = stortedHash.split('HASH:')[1].strip()
   if commonToolsHash!=stortedHash:
-    jsString = open('./commonTools.js', "r", encoding='utf-8').read()
-    jsString = re.sub(r"export.+;", "", jsString)
-    jsFile = io.StringIO(jsString)
+    with open('./commonTools.js', "r", encoding='utf-8').read() as jsString:
+      jsString = re.sub(r"export.+;", "", jsString)
+      jsFile = io.StringIO(jsString)
     js2py.translate_file(jsFile, 'commonTools.py')
     with open('./commonTools.py','a', encoding='utf-8') as fOut:
       fOut.write('\n# HASH: '+commonToolsHash)
@@ -451,10 +448,10 @@ def errorCodes(verbose=False):
   for fileName in os.listdir('.'):
     if not fileName.endswith('.py') or fileName in ignoreFiles:
       continue
-    content = open(fileName,'r', encoding='utf-8').read().split('\n')
-    errors = [' '+i.split('**ERROR')[1] for i in content if '**ERROR' in i and 'if' not in i]   #SKIP ME ErrorCode
-    errors = [i for i in errors if '#SKIP ME ErrorCode' not in i]
-    errors = [i.replace(")","").replace("\\n'",'').replace("+f'{bcolors.ENDC}","").replace(",'","") for i in errors]
+    with open(fileName,'r', encoding='utf-8').read().split('\n') as content:
+      errors = [' '+i.split('**ERROR')[1] for i in content if '**ERROR' in i and 'if' not in i]   #SKIP ME ErrorCode
+      errors = [i for i in errors if '#SKIP ME ErrorCode' not in i]
+      errors = [i.replace(")","").replace("\\n'",'').replace("+f'{bcolors.ENDC}","").replace(",'","") for i in errors]
     errorsNew = []
     for err in errors:
       result = re.match(r"^[\w]{3}[\d]{2}\w*:",err.strip())
@@ -469,11 +466,11 @@ def errorCodes(verbose=False):
     prints = [i.strip() for i in content if i.strip().startswith('print') and "**ERROR" not in i]  #SKIP ME ErrorCode
     if verbose:
       print('\n\n'+fileName+'\n  '+'\n  '.join(prints))
-  fOut = open('../Documents/errorCodes.md','w', encoding='utf-8')
-  fOut.write(output)
+  with open('../Documents/errorCodes.md','w', encoding='utf-8') as fOut:
+    fOut.write(output)
   jsonString = json.dumps(knownErrcodes).replace('"',"'")
-  fOut = open('../ReactElectron/app/renderer/errorCodes.js','w', encoding='utf-8')
-  fOut.write('export const errorCodes =\n'+jsonString+'; // eslint-disable-line max-len')
+  with open('../ReactElectron/app/renderer/errorCodes.js','w', encoding='utf-8') as fOut:
+    fOut.write('export const errorCodes =\n'+jsonString+'; // eslint-disable-line max-len')
   print('..success: assembled error-codes')
   return
 
