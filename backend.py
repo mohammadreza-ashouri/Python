@@ -662,6 +662,11 @@ class Pasta:
       #combine into document
       doc.update(content)
       doc['shasum']    = shasum
+      if doc['recipe'].startswith('/'.join(doc['-type'])):
+        doc['-type']      = doc['recipe'].split('/')
+      else:
+        doc['-type']     += doc['recipe'].split('/')
+      del doc['recipe']
     return
 
 

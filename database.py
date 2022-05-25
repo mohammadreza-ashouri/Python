@@ -514,33 +514,33 @@ class Database:
         #   continue
         ## output size of document
         # print('Name: {0: <16.16}'.format(doc['-name']),'| id:',doc['_id'],'| len:',len(json.dumps(doc)))
-        if repair:
-          # print("before",doc.keys(),doc['_id'])
-          # if doc['_id']== "x-028456be353dd7b5092c48841d6dfec8":
-          #   print('found')
-          for item in ['branch','curated','user','type','client','date']:
-            if '-'+item not in doc and item in doc:
-              if item in ('branch', 'type'):
-                doc['-'+item] = doc[item].copy()
-              else:
-                doc['-'+item] = doc[item]
-              del doc[item]
-          #print(doc.keys())
-          if not '-type' in doc:
-            doc['-type'] =[]
-          if doc['-type'] == ["text","project"]:
-            doc['-type'] = ["x0"]
-          if doc['-type'] == ["text","step"]:
-            doc['-type'] = ["x1"]
-          if doc['-type'] == ["text","task"]:
-            doc['-type'] = ["x2"]
+        # if repair:
+        #   # print("before",doc.keys(),doc['_id'])
+        #   # if doc['_id']== "x-028456be353dd7b5092c48841d6dfec8":
+        #   #   print('found')
+        #   for item in ['branch','curated','user','type','client','date']:
+        #     if '-'+item not in doc and item in doc:
+        #       if item in ('branch', 'type'):
+        #         doc['-'+item] = doc[item].copy()
+        #       else:
+        #         doc['-'+item] = doc[item]
+        #       del doc[item]
+        #   #print(doc.keys())
+        #   if not '-type' in doc:
+        #     doc['-type'] =[]
+        #   if doc['-type'] == ["text","project"]:
+        #     doc['-type'] = ["x0"]
+        #   if doc['-type'] == ["text","step"]:
+        #     doc['-type'] = ["x1"]
+        #   if doc['-type'] == ["text","task"]:
+        #     doc['-type'] = ["x2"]
 
-          # #due to steffen's fuck up
-          # if doc['-type'] == [] and doc['-branch'][0]['path']:
-          #   if len(doc['-branch'][0]['stack']) == len(doc['-branch'][0]['path'].split('/'))-1 :
-          #     doc['-type'] = ["x"+str(len(doc['-branch'][0]['stack'])) ]
-          doc.save()
-          # print("after ",doc.keys(),doc['_id'])
+        #   # #due to steffen's fuck up
+        #   # if doc['-type'] == [] and doc['-branch'][0]['path']:
+        #   #   if len(doc['-branch'][0]['stack']) == len(doc['-branch'][0]['path'].split('/'))-1 :
+        #   #     doc['-type'] = ["x"+str(len(doc['-branch'][0]['stack'])) ]
+        #   doc.save()
+        #   # print("after ",doc.keys(),doc['_id'])
 
 
         #branch test
@@ -600,7 +600,11 @@ class Database:
 
         #every doc should have a name
         if not '-name' in doc:
-          outstring+= f'{bcolors.FAIL}**ERROR dch17: name not in '+doc['_id']+f'{bcolors.ENDC}\n'
+          outstring+= f'{bcolors.FAIL}**ERROR dch17: -name not in '+doc['_id']+f'{bcolors.ENDC}\n'
+          if repair and 'name' in doc:  #repair from v0.9.9->1.0.0
+            doc['-name']=doc['name']
+            doc.save()
+
 
         #doc-type specific tests
         if '-type' in doc and doc['-type'][0] == 'sample':
