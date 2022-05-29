@@ -667,6 +667,14 @@ class Pasta:
       else:
         doc['-type']     += doc['recipe'].split('/')
       del doc['recipe']
+    # FOR EXTRACTOR DEBUGGING
+    # import json
+    # for item in doc:
+    #   try:
+    #     _ = json.dumps(doc[item])
+    #   except:
+    #     print('**ERROR json dumping', item, doc[item])
+    # #also make sure that no int64 but normal int
     return
 
 

@@ -214,12 +214,12 @@ def getExtractorConfig(directory):
             header.append(line)
             continue
           if "if" in line and "#:" in line:
-            specialType = line.split('== [')[1].split(']:')[0]
-            specialType = [i.strip()[1:-1] for i in specialType.split(',')]
+            specialType = line.split("endswith('")[1].split("')")[0]
+            specialType = [i for i in specialType.split('/')]
             extractors.append([ baseType+specialType, line.split('#:')[1].strip() ])
             ifInFile = True
           elif "else:" in line and "#:" in line:
-            extractors.append([ baseType+[specialType[0]], line.split('#default:')[1].strip() ])
+            extractors.append([ baseType, line.split('#:')[1].strip() ])
           elif "return" in line and not ifInFile:
             try:
               specialType = line.split("+['")[1].split("']")[0]

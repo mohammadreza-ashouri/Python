@@ -13,3 +13,4 @@ __pycache__/
 HelpfulScripts/
 Depricated/
 Tests/verify*org
+testExtractor.py

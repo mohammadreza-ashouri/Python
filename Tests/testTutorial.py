@@ -83,6 +83,7 @@ class TestStringMethods(unittest.TestCase):
       ### USE GLOBAL FILES
       print('*** USE GLOBAL FILES ***')
       self.be.changeHierarchy(semStepID)
+      self.be.addData('measurement', {'-name': 'https://developers.google.com/search/mobile-sites/imgs/mobile-seo/separate-urls.png', 'comment':'remote image from google. Used for testing and reference. Can be deleted.'})
       self.be.addData('measurement', {'-name': 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Misc_pollen.jpg'})
       print(self.be.output('measurement'))
       # self.assertTrue(os.path.exists(semDirName+'Misc_pollen_pasta.jpg'),'Wikipedia PASTA not created')

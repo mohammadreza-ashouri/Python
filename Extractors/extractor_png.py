@@ -30,8 +30,8 @@ def use(filePath, recipe='', saveFileName=None):
   else:                                         #: Default | uncropped
     recipe = 'image/png'
   maskBlackPixel = imgArr<128
-  metaUser   = {'number black pixel', len(maskBlackPixel[maskBlackPixel]),
-                'number all pixel', np.prod(image.size)}
+  metaUser   = {'number black pixel': len(maskBlackPixel[maskBlackPixel]),
+                'number all pixel': int(np.prod(image.size)) }
 
   #save to file
   imageData = Image.fromarray(imgArr).convert('P')
