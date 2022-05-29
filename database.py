@@ -156,7 +156,11 @@ class Database:
       del doc['-branch']['op']  #remove operation, saveDoc creates and therefore always the same
       doc['-branch'] = [doc['-branch']]
     if self.confirm is None or self.confirm(doc,"Create this document?"):
-      res = self.db.create_document(doc)
+      try:
+        res = self.db.create_document(doc)
+      except:
+        print('**ERROR: database.py:saveDoc could not save, likely JSON issue')
+        print(doc)
     else:
       res = doc
     return res
