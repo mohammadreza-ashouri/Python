@@ -161,6 +161,7 @@ class Database:
       except:
         print('**ERROR: database.py:saveDoc could not save, likely JSON issue')
         print(doc)
+        res=None
     else:
       res = doc
     return res
