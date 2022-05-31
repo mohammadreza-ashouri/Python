@@ -42,18 +42,7 @@ class Pasta:
     if linkDefault is None:
       linkDefault = configuration['default']
     links = configuration['links']
-    changed = False
-    if kwargs.get('initConfig', True):
-      for link,site in [(i,j) for i in links.keys() for j in ['local','remote']]:
-        if 'user' in links[link][site] and 'password' in links[link][site]:
-          links[link][site]['cred'] = upIn(links[link][site]['user']+':'+links[link][site]['password'])
-          del links[link][site]['user']
-          del links[link][site]['password']
-          changed = True
-      if changed:
-        with open(os.path.expanduser('~')+'/.pastaELN.json','w', encoding='utf-8') as f:
-          f.write(json.dumps(configuration,indent=2))
-    n,s      = upOut(links[linkDefault]['local']['cred'])[0].split(':')
+    n,s      = links[linkDefault]['local']['user'], links[linkDefault]['local']['password']
     databaseName = links[linkDefault]['local']['database']
     self.confLinkName= linkDefault
     self.confLink    = links[linkDefault]
