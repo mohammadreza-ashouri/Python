@@ -8,7 +8,7 @@ import os, json, sys, subprocess
 import argparse, traceback
 import urllib.request
 from backend import Pasta
-from miscTools import upOut, getExtractorConfig, printQRcodeSticker, checkConfiguration
+from miscTools import upOut, upIn, getExtractorConfig, printQRcodeSticker, checkConfiguration
 from serverActions import passwordDecrypt
 
 argparser = argparse.ArgumentParser(usage='''
@@ -84,6 +84,23 @@ elif args.command=='help':
 
 elif args.command=='up':
   print('up:',upOut(args.docID))
+
+elif args.command=='scramble':
+  with open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8') as f:
+    configuration = json.load(f)
+  configBackup  = dict(configuration)
+  changed = False
+  for link,site in [(i,j) for i in links.keys() for j in ['local','remote']]:
+    if 'user' in links[link][site] and 'password' in links[link][site]:
+      links[link][site]['cred'] = upIn(links[link][site]['user']+':'+links[link][site]['password'])
+      del links[link][site]['user']
+      del links[link][site]['password']
+      changed = True
+  if changed:
+    with open(os.path.expanduser('~')+'/.pastaELN_BAK.json','w', encoding='utf-8') as f:
+      f.write(json.dumps(configBackup,indent=2))
+    with open(os.path.expanduser('~')+'/.pastaELN.json','w', encoding='utf-8') as f:
+      f.write(json.dumps(configuration,indent=2))
 
 elif args.command=='extractorScan':
   with open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8') as f:

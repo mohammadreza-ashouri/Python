@@ -16,7 +16,6 @@ class Pasta:
         confirm (function): confirm changes to database and file-tree
         kwargs (dict): additional parameters
           - initViews (bool): initialize views at startup
-          - initConfig (bool): skip initialization of .pastaELN.json configuration file
           - resetOntology (bool): reset ontology on database from one on file
     """
     import os, json, sys
@@ -42,7 +41,10 @@ class Pasta:
     if linkDefault is None:
       linkDefault = configuration['default']
     links = configuration['links']
-    n,s      = links[linkDefault]['local']['user'], links[linkDefault]['local']['password']
+    if 'user' in links[linkDefault]['local']:
+      n,s = links[linkDefault]['local']['user'], links[linkDefault]['local']['password']
+    else:
+      n,s = upOut(links[linkDefault]['local']['cred'])[0].split(':')
     databaseName = links[linkDefault]['local']['database']
     self.confLinkName= linkDefault
     self.confLink    = links[linkDefault]
