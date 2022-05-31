@@ -86,7 +86,11 @@ elif args.command=='up':
   print('up:',upOut(args.docID))
 
 elif args.command=='extractorScan':
-  pathToExtractors = os.path.dirname(os.path.abspath(__file__))+os.sep+'extractors' #TODO
+  with open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8') as f:
+    configuration = json.load(f)
+    pathToExtractors = os.path.dirname(os.path.abspath(__file__))+os.sep+'extractors' \
+      if 'extractorDir' not in configuration \
+      else configuration['extractorDir']
   extractors = getExtractorConfig(pathToExtractors)
   extractors = [extractors[i]['plots'] for i in extractors if len(extractors[i]['plots'])>0 ] #remove empty entries
   extractors = [i for sublist in extractors for i in sublist]   #flatten list

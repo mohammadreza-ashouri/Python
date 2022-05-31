@@ -667,6 +667,8 @@ class Pasta:
       else:
         doc['-type']     += doc['recipe'].split('/')
       del doc['recipe']
+    else:
+      print('  No extractor found')
     # FOR EXTRACTOR DEBUGGING
     # import json
     # for item in doc:
