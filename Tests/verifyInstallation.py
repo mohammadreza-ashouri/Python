@@ -6,12 +6,12 @@ import os, sys, shutil, traceback, logging, subprocess
 import warnings, json
 import unittest
 from backend import Pasta
-print(os.path.abspath(os.curdir))
-print(os.sep.join( os.path.abspath(os.curdir).split(os.sep)[:-1]) )
-sys.path.append(os.sep.join( os.path.abspath(os.curdir).split(os.sep)[:-1]))
 
 class TestStringMethods(unittest.TestCase):
   def test_main(self):
+    print(os.path.abspath(os.curdir))
+    print(os.sep.join( os.path.abspath(os.curdir).split(os.sep)[:-1]) )
+    sys.path.append(os.sep.join( os.path.abspath(os.curdir).split(os.sep)[:-1]))
     ### MAIN ###
     # initialization: create database, destroy on filesystem and database and then create new one
     warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
