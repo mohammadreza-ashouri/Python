@@ -2,7 +2,7 @@
 """TEST using the MINIMAL set of python-requirements and run after installation
 This test is HAS TO BE skiped during checkAllVersions since it resets everything
 """
-import os, shutil, traceback, logging, subprocess
+import os, sys, shutil, traceback, logging, subprocess
 import warnings, json
 import unittest
 sys.path.append('..')
