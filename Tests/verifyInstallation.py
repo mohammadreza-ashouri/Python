@@ -5,8 +5,10 @@ This test is HAS TO BE skiped during checkAllVersions since it resets everything
 import os, sys, shutil, traceback, logging, subprocess
 import warnings, json
 import unittest
-sys.path.append('..')
 from backend import Pasta
+print(os.path.abspath(os.curdir))
+print(os.sep.join( os.path.abspath(os.curdir).split(os.sep)[:-1]) )
+sys.path.append(os.sep.join( os.path.abspath(os.curdir).split(os.sep)[:-1]))
 
 class TestStringMethods(unittest.TestCase):
   def test_main(self):
