@@ -8,9 +8,7 @@ import unittest
 
 class TestStringMethods(unittest.TestCase):
   def test_main(self):
-    print(os.path.abspath(os.curdir))
-    print(os.sep.join( os.path.abspath(os.curdir).split(os.sep)[:-1]) )
-    sys.path.append(os.sep.join( os.path.abspath(os.curdir).split(os.sep)[:-1]))
+    sys.path.append(os.path.abspath(os.curdir))
     from backend import Pasta
     ### MAIN ###
     # initialization: create database, destroy on filesystem and database and then create new one
