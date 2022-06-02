@@ -5,7 +5,7 @@ This test is HAS TO BE skiped during checkAllVersions since it resets everything
 import os, shutil, traceback, logging, subprocess
 import warnings, json
 import unittest
-from backend import Pasta
+from ../backend import Pasta
 
 class TestStringMethods(unittest.TestCase):
   def test_main(self):
