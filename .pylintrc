@@ -146,7 +146,7 @@ disable=print-statement,
         unused-import,
         dangerous-default-value,
         missing-raises-doc,
-        no-else-return
+        R1705, #no-else-return
 
 #Reasons:
 # looks better: len-as-condition, multiple-statements, bad-whitespace, multiple-imports
