@@ -9,7 +9,6 @@ import argparse, traceback
 import urllib.request
 from backend import Pasta
 from miscTools import upOut, upIn, getExtractorConfig, printQRcodeSticker, checkConfiguration
-from serverActions import passwordDecrypt
 
 argparser = argparse.ArgumentParser(usage='''
 pastaELN.py <command> [-i docID] [-c content] [-l labels] [-d database]
@@ -129,6 +128,7 @@ elif args.command.startswith('verifyConfiguration'):
     success = False
 
 elif args.command=='decipher':
+  from serverActions import passwordDecrypt
   print(passwordDecrypt(args.content).decode())
   print('SUCCESS')
 
