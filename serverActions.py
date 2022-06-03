@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 """Commandline utility to admin the remote server"""
 import sys, json, secrets
+from base64 import urlsafe_b64encode as b64e, urlsafe_b64decode as b64d
 import requests
 import keyring as cred
 from PIL import Image, ImageDraw, ImageFont
 
-from base64 import urlsafe_b64encode as b64e, urlsafe_b64decode as b64d
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -33,8 +33,8 @@ def passwordDecrypt(token: bytes) -> bytes:
   decrypt with pasword
   """
   decoded = b64d(token)
-  salt, iter, token = decoded[:16], decoded[16:20], b64e(decoded[20:])
-  iterations = int.from_bytes(iter, 'big')
+  salt, iterNum, token = decoded[:16], decoded[16:20], b64e(decoded[20:])
+  iterations = int.from_bytes(iterNum, 'big')
   key = _derive_key('pastaDB_2022'.encode(), salt, iterations)
   return Fernet(key).decrypt(token)
 
@@ -119,11 +119,14 @@ def listUsers(url, auth, verbose=True):
     url (string): url incl. http and port
     auth (object): HTTPBasicAuth object
     verbose (bool): verbose output
+
+  Returns:
+    dict: user information
   '''
   resp = requests.get(url+'/_users/_all_docs', headers=headers, auth=auth)
   if not resp.ok:
     print("**ERROR: get not successful",resp.reason)
-    return
+    return {}
   if verbose:
     print("List of users:")
   results = {}
@@ -148,7 +151,7 @@ def listUsers(url, auth, verbose=True):
         print('  -> DOES NOT correspond to id-name convention:',respI['name'])
       print('  Orcid',respI['orcid'])
   if verbose:
-    return None
+    return {}
   return results
 
 
@@ -160,11 +163,14 @@ def listDB(url, auth, verbose):
     url (string): url incl. http and port
     auth (object): HTTPBasicAuth object
     verbose (bool): verbose output
+
+  Returns:
+    dict: database information
   '''
   resp = requests.get(url+'/_all_dbs', headers=headers, auth=auth)
   if not resp.ok:
     print("**ERROR: get not successful",resp.reason)
-    return
+    return {}
   if verbose:
     print("List of databases:")
   results = {}
@@ -197,7 +203,7 @@ def listDB(url, auth, verbose):
       else:
         print('  -> **ERROR** authentication',respI)
   if verbose:
-    return None
+    return {}
   return results
 
 
