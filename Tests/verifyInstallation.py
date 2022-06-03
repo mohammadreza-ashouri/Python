@@ -5,7 +5,6 @@ This test is HAS TO BE skiped during checkAllVersions since it resets everything
 import os, sys, shutil, traceback, logging, subprocess
 import warnings, json
 import unittest
-from backend import Pasta
 
 class TestStringMethods(unittest.TestCase):
   """
@@ -25,6 +24,9 @@ class TestStringMethods(unittest.TestCase):
     warnings.filterwarnings('ignore', message='invalid escape sequence')
     warnings.filterwarnings('ignore', category=ResourceWarning, module='PIL')
     warnings.filterwarnings('ignore', category=ImportWarning)
+
+    sys.path.append(os.path.abspath(os.curdir))  #for github action
+    from backend import Pasta
 
     configName = 'research'
     self.be = Pasta(configName, initConfig=False)
