@@ -205,7 +205,7 @@ class TestStringMethods(unittest.TestCase):
       # self.be.replicateDB(configName,True)
       print('\n*** DONE WITH VERIFY ***')
       self.backup()
-      with open(self.be.softwarePath+'/pasta.log','r') as fIn:
+      with open(self.be.softwarePath+'/pasta.log','r', encoding='utf-8') as fIn:
         text = fIn.read()
         self.assertFalse(text.count('**WARNING')==7,'WARNING string !=7 in log-file')
         self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
@@ -248,7 +248,7 @@ class TestStringMethods(unittest.TestCase):
     old method for testing and plotting things on the screen. Over time much of the functionality has been moved to checkDB
     use diff-file to compare hierarchies, directory tree
     """
-    with open(self.be.softwarePath+'/Tests/verify'+str(number)+'.org','w') as f:
+    with open(self.be.softwarePath+'/Tests/verify'+str(number)+'.org','w', encoding='utf-8') as f:
       f.write(text)
       f.write('++STATE: '+self.be.cwd+' '+str(self.be.hierStack)+'\n')
       f.write(self.be.outputHierarchy(onlyHierarchy,True,'all'))

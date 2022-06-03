@@ -62,7 +62,7 @@ class TestStringMethods(unittest.TestCase):
       print('\n*** TEST PROCEDURES ***')
       sopDir = self.dirName+os.sep+'StandardOperatingProcedures'
       os.makedirs(sopDir)
-      with open(sopDir+os.sep+'Example_SOP.md','w') as fOut:
+      with open(sopDir+os.sep+'Example_SOP.md','w', encoding='utf-8') as fOut:
         fOut.write('# Put sample in instrument\n# Do something\nDo not forget to\n- not do anything wrong\n- **USE BOLD LETTERS**\n')
       self.be.addData('procedure', {'-name': 'StandardOperatingProcedures'+os.sep+'Example_SOP.md', 'comment': '#v1'})
       print(self.be.output('procedure'))
