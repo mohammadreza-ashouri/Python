@@ -9,8 +9,8 @@ class TestStringMethods(unittest.TestCase):
   """
   derived class for this test
   """
-  def __init__(self):
-    super().__init__()
+  def __init__(self, *args, **kwargs):
+    super(TestStringMethods, self).__init__(*args, **kwargs)
     self.be = None
     self.dirName = ''
 
@@ -70,7 +70,7 @@ class TestStringMethods(unittest.TestCase):
       self.be.scanTree()
       oldString = self.be.outputHierarchy(False)
       print(oldString)
-      if len(re.finditer(r'\.txt',oldString)) != 2:
+      if len(re.findall(r'\.txt',oldString)) != 2:
         raise NameError('**ERROR one measurement could not be extracted')
       print(" === STATE 0B ===\n"+self.be.checkDB(verbose=False))
 

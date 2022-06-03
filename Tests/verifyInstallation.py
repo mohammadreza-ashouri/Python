@@ -11,8 +11,8 @@ class TestStringMethods(unittest.TestCase):
   """
   derived class for this test
   """
-  def __init__(self):
-    super().__init__()
+  def __init__(self, *args, **kwargs):
+    super(TestStringMethods, self).__init__(*args, **kwargs)
     self.be = None
     self.dirName = ''
 
