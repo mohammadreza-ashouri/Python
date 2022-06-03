@@ -11,7 +11,7 @@ class TestStringMethods(unittest.TestCase):
   derived class for this test
   """
   def __init__(self, *args, **kwargs):
-    super(TestStringMethods, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.be = None
 
   def test_main(self):
