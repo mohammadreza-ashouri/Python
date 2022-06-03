@@ -16,6 +16,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install pylint
           pip install -r requirements.txt
-      - name: Analyse the Rion Project
+      - name: Analysing the code with pylint
         run: |
-          pylint --rcfile=".pylintrc" `ls -R|grep .py$|xargs`
+          pylint --ignore=commonTools.py *.py
