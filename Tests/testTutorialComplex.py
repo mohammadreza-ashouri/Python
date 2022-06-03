@@ -6,8 +6,18 @@ import unittest
 from backend import Pasta
 
 class TestStringMethods(unittest.TestCase):
+  """
+  derived class for this test
+  """
+  def __init__(self):
+    super().__init__()
+    self.be = None
+    self.dirName = ''
+
   def test_main(self):
-    ### MAIN ###
+    """
+    main function
+    """
     # initialization: create database, destroy on filesystem and database and then create new one
     warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
     warnings.filterwarnings('ignore', message='invalid escape sequence')
@@ -26,15 +36,20 @@ class TestStringMethods(unittest.TestCase):
     try:
       ### CREATE PROJECTS AND SHOW
       print('*** CREATE PROJECTS AND SHOW ***')
-      self.be.addData('x0', {'-name': 'Intermetals at interfaces', 'objective': 'Does spray coating lead to intermetalic phase?', 'status': 'active', 'comment': '#intermetal #Fe #Al This is a test project'})
-      self.be.addData('x0', {'-name': 'Surface evolution in tribology', 'objective': 'Why does the surface get rough during tribology?', 'status': 'passive', 'comment': '#tribology The answer is obvious'})
-      self.be.addData('x0', {'-name': 'Steel', 'objective': 'Test strength of steel', 'status': 'paused', 'comment': '#Fe Obvious example without answer'})
+      self.be.addData('x0', {'-name': 'Intermetals at interfaces', \
+        'objective': 'Does spray coating lead to intermetalic phase?', 'status': 'active', \
+        'comment': '#intermetal #Fe #Al This is a test project'})
+      self.be.addData('x0', {'-name': 'Surface evolution in tribology', \
+        'objective': 'Why does the surface get rough during tribology?', 'status': 'passive', \
+        'comment': '#tribology The answer is obvious'})
+      self.be.addData('x0', {'-name': 'Steel', 'objective': 'Test strength of steel', 'status': 'paused', \
+        'comment': '#Fe Obvious example without answer'})
       print(self.be.output('x0'))
 
       ### TEST PROJECT PLANING
       print('*** TEST PROJECT PLANING ***')
       viewProj = self.be.db.getView('viewDocType/x0')
-      projID1  = [i['id'] for i in viewProj if 'Intermetals at interfaces'==i['value'][0]][0]
+      projID1  = [i['id'] for i in viewProj if i['value'][0]=='Intermetals at interfaces'][0]
       self.be.changeHierarchy(projID1)
       self.be.addData('x1',    {'comment': 'This is hard! #TODO', '-name': 'Get steel and Al-powder'})
       self.be.addData('x1',    {'comment': 'This will take a long time. #WAIT', '-name': 'Get spray machine'})
@@ -99,7 +114,7 @@ class TestStringMethods(unittest.TestCase):
       print("\n*** TRY TO CHANGE THOSE FILES ***")
       cmd = ['convert',semDirName+'Zeiss.tif','-fill','white','+opaque','black',semDirName+'Zeiss.tif']
       try:
-        output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       except:
         print('** COULD NOT CHANGE IMAGE Zeiss.tif')
 
@@ -131,7 +146,7 @@ class TestStringMethods(unittest.TestCase):
       print("One dataset")
       view = self.be.db.getView('viewDocType/my_instrument')
       for item in view:
-        if (item['value'][0]=='XP'):
+        if item['value'][0]=='XP':
           doc = self.be.db.getDoc(item['id'])
           del doc['-branch']
           del doc['-client']
@@ -141,7 +156,7 @@ class TestStringMethods(unittest.TestCase):
 
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
-      self.assertTrue(False,'Exception occurred')
+      raise
     return
 
   def tearDown(self):

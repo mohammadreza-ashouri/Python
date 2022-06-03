@@ -6,8 +6,17 @@ import unittest
 from backend import Pasta
 
 class TestStringMethods(unittest.TestCase):
+  """
+  derived class for this test
+  """
+  def __init__(self):
+    super().__init__()
+    self.be = None
+
   def test_main(self):
-    ### MAIN ###
+    """
+    main function
+    """
     # initialization: create database, destroy on filesystem and database and then create new one
     warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
     warnings.filterwarnings('ignore', message='invalid escape sequence')
@@ -36,7 +45,7 @@ class TestStringMethods(unittest.TestCase):
 
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
-      self.assertTrue(False,'Exception occurred')
+      raise
     return
 
   def tearDown(self):

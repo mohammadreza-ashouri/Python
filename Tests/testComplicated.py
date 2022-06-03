@@ -6,8 +6,18 @@ import unittest
 from backend import Pasta
 
 class TestStringMethods(unittest.TestCase):
+  """
+  derived class for this test
+  """
+  def __init__(self):
+    super().__init__()
+    self.be = None
+    self.dirName = ''
+
   def test_main(self):
-    ### MAIN ###
+    """
+    main function
+    """
     # initialization: create database, destroy on filesystem and database and then create new one
     warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
     warnings.filterwarnings('ignore', message='invalid escape sequence')
@@ -36,8 +46,8 @@ class TestStringMethods(unittest.TestCase):
       # add also some empty measurements
       print('*** TEST PROJECT HIERARCHY: no output ***')
       viewProj = self.be.db.getView('viewDocType/x0')
-      projID  = [i['id'] for i in viewProj if 'Test project1'==i['value'][0]][0]
-      projID1 = [i['id'] for i in viewProj if 'Test project2'==i['value'][0]][0]
+      projID  = [i['id'] for i in viewProj if i['value'][0]=='Test project1'][0]
+      projID1 = [i['id'] for i in viewProj if i['value'][0]=='Test project2'][0]
       self.be.changeHierarchy(projID)
       projDirName = self.be.basePath+self.be.cwd
       self.be.addData('x1',    {'comment': 'More random text', '-name': 'Test step one'})
@@ -201,11 +211,14 @@ class TestStringMethods(unittest.TestCase):
         self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
-      self.assertTrue(False,'Exception occurred')
+      raise
     return
 
 
   def backup(self):
+    """
+    backup test
+    """
     print("BACKUP TEST")
     if os.path.exists(self.be.basePath+'pasta_backup.zip'):
       os.unlink(self.be.basePath+'pasta_backup.zip')
@@ -241,7 +254,7 @@ class TestStringMethods(unittest.TestCase):
       f.write(self.be.outputHierarchy(onlyHierarchy,True,'all'))
       f.write('\n====================')
       try:
-        f.write(subprocess.run(['tree'], stdout=subprocess.PIPE).stdout.decode('utf-8'))
+        f.write(subprocess.run(['tree'], stdout=subprocess.PIPE, check=True).stdout.decode('utf-8'))
       except:
         f.write("No tree command installed")
     print("Did ",text)

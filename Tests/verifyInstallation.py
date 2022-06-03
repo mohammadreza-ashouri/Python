@@ -5,12 +5,21 @@ This test is HAS TO BE skiped during checkAllVersions since it resets everything
 import os, sys, shutil, traceback, logging, subprocess
 import warnings, json
 import unittest
+from backend import Pasta
 
 class TestStringMethods(unittest.TestCase):
+  """
+  derived class for this test
+  """
+  def __init__(self):
+    super().__init__()
+    self.be = None
+    self.dirName = ''
+
   def test_main(self):
-    sys.path.append(os.path.abspath(os.curdir))
-    from backend import Pasta
-    ### MAIN ###
+    """
+    main function
+    """
     # initialization: create database, destroy on filesystem and database and then create new one
     warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
     warnings.filterwarnings('ignore', message='invalid escape sequence')
@@ -73,7 +82,8 @@ class TestStringMethods(unittest.TestCase):
       ### USE GLOBAL FILES
       print('*** USE GLOBAL FILES ***')
       self.be.changeHierarchy(semStepID)
-      self.be.addData('measurement', {'-name': 'https://developers.google.com/search/mobile-sites/imgs/mobile-seo/separate-urls.png', 'comment':'remote image from google. Used for testing and reference. Can be deleted.'})
+      self.be.addData('measurement', {'-name': 'https://developers.google.com/search/mobile-sites/imgs/mobile-seo/separate-urls.png', \
+        'comment':'remote image from google. Used for testing and reference. Can be deleted.'})
       print(self.be.output('measurement'))
 
       ### VERIFY DATABASE INTEGRITY
@@ -84,7 +94,7 @@ class TestStringMethods(unittest.TestCase):
 
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
-      self.assertTrue(False,'Exception occurred')
+      raise
     return
 
   def tearDown(self):
