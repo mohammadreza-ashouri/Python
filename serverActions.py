@@ -105,9 +105,8 @@ def createUserDatabase(url, auth, userName):
   data = {"configuration name":"remote","user-name":userName,"password":userPW,"database":userDB,\
     "Remote configuration":"true","Server":url}
   data = passwordEncrypt(json.dumps(data).encode())
-  fOut = open(userDB+'.key','bw')
-  fOut.write(data)
-  fOut.close()
+  with open(userDB+'.key','bw') as fOut:
+    fOut.write(data)
   return
 
 
