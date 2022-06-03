@@ -14,15 +14,24 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 #encrypt data
 #https://stackoverflow.com/questions/2490334/simple-way-to-encode-a-string-according-to-a-password
 backend = default_backend()
-iterations = 100_000
-def _derive_key(password: bytes, salt: bytes, iterations: int = iterations) -> bytes:
+iterationsGlobal = 100_000
+def _derive_key(password: bytes, salt: bytes, iterations: int = iterationsGlobal) -> bytes:
+  """
+  derive key helper fuction
+  """
   kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=iterations, backend=backend)
   return b64e(kdf.derive(password))
-def passwordEncrypt(message: bytes, iterations: int = iterations) -> bytes:
+def passwordEncrypt(message: bytes, iterations: int = iterationsGlobal) -> bytes:
+  """
+  encrypt with password
+  """
   salt = secrets.token_bytes(16)
   key = _derive_key('pastaDB_2022'.encode(), salt, iterations)
   return b64e(b'%b%b%b' % (salt, iterations.to_bytes(4, 'big'), b64d(Fernet(key).encrypt(message))))
 def passwordDecrypt(token: bytes) -> bytes:
+  """
+  decrypt with pasword
+  """
   decoded = b64d(token)
   salt, iter, token = decoded[:16], decoded[16:20], b64e(decoded[20:])
   iterations = int.from_bytes(iter, 'big')
@@ -279,7 +288,7 @@ def main():
       userPassword =      input('Enter the user-password: ')
     # execute command
     if command == 'n' and userName and len(userName)>2:
-        createUserDatabase(url, auth, userName)
+      createUserDatabase(url, auth, userName)
     elif command == 'u':
       listUsers(url, auth)
     elif command == 'd':

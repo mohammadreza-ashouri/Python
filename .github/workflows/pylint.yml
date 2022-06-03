@@ -18,4 +18,5 @@ jobs:
           pip install -r requirements.txt
       - name: Analysing the code with pylint
         run: |
-          pylint --ignore=commonTools.py *.py Extractors/*.py
+          pylint --ignore=commonTools.py *.py
+          pylint --ignore=commonTools.py Extractors/*.py
