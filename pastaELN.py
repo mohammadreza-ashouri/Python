@@ -198,10 +198,14 @@ else:
       print('software version:',' '.join(output.stdout.decode('utf-8').split()[0:2]))
 
     elif args.command=='updatePASTA':
+      #update desktop incl. Python backend
       os.chdir(be.softwarePath)
-      cmd = ['git','pull']
+      os.chdir('..')
+      cmd = ['git','pull','--recurse-submodules']
       output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       print(output.stdout.decode('utf-8'))
+      #ensure requirements are fulfilled
+      os.chdir('Python')
       cmd = ['pip3','install','-r','requirements.txt','--disable-pip-version-check']
       output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       print(output.stdout.decode('utf-8'))
