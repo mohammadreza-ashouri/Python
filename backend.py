@@ -468,7 +468,7 @@ class Pasta:
             print("file not in database",self.cwd+origin)
     return
 
-  def backup(self, method='backup', zipFileName=None, docID=None, **kwargs):
+  def backup(self, method='backup', docID=None, **kwargs):
     """
     backup, verify, restore information from/to database
     - documents are named: (docID).json
@@ -477,7 +477,6 @@ class Pasta:
 
     Args:
       method (string): backup, restore, compare
-      zipFileName (string): specific unique name of zip-file
       docID (string): project docID to restrict the backup
       kwargs (dict): additional parameter, i.e. callback
 
@@ -485,24 +484,22 @@ class Pasta:
         bool: success
     """
     import os, json, subprocess
+    from datetime import datetime
     from zipfile import ZipFile, ZIP_DEFLATED
-    dirNameProject = ''
-    if docID is not None:
-      docProject = self.db.getDoc(docID)
-      dirNameProject = docProject['-branch'][0]['path']
-      if zipFileName is None:
-        zipFileName = dirNameProject+'.eln'
-    if zipFileName is None:
+    dirNameProject = 'backup'
+    zipFileName = ''
+    if docID is None: #backup only database into zip
       if self.cwd is None:
         print("**ERROR bbu01: Specify zip file name or database")
         return False
-      zipFileName="pasta_backup.zip"
-    if os.sep not in zipFileName:
-      zipFileName = self.basePath+zipFileName
+      zipFileName = self.basePath+'../pasta_backup.zip'
+    else: #backup specific project into eln RO-crate
+      docProject = self.db.getDoc(docID)
+      dirNameProject = docProject['-branch'][0]['path']
+      zipFileName = dirNameProject+'.eln'
     if method=='backup':  mode = 'w'
     else:                 mode = 'r'
     print('  '+method.capitalize()+' to file: '+zipFileName)
-
     with ZipFile(zipFileName, mode, compression=ZIP_DEFLATED) as zipFile:
 
       # method backup, iterate through all database entries and save to file
@@ -517,36 +514,61 @@ class Pasta:
         for doc in listDocs:
           if isinstance(doc, str):
             doc = self.db.getDoc(doc)
-          fileName = doc['_id']+'.json'
+          fileName = '__database__'+os.sep+doc['_id']+'.json'
           listFileNames.append(fileName)
-          zipFile.writestr(fileName, json.dumps(doc) )
+          zipFile.writestr(dirNameProject+os.sep+fileName, json.dumps(doc) )
           # Attachments
-          if docID is None and '_attachments' in doc:
+          if '_attachments' in doc:
             numAttachments += len(doc['_attachments'])
             for i in range(len(doc['_attachments'])):
-              attachmentName = doc['_id']+'/v'+str(i)+'.json'
+              attachmentName = dirNameProject+os.sep+'__database__'+os.sep+doc['_id']+'/v'+str(i)+'.json'
               zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
         #write data-files
-        for path, _, files in os.walk(dirNameProject):
-          if path.startswith(dirNameProject+'/.git') or  path.startswith(dirNameProject+'/.datalad'):
+        for path, _, files in os.walk(self.basePath if docID is None else dirNameProject):
+          if '/.git' in path or '/.datalad' in path:
             continue
+          path = './'+os.path.relpath(path,self.basePath)
           for iFile in files:
-            if iFile.startswith('.'):
+            if iFile.startswith('.git'):
               continue
-            zipFile.write(path+os.sep+iFile, path+os.sep+iFile)
-        #write index.json
-        index = {}
-        index['jsonList'] = listFileNames
-        #  figure out git version: change to software dir and back
-        cwd = self.cwd
-        os.chdir(self.softwarePath)
-        cmd = ['git','show','-s','--format=%ci']
-        output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
-        os.chdir(self.basePath+os.sep+cwd)
-        index['builder'] = 'PASTA_db version '+' '.join(output.stdout.decode('utf-8').split()[0:2])
-        index['version'] = '1.0'
+            listFileNames.append(path+os.sep+iFile)
+            # print('in',os.path.abspath(os.curdir),': save', path+os.sep+iFile,' as',\
+            #   dirNameProject+os.sep+path+os.sep+iFile)
+            zipFile.write(path+os.sep+iFile, dirNameProject+os.sep+path+os.sep+iFile)
+        ########
+        # write index.json
         if docID is not None:  #only add index.json in generall all purpose backup
-          zipFile.writestr('index.json', json.dumps(index))
+          index = {}
+          index['@context']= 'https://w3id.org/ro/crate/1.1/context'
+          graph = []
+          # master node ro-crate-metadata.json
+          cwd = self.cwd
+          os.chdir(self.softwarePath)
+          cmd = ['git','tag']
+          output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+          os.chdir(self.basePath+os.sep+cwd)
+          node  = {'@id':'ro-crate-metadata.json',\
+            '@type':'CreativeWork',\
+            'about': {'@id': './'},\
+            'conformsTo': {'@id': 'https://w3id.org/ro/crate/1.1'},\
+            'dateCreated': datetime.now().isoformat(),\
+            'sdPublisher': {'@type':'Organization', 'name': 'PASTA ELN',\
+              'logo': 'https://raw.githubusercontent.com/PASTA-ELN/desktop/main/pasta.png',\
+              'slogan': 'The favorite ELN for experimental scientists',\
+              'url': 'https://github.com/PASTA-ELN/',
+              'version':output.stdout.decode('utf-8').split()[-1]},
+            'version': '1.0'}
+          graph.append(node)
+          #loop over all files
+          for fileName in listFileNames:
+            if fileName.endswith('.json'):
+              node = {'@id':'.'+os.sep+fileName, '@type':'Dataset', 'contentType':'application/json'}
+            else:
+              node = {'@id':'.'+os.sep+fileName, '@type':'File'}
+            graph.append(node)
+          #finalize file
+          index['@graph'] = graph
+          zipFile.writestr(dirNameProject+os.sep+'ro-crate-metadata.json', json.dumps(index, indent=2))
         #create some fun output
         compressed, fileSize = 0,0
         for doc in zipFile.infolist():
@@ -558,17 +580,20 @@ class Pasta:
 
       # method compare
       if  method=='compare':
+        if zipFileName.endswith('.eln'):
+          print('**ERROR: cannot compare .eln files')
+          return False
         filesInZip = zipFile.namelist()
         print('  Number of documents (incl. ontology and views) in file:',len(filesInZip))
         differenceFound, comparedFiles, comparedAttachments = False, 0, 0
         for doc in self.db.db:
           fileName = doc['_id']+'.json'
-          if fileName not in filesInZip:
+          if 'backup/__database__/'+fileName not in filesInZip:
             print("**ERROR bbu02: document not in zip file |",doc['_id'])
             differenceFound = True
           else:
-            filesInZip.remove(fileName)
-            zipData = json.loads( zipFile.read(fileName) )
+            filesInZip.remove('backup/__database__/'+fileName)
+            zipData = json.loads( zipFile.read('backup/__database__/'+fileName) )
             if doc!=zipData:
               print('  Info: data disagrees database, zipfile ',doc['_id'])
               differenceFound = True
@@ -576,16 +601,17 @@ class Pasta:
           if '_attachments' in doc:
             for i in range(len(doc['_attachments'])):
               attachmentName = doc['_id']+'/v'+str(i)+'.json'
-              if attachmentName not in filesInZip:
+              if 'backup/__database__/'+attachmentName not in filesInZip:
                 print("**ERROR bbu03: revision not in zip file |",attachmentName)
                 differenceFound = True
               else:
-                filesInZip.remove(attachmentName)
-                zipData = json.loads( zipFile.read(attachmentName) )
+                filesInZip.remove('backup/__database__/'+attachmentName)
+                zipData = json.loads(zipFile.read('backup/__database__/'+attachmentName) )
                 if doc.get_attachment('v'+str(i)+'.json')!=zipData:
                   print('  Info: data disagrees database, zipfile ',attachmentName)
                   differenceFound = True
                 comparedAttachments += 1
+        filesInZip = [i for i in filesInZip if i.startswith('backup/__database')] #filter out non-db items
         if len(filesInZip)>0:
           differenceFound = True
           print('Files in zipfile not in database',filesInZip)
@@ -598,10 +624,12 @@ class Pasta:
       if method=='restore':
         beforeLength, restoredFiles = len(self.db.db), 0
         for fileName in zipFile.namelist():
-          if not ( fileName.startswith('_') or fileName.startswith('-') ):  #do not restore design documents and ontology
+          if fileName.startswith('backup/__database__') and (not \
+            (fileName.startswith('backup/__database__/_') or fileName.startswith('backup/__database__/-'))):  #do not restore design documents and ontology
             restoredFiles += 1
             zipData = json.loads( zipFile.read(fileName) )
-            if '/' in fileName:                                             #attachment
+            fileName = fileName[len('backup/__database__/'):]
+            if '/' in fileName:  #attachment
               doc = self.db.getDoc(fileName.split('/')[0])
               doc.put_attachment(fileName.split('/')[1], 'application/json', json.dumps(zipData))
             else:                                                           #normal document

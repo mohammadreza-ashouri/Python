@@ -239,7 +239,7 @@ else:
         config['-qrPrinter']['printer'])
 
     elif args.command=='saveBackup':   #save to backup file.zip
-      be.backup('backup', None, args.docID)
+      be.backup('backup', docID=args.docID if args.docID!='' else None)
 
     elif args.command=='loadBackup':   #load from backup file.zip
       be.backup('restore')
