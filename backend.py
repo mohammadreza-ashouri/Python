@@ -475,6 +475,9 @@ class Pasta:
     - all data is saved to one zip file
     - after restore-to-database, the database changed (new revision)
 
+    .eln RO-crate output is currently flat: no graph topography is saved but only a list of parts
+    - In the future one can create a graph from [-branch][stack]
+
     Args:
       method (string): backup, restore, compare
       docID (string): project docID to restrict the backup
@@ -540,6 +543,7 @@ class Pasta:
         if docID is not None:  #only add index.json in generall all purpose backup
           index = {}
           index['@context']= 'https://w3id.org/ro/crate/1.1/context'
+          index
           graph = []
           # master node ro-crate-metadata.json
           cwd = self.cwd
@@ -547,26 +551,29 @@ class Pasta:
           cmd = ['git','tag']
           output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
           os.chdir(self.basePath+os.sep+cwd)
-          node  = {'@id':'ro-crate-metadata.json',\
+          masterNode  = {'@id':'ro-crate-metadata.json',\
             '@type':'CreativeWork',\
             'about': {'@id': './'},\
             'conformsTo': {'@id': 'https://w3id.org/ro/crate/1.1'},\
+            'schemaVersion': 'v1.0',\
             'dateCreated': datetime.now().isoformat(),\
             'sdPublisher': {'@type':'Organization', 'name': 'PASTA ELN',\
               'logo': 'https://raw.githubusercontent.com/PASTA-ELN/desktop/main/pasta.png',\
               'slogan': 'The favorite ELN for experimental scientists',\
               'url': 'https://github.com/PASTA-ELN/',
-              'version':output.stdout.decode('utf-8').split()[-1]},
+              'description':'Version '+output.stdout.decode('utf-8').split()[-1]},
             'version': '1.0'}
-          graph.append(node)
           #loop over all files
+          hasPart = []
           for fileName in listFileNames:
             if fileName.endswith('.json'):
-              node = {'@id':'.'+os.sep+fileName, '@type':'Dataset', 'contentType':'application/json'}
+              node = {'@id':'.'+os.sep+fileName, '@type':'DigitalDocument', 'contentType':'application/json'}
             else:
               node = {'@id':'.'+os.sep+fileName, '@type':'File'}
-            graph.append(node)
+            hasPart.append(node)
           #finalize file
+          masterNode['hasPart'] = hasPart
+          graph.append(masterNode)
           index['@graph'] = graph
           zipFile.writestr(dirNameProject+os.sep+'ro-crate-metadata.json', json.dumps(index, indent=2))
         #create some fun output
@@ -578,11 +585,12 @@ class Pasta:
         print(f'  Num. documents (incl. ontology and views): {len(self.db.db):,}\n')#,    num. attachments: {numAttachments:,}\n')
         return True
 
+      # method compare and restore
+      if zipFileName.endswith('.eln'):
+        print('**ERROR: cannot compare/restore .eln files')
+        return False
       # method compare
       if  method=='compare':
-        if zipFileName.endswith('.eln'):
-          print('**ERROR: cannot compare .eln files')
-          return False
         filesInZip = zipFile.namelist()
         print('  Number of documents (incl. ontology and views) in file:',len(filesInZip))
         differenceFound, comparedFiles, comparedAttachments = False, 0, 0

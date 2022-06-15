@@ -9,6 +9,7 @@ import argparse, traceback
 import urllib.request
 from backend import Pasta
 from miscTools import upOut, upIn, getExtractorConfig, printQRcodeSticker, checkConfiguration
+from inputOutput import importELN
 
 argparser = argparse.ArgumentParser(usage='''
 pastaELN.py <command> [-i docID] [-c content] [-l labels] [-d database]
@@ -58,6 +59,8 @@ Possible commands are:
       example: pastaELN.py importXLS -d instruments -i x-a803c556bb3b367b1e78901109bd5bf5 -c "~/path/to.xls" -l instrument
       -l is the document type
       afterwards: adopt ontology (views are automatically generated)
+    importELN: import .eln from other ELN or PASTA
+      example: pastaELN.py importELN -d tutorial -c "~/path/to.xls"
 ''')
 argparser.add_argument('command', help='see above...')
 argparser.add_argument('-i','--docID',   help='docID of project; always a long alpha-numeric code', default='')
@@ -278,6 +281,10 @@ else:
         doc = dict((k.lower(), v) for k, v in row.items())
         be.addData(args.label, doc )
       success=True
+
+    elif args.command=='importELN':
+      path = args.content if args.content[0]==os.sep else curWorkingDirectory+os.sep+args.content
+      success = importELN(be, args.database, path)
 
     else:
       ## Commands that require open database and open project
