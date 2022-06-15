@@ -12,7 +12,7 @@ def importELN(backend, database, elnFileName):
   Returns:
     success as bool
   '''
-  import os, json
+  import os, json, shutil
   from zipfile import ZipFile, ZIP_DEFLATED
   with ZipFile(elnFileName, 'r', compression=ZIP_DEFLATED) as elnFile:
     files = elnFile.namelist()
@@ -51,18 +51,23 @@ def importELN(backend, database, elnFileName):
         docType = 'x'+str(len(newNode['@id'].split('/'))-2)
         newNode['pathOnKadi4Mat'] = newNode.pop('@id')
         newNode['-name'] = newNode.pop('name')
-        newNode['comment']=newNode.pop('description')
-        del newNode['hasPart']
+        if 'description' in newNode:
+          newNode['comment']=newNode.pop('description')
+        if 'hasPart' in newNode:
+          del newNode['hasPart']
         del newNode['@type']
         backend.addData(docType,newNode)
+        backend.changeHierarchy(backend.currentID)
       if len(part)>1:
         docType = 'measurement'
-        newNode['-name'] = newNode.pop('@id')
-        newNode['comment']=newNode.pop('description')
-        del newNode['@type']
-        elnFile.extract(dirName+os.sep+newNode['-name'], path=backend.cwd)
-        print('Add file to DB 2',json.dumps(part,indent=2))
-        a = 4/0
+        part['otherELNName'] = part.pop('@id')
+        part['-name'] = os.path.basename(part['otherELNName'])
+        if 'description' in part:
+          part['comment']=part.pop('description')
+        del part['@type']
+        fileName = elnFile.extract(dirName+os.sep+part['otherELNName'])  #extract one file
+        shutil.move(fileName, part['-name'])                             #  move it to correct file
+        backend.addData(docType,part)
 
   # print('\n',json.dumps(i,indent=2))
   # print('\n'.join(files),'\n')

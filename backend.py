@@ -170,7 +170,8 @@ class Pasta:
       view = self.db.getView('viewHierarchy/viewHierarchy', startKey=thisStack) #not faster with cT.getChildren
       childNum = 0
       for item in view:
-        if item['value'][1][0]=='x0': continue
+        if item['value'][1][0]=='x0':
+          continue
         if thisStack == ' '.join(item['key'].split(' ')[:-1]): #remove last item from string
           childNum += 1
 
@@ -223,7 +224,7 @@ class Pasta:
           if len(view)==0 or forceNewImage:  #measurement not in database: create doc
             while True:
               self.useExtractors(path,shasum,doc)  #create image/content and add to datalad
-              if not 'image' in doc and not 'content' in doc:  #did not get valuable data: extractor does not exit
+              if not 'image' in doc and not 'content' in doc and not 'otherELNName' in doc:  #did not get valuable data: extractor does not exit
                 return False
               if callback is None or not callback(doc):
                 # if no more iterations of curation
