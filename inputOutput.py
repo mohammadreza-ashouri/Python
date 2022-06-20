@@ -14,6 +14,61 @@ def importELN(backend, database, elnFileName):
   '''
   import os, json, shutil
   from zipfile import ZipFile, ZIP_DEFLATED
+
+  def processPart(part):
+    """
+    recursive function call
+    """
+    success = True
+    if isinstance(part, dict):
+      partName = part['@id']
+    elif isinstance(part, str):
+      partName = part
+    else:
+      print("**ERROR in part",part)
+      return False
+    print('\nProcess:',partName)
+    # find next node to process
+    newNode = [i for i in graph if '@id' in i and i['@id']==partName]
+    if len(newNode)>1:
+      print('**ERROR multiple nodes with same id')
+      return False
+    # if node with more subnodes
+    if len(newNode)==1:
+      newNode = newNode[0]
+      docType = 'x'+str(len(newNode['@id'].split('/'))-2)
+      newNode['pathOnKadi4Mat'] = newNode.pop('@id')
+      if 'name' in newNode:
+        newNode['-name'] = newNode.pop('name')
+      if 'description' in newNode:
+        newNode['comment']=newNode.pop('description')
+      subparts = newNode['hasPart']
+      print(subparts)
+      print('SUBPARTS\n','\n'.join(['  '+i['@id'] for i in subparts]))
+      del newNode['hasPart']
+      if '@type' in newNode:
+        del newNode['@type']
+      backend.addData(docType,newNode)
+      backend.changeHierarchy(backend.currentID)
+      for subpart in subparts:
+        processPart(subpart)
+      backend.changeHierarchy(None)
+    # if final leaf node
+    if len(part)>1:
+      docType = 'measurement'
+      part['otherELNName'] = part.pop('@id')
+      part['-name'] = os.path.basename(part['otherELNName'])
+      if 'description' in part:
+        part['comment']=part.pop('description')
+      del part['@type']
+      source = elnFile.open(dirName+os.sep+part['otherELNName'])
+      target = open(part['-name'], "wb")
+      with source, target:  #extract one file to its target directly
+        shutil.copyfileobj(source, target)
+      backend.addData(docType,part)
+    return
+
+  #main function
   with ZipFile(elnFileName, 'r', compression=ZIP_DEFLATED) as elnFile:
     files = elnFile.namelist()
     dirName=files[0].split(os.sep)[0]
@@ -24,53 +79,123 @@ def importELN(backend, database, elnFileName):
     # print(json.dumps(graph,indent=2))
     #find information from master node
     elnName, elnVersion = '', ''
-    parts = []
     for i in graph:
       if 'sdPublisher' in i:
         elnName = i['sdPublisher']['name']
         elnVersion = i['version']
-        parts = i['hasPart']
-    #iteratively go through list
-    while len(parts)>0:
-      part = parts.pop()
-      # print('Process:',part)
-      if isinstance(part, dict):
-        partName = part['@id']
-      elif isinstance(part, string):
-        partName = part
-      else:
-        print("**ERROR in part",part)
-        return False
-      newNode = [i for i in graph if '@id' in i and i['@id']==partName]
-      if len(newNode)>1:
-        print('**ERROR multiple nodes with same id')
-        return False
-      if len(newNode)==1:
-        newNode = newNode[0]
-        parts += newNode['hasPart']
-        docType = 'x'+str(len(newNode['@id'].split('/'))-2)
-        newNode['pathOnKadi4Mat'] = newNode.pop('@id')
-        newNode['-name'] = newNode.pop('name')
-        if 'description' in newNode:
-          newNode['comment']=newNode.pop('description')
-        if 'hasPart' in newNode:
-          del newNode['hasPart']
-        del newNode['@type']
-        backend.addData(docType,newNode)
-        backend.changeHierarchy(backend.currentID)
-      if len(part)>1:
-        docType = 'measurement'
-        part['otherELNName'] = part.pop('@id')
-        part['-name'] = os.path.basename(part['otherELNName'])
-        if 'description' in part:
-          part['comment']=part.pop('description')
-        del part['@type']
-        fileName = elnFile.extract(dirName+os.sep+part['otherELNName'])  #extract one file
-        shutil.move(fileName, part['-name'])                             #  move it to correct file
-        backend.addData(docType,part)
+        #iteratively go through list
+        for part in i['hasPart']:
+          processPart(part) #TODO_P2 first child should get elnName and version
+  return True
 
-  # print('\n',json.dumps(i,indent=2))
-  # print('\n'.join(files),'\n')
-  # print('\n\nHere',database, elnName, elnVersion)
 
+def exportELN(backend, docID):
+  import os, json, subprocess
+  import base64, io, shutil
+  from PIL import Image
+  from datetime import datetime
+  from zipfile import ZipFile, ZIP_DEFLATED
+  docProject = backend.db.getDoc(docID)
+  dirNameProject = docProject['-branch'][0]['path']
+  zipFileName = dirNameProject+'.eln'
+  print('Create eln file '+zipFileName)
+  with ZipFile(zipFileName, 'w', compression=ZIP_DEFLATED) as zipFile:
+    # numAttachments = 0
+    graph = []
+
+    #1 ------- write JSON files -------------------
+    listDocs = backend.db.getView('viewHierarchy/viewHierarchy', startKey=docID)
+    #create tree of hierarchical data
+    treedata = {}
+
+    def listChildren(id, level):
+      """
+      """
+      items = [i for i in listDocs if len(i['key'].split(' '))==level]
+      if id is not None:
+        items = [i for i in items if i['key'].startswith(id)]
+      #sort by child
+      keys = [i['key'] for i in items]
+      childNums = [i['value'][0] for i in items]
+      items = [x for _, x in sorted(zip(childNums, keys))]
+      #create sub-children
+      for item in items:
+        children = listChildren(item,level+1)
+        treedata[item.split(' ')[-1]] = children
+        if level == 1:
+          treedata['__masterID__'] = item
+      return [i.split(' ')[-1] for i in items]
+
+    children = listChildren(id=None, level=1)
+    masterID = treedata.pop('__masterID__')
+    # print(treedata)
+    for doc in treedata:
+      doc = backend.db.getDoc(doc)
+      if 'image' in doc:
+        fileName = '__thumbnails__'+os.sep+doc['_id']
+        if doc['image'].startswith('data:image/png'):
+          fileName += '.png'
+          imgdata = doc['image'][22:]
+          imgdata = base64.b64decode(imgdata)
+          imgdata = io.BytesIO(imgdata)
+          target = zipFile.open(dirNameProject+os.sep+fileName,'w')
+          with imgdata, target:  #extract one file to its target directly
+            shutil.copyfileobj(imgdata, target)
+        elif doc['image'].startswith('<?xml'):
+          fileName += '.svg'
+          zipFile.writestr(dirNameProject+os.sep+fileName, doc['image'])
+        else:
+          print('image type not implemented')
+        del doc['image']
+      doc['@id'] = doc.pop('_id')
+      if len(treedata[doc['@id']])>0:
+        doc['hasPart'] = [{'@id':i} for i in treedata[doc['@id']]]
+      graph.append(doc)
+      # # Attachments
+      # if '_attachments' in doc:
+      #   numAttachments += len(doc['_attachments'])
+      #   for i in range(len(doc['_attachments'])):
+      #     attachmentName = dirNameProject+os.sep+'__database__'+os.sep+doc['_id']+'/v'+str(i)+'.json'
+      #     zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
+
+    #2 ------------------ write data-files --------------------------
+    masterChildren = [masterID]
+    for path, _, files in os.walk(dirNameProject):
+      if '/.git' in path or '/.datalad' in path:
+        continue
+      path = os.path.relpath(path, backend.basePath)
+      for iFile in files:
+        if iFile.startswith('.git') or iFile=='.id_pastaELN.json':
+          continue
+        masterChildren.append(path+os.sep+iFile)
+        zipFile.write(path+os.sep+iFile, dirNameProject+os.sep+path+os.sep+iFile)
+
+    #3 ------------------- write index.json ---------------------------
+    index = {}
+    index['@context']= 'https://w3id.org/ro/crate/1.1/context'
+    index
+    # master node ro-crate-metadata.json
+    cwd = backend.cwd
+    os.chdir(backend.softwarePath)
+    cmd = ['git','tag']
+    output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+    os.chdir(backend.basePath+os.sep+cwd)
+    masterNode  = {'@id':'ro-crate-metadata.json',\
+      '@type':'CreativeWork',\
+      'about': {'@id': './'},\
+      'conformsTo': {'@id': 'https://w3id.org/ro/crate/1.1'},\
+      'schemaVersion': 'v1.0',\
+      'dateCreated': datetime.now().isoformat(),\
+      'sdPublisher': {'@type':'Organization', 'name': 'PASTA ELN',\
+        'logo': 'https://raw.githubusercontent.com/PASTA-ELN/desktop/main/pasta.png',\
+        'slogan': 'The favorite ELN for experimental scientists',\
+        'url': 'https://github.com/PASTA-ELN/',\
+        'description':'Version '+output.stdout.decode('utf-8').split()[-1]},\
+      'version': '1.0',\
+      'hasPart': [{'@id':i} for i in masterChildren]\
+      }
+    #finalize file
+    graph.append(masterNode)
+    index['@graph'] = graph
+    zipFile.writestr(dirNameProject+os.sep+'ro-crate-metadata.json', json.dumps(index, indent=2))
   return True

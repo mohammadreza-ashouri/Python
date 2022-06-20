@@ -469,38 +469,28 @@ class Pasta:
             print("file not in database",self.cwd+origin)
     return
 
-  def backup(self, method='backup', docID=None, **kwargs):
+  def backup(self, method='backup', **kwargs):
     """
     backup, verify, restore information from/to database
-    - documents are named: (docID).json
-    - all data is saved to one zip file
+    - all data is saved to one zip file (NOT ELN file)
     - after restore-to-database, the database changed (new revision)
-
-    .eln RO-crate output is currently flat: no graph topography is saved but only a list of parts
-    - In the future one can create a graph from [-branch][stack]
 
     Args:
       method (string): backup, restore, compare
-      docID (string): project docID to restrict the backup
       kwargs (dict): additional parameter, i.e. callback
 
     Returns:
         bool: success
     """
-    import os, json, subprocess
+    import os, json
     from datetime import datetime
     from zipfile import ZipFile, ZIP_DEFLATED
     dirNameProject = 'backup'
     zipFileName = ''
-    if docID is None: #backup only database into zip
-      if self.cwd is None:
-        print("**ERROR bbu01: Specify zip file name or database")
-        return False
-      zipFileName = self.basePath+'../pasta_backup.zip'
-    else: #backup specific project into eln RO-crate
-      docProject = self.db.getDoc(docID)
-      dirNameProject = docProject['-branch'][0]['path']
-      zipFileName = dirNameProject+'.eln'
+    if self.cwd is None:
+      print("**ERROR bbu01: Specify zip file name or database")
+      return False
+    zipFileName = self.basePath+'../pasta_backup.zip'
     if method=='backup':  mode = 'w'
     else:                 mode = 'r'
     print('  '+method.capitalize()+' to file: '+zipFileName)
@@ -511,9 +501,6 @@ class Pasta:
         numAttachments = 0
         #write JSON files
         listDocs = self.db.db
-        if docID is not None:
-          listDocs = self.db.getView('viewHierarchy/viewHierarchy', startKey=docID)
-          listDocs = [i['id'] for i in listDocs]
         listFileNames = []
         for doc in listDocs:
           if isinstance(doc, str):
@@ -528,10 +515,10 @@ class Pasta:
               attachmentName = dirNameProject+os.sep+'__database__'+os.sep+doc['_id']+'/v'+str(i)+'.json'
               zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
         #write data-files
-        for path, _, files in os.walk(self.basePath if docID is None else dirNameProject):
+        for path, _, files in os.walk(self.basePath):
           if '/.git' in path or '/.datalad' in path:
             continue
-          path = './'+os.path.relpath(path,self.basePath)
+          path = os.path.relpath(path,self.basePath)
           for iFile in files:
             if iFile.startswith('.git'):
               continue
@@ -539,44 +526,6 @@ class Pasta:
             # print('in',os.path.abspath(os.curdir),': save', path+os.sep+iFile,' as',\
             #   dirNameProject+os.sep+path+os.sep+iFile)
             zipFile.write(path+os.sep+iFile, dirNameProject+os.sep+path+os.sep+iFile)
-        ########
-        # write index.json
-        if docID is not None:  #only add index.json in generall all purpose backup
-          index = {}
-          index['@context']= 'https://w3id.org/ro/crate/1.1/context'
-          index
-          graph = []
-          # master node ro-crate-metadata.json
-          cwd = self.cwd
-          os.chdir(self.softwarePath)
-          cmd = ['git','tag']
-          output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
-          os.chdir(self.basePath+os.sep+cwd)
-          masterNode  = {'@id':'ro-crate-metadata.json',\
-            '@type':'CreativeWork',\
-            'about': {'@id': './'},\
-            'conformsTo': {'@id': 'https://w3id.org/ro/crate/1.1'},\
-            'schemaVersion': 'v1.0',\
-            'dateCreated': datetime.now().isoformat(),\
-            'sdPublisher': {'@type':'Organization', 'name': 'PASTA ELN',\
-              'logo': 'https://raw.githubusercontent.com/PASTA-ELN/desktop/main/pasta.png',\
-              'slogan': 'The favorite ELN for experimental scientists',\
-              'url': 'https://github.com/PASTA-ELN/',
-              'description':'Version '+output.stdout.decode('utf-8').split()[-1]},
-            'version': '1.0'}
-          #loop over all files
-          hasPart = []
-          for fileName in listFileNames:
-            if fileName.endswith('.json'):
-              node = {'@id':'.'+os.sep+fileName, '@type':'DigitalDocument', 'contentType':'application/json'}
-            else:
-              node = {'@id':'.'+os.sep+fileName, '@type':'File'}
-            hasPart.append(node)
-          #finalize file
-          masterNode['hasPart'] = hasPart
-          graph.append(masterNode)
-          index['@graph'] = graph
-          zipFile.writestr(dirNameProject+os.sep+'ro-crate-metadata.json', json.dumps(index, indent=2))
         #create some fun output
         compressed, fileSize = 0,0
         for doc in zipFile.infolist():
@@ -689,6 +638,14 @@ class Pasta:
       content = module.use(absFilePath, '/'.join(doc['-type']) )
       #combine into document
       doc.update(content)
+      for meta in ['metaVendor','metaUser']:
+        for item in doc[meta]:
+          if isinstance(doc[meta][item], tuple):
+            doc[meta][item] = list(doc[meta][item])
+          if not isinstance(doc[meta][item], (str, int, float, list)) and \
+            doc[meta][item] is not None:
+            print(' -> simplify ',meta,item, doc[meta][item])
+            doc[meta][item] = str(doc[meta][item])
       doc['shasum']    = shasum
       if doc['recipe'].startswith('/'.join(doc['-type'])):
         doc['-type']      = doc['recipe'].split('/')

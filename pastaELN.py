@@ -9,7 +9,7 @@ import argparse, traceback
 import urllib.request
 from backend import Pasta
 from miscTools import upOut, upIn, getExtractorConfig, printQRcodeSticker, checkConfiguration
-from inputOutput import importELN
+from inputOutput import importELN, exportELN
 
 argparser = argparse.ArgumentParser(usage='''
 pastaELN.py <command> [-i docID] [-c content] [-l labels] [-d database]
@@ -242,7 +242,10 @@ else:
         config['-qrPrinter']['printer'])
 
     elif args.command=='saveBackup':   #save to backup file.zip
-      be.backup('backup', docID=args.docID if args.docID!='' else None)
+      if args.docID!='':
+        exportELN(be, args.docID)
+      else:
+        be.backup('backup')
 
     elif args.command=='loadBackup':   #load from backup file.zip
       be.backup('restore')
