@@ -15,59 +15,80 @@ def importELN(backend, database, elnFileName):
   import os, json, shutil
   from zipfile import ZipFile, ZIP_DEFLATED
 
+  #global variables
+  elnName = None
+  elnVersion = None
+
   def processPart(part):
     """
-    recursive function call
+    recursive function call to process this node
     """
     success = True
-    if isinstance(part, dict):
-      partName = part['@id']
-    elif isinstance(part, str):
-      partName = part
-    else:
+    if not isinstance(part, dict):
       print("**ERROR in part",part)
       return False
-    print('\nProcess:',partName)
+    print('\nProcess:',part['@id'])
     # find next node to process
-    newNode = [i for i in graph if '@id' in i and i['@id']==partName]
+    newNode = [i for i in graph if '@id' in i and i['@id']==part['@id']]
     if len(newNode)>1:
       print('**ERROR multiple nodes with same id')
       return False
     # if node with more subnodes
     if len(newNode)==1:
       newNode = newNode[0]
-      docType = 'x'+str(len(newNode['@id'].split('/'))-2)
-      newNode['pathOnKadi4Mat'] = newNode.pop('@id')
-      if 'name' in newNode:
+      if elnName=='Kadi4Mat':
+        docType = 'x'+str(len(newNode['@id'].split('/'))-2)
+        newNode['pathOnKadi4Mat'] = newNode.pop('@id')
         newNode['-name'] = newNode.pop('name')
-      if 'description' in newNode:
-        newNode['comment']=newNode.pop('description')
-      subparts = newNode['hasPart']
-      print(subparts)
-      print('SUBPARTS\n','\n'.join(['  '+i['@id'] for i in subparts]))
-      del newNode['hasPart']
+        if 'description' in newNode:
+          newNode['comment']=newNode.pop('description')
+      elif elnName=='PASTA ELN':
+        docType = newNode['-type'][0]
+        newNode['_id'] = newNode.pop('@id')
+      else:
+        print('**ERROR undefined ELN-Name', elnName)
+      subparts = newNode.pop('hasPart') if 'hasPart' in newNode else []
+      print('subparts:\n'+'\n'.join(['  '+i['@id'] for i in subparts]))
       if '@type' in newNode:
         del newNode['@type']
-      backend.addData(docType,newNode)
-      backend.changeHierarchy(backend.currentID)
-      for subpart in subparts:
-        processPart(subpart)
-      backend.changeHierarchy(None)
-    # if final leaf node
+      if elnName=='PASTA ELN' and newNode['-type'][0]!='x0':
+        backend.db.saveDoc(newNode)
+        if newNode['-type'][0][0]=='x':
+          os.makedirs(backend.basePath+newNode['-branch'][0]['path'])
+        backend.currentID = newNode['_id']
+      else:
+        backend.addData(docType,newNode)
+      if len(subparts)>0:  #don't do if no subparts: measurements, ...
+        backend.changeHierarchy(backend.currentID)
+        for subpart in subparts:
+          processPart(subpart)
+        backend.changeHierarchy(None)
+    # ---
+    # if final leaf node described in hasPart
     if len(part)>1:
-      docType = 'measurement'
-      part['otherELNName'] = part.pop('@id')
-      part['-name'] = os.path.basename(part['otherELNName'])
-      if 'description' in part:
-        part['comment']=part.pop('description')
-      del part['@type']
-      source = elnFile.open(dirName+os.sep+part['otherELNName'])
-      target = open(part['-name'], "wb")
+      #save to file
+      source = elnFile.open(dirName+os.sep+part['@id'])
+      #do database entry
+      if elnName=='Kadi4Mat':
+        docType = 'measurement'
+        part['otherELNName'] = part.pop('@id')
+        part['-name'] = os.path.basename(part['otherELNName'])
+        if 'description' in part:
+          part['comment']=part.pop('description')
+        del part['@type']
+        targetFileName = os.path.basename(part['otherELNName'])
+      elif elnName=='PASTA ELN':
+        targetFileName = part['@id']
+      else:
+        print('**ERROR undefined ELN-Name', elnName)
+      target = open(targetFileName, "wb")
       with source, target:  #extract one file to its target directly
         shutil.copyfileobj(source, target)
-      backend.addData(docType,part)
+      if elnName!='PASTA ELN':
+        backend.addData(docType,part)
     return
 
+  ######################
   #main function
   with ZipFile(elnFileName, 'r', compression=ZIP_DEFLATED) as elnFile:
     files = elnFile.namelist()
@@ -159,7 +180,7 @@ def exportELN(backend, docID):
       #     zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
 
     #2 ------------------ write data-files --------------------------
-    masterChildren = [masterID]
+    masterChildren = [{'@id':masterID}]
     for path, _, files in os.walk(dirNameProject):
       if '/.git' in path or '/.datalad' in path:
         continue
@@ -167,7 +188,7 @@ def exportELN(backend, docID):
       for iFile in files:
         if iFile.startswith('.git') or iFile=='.id_pastaELN.json':
           continue
-        masterChildren.append(path+os.sep+iFile)
+        masterChildren.append({'@id':path+os.sep+iFile, '@type':'File'})
         zipFile.write(path+os.sep+iFile, dirNameProject+os.sep+path+os.sep+iFile)
 
     #3 ------------------- write index.json ---------------------------
@@ -192,10 +213,15 @@ def exportELN(backend, docID):
         'url': 'https://github.com/PASTA-ELN/',\
         'description':'Version '+output.stdout.decode('utf-8').split()[-1]},\
       'version': '1.0',\
-      'hasPart': [{'@id':i} for i in masterChildren]\
+      'hasPart': masterChildren\
       }
     #finalize file
     graph.append(masterNode)
     index['@graph'] = graph
     zipFile.writestr(dirNameProject+os.sep+'ro-crate-metadata.json', json.dumps(index, indent=2))
   return True
+
+"""
+Whishlist Kadi4Mat:
+- no redundant info;
+"""

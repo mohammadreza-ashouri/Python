@@ -1,6 +1,6 @@
 """extract data from a .jpeg file
 """
-import base64
+import base64, json
 from io import BytesIO
 import numpy as np
 from PIL import Image
@@ -22,10 +22,10 @@ def use(filePath, recipe='', saveFileName=None):
   imgArr = np.array(image)
   recipe = 'image/jpeg'
   metaUser   = {'number pixel': imgArr.size,
-                'dimension': imgArr.shape }
+                'dimension': imgArr.shape}
 
   #save to file
-  imageData = Image.fromarray(imgArr).convert('P')
+  imageData = Image.fromarray(imgArr)
   if saveFileName is not None:
     imageData.save(saveFileName)
 
