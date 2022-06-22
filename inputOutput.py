@@ -12,7 +12,7 @@ def importELN(backend, database, elnFileName):
   Returns:
     success as bool
   '''
-  import os, json, shutil
+  import os, json, shutil, base64
   from zipfile import ZipFile, ZIP_DEFLATED
 
   #global variables
@@ -36,6 +36,9 @@ def importELN(backend, database, elnFileName):
     # if node with more subnodes
     if len(newNode)==1:
       newNode = newNode[0]
+      subparts = newNode.pop('hasPart') if 'hasPart' in newNode else []
+      print('subparts:\n'+'\n'.join(['  '+i['@id'] for i in subparts]))
+      #depending on ELN
       if elnName=='Kadi4Mat':
         docType = 'x'+str(len(newNode['@id'].split('/'))-2)
         newNode['pathOnKadi4Mat'] = newNode.pop('@id')
@@ -45,10 +48,18 @@ def importELN(backend, database, elnFileName):
       elif elnName=='PASTA ELN':
         docType = newNode['-type'][0]
         newNode['_id'] = newNode.pop('@id')
+        if len(subparts)==1 and subparts[0]['@id'].startswith('__thumbnails__'):
+          imgdata = elnFile.open(dirName+os.sep+subparts[0]['@id']).read()
+          if subparts[0]['@id'].endswith('.png'):
+            newNode['image'] = "data:image/png;base64," + base64.b64encode(imgdata).decode()
+          elif subparts[0]['@id'].endswith('.svg'):
+            newNode['image'] = imgdata.decode("utf-8")
+          else:
+            print("**ERROR cannot read this thumbnail")
+          subparts = []
       else:
         print('**ERROR undefined ELN-Name', elnName)
-      subparts = newNode.pop('hasPart') if 'hasPart' in newNode else []
-      print('subparts:\n'+'\n'.join(['  '+i['@id'] for i in subparts]))
+      #for all ELN
       if '@type' in newNode:
         del newNode['@type']
       if elnName=='PASTA ELN' and newNode['-type'][0]!='x0':
@@ -58,6 +69,7 @@ def importELN(backend, database, elnFileName):
         backend.currentID = newNode['_id']
       else:
         backend.addData(docType,newNode)
+      #recursive part
       if len(subparts)>0:  #don't do if no subparts: measurements, ...
         backend.changeHierarchy(backend.currentID)
         for subpart in subparts:
@@ -100,13 +112,19 @@ def importELN(backend, database, elnFileName):
     # print(json.dumps(graph,indent=2))
     #find information from master node
     elnName, elnVersion = '', ''
-    for i in graph:
-      if 'sdPublisher' in i:
-        elnName = i['sdPublisher']['name']
-        elnVersion = i['version']
-        #iteratively go through list
-        for part in i['hasPart']:
-          processPart(part) #TODO_P2 first child should get elnName and version
+    rocrateNode = [i for i in graph if i["@id"]=="ro-crate-metadata.json"][0]
+    if 'sdPublisher' in rocrateNode:
+      elnName     = rocrateNode['sdPublisher']['name']
+    if 'version' in rocrateNode:
+      elnVersion  = rocrateNode['version']
+    mainNode    = [i for i in graph if i["@id"]=="./"][0]
+    if 'sdPublisher' in mainNode:
+      elnName     = mainNode['sdPublisher']['name']
+    if 'version' in mainNode:
+      elnVersion  = mainNode['version']
+    #iteratively go through list
+    for part in mainNode['hasPart']:
+      processPart(part) #TODO_P2 first child should get elnName and version
   return True
 
 
@@ -152,8 +170,11 @@ def exportELN(backend, docID):
     # print(treedata)
     for doc in treedata:
       doc = backend.db.getDoc(doc)
+      doc['@id'] = doc.pop('_id')
+      if len(treedata[doc['@id']])>0:
+        doc['hasPart'] = [{'@id':i} for i in treedata[doc['@id']]]
       if 'image' in doc:
-        fileName = '__thumbnails__'+os.sep+doc['_id']
+        fileName = '__thumbnails__'+os.sep+doc['@id']
         if doc['image'].startswith('data:image/png'):
           fileName += '.png'
           imgdata = doc['image'][22:]
@@ -168,9 +189,7 @@ def exportELN(backend, docID):
         else:
           print('image type not implemented')
         del doc['image']
-      doc['@id'] = doc.pop('_id')
-      if len(treedata[doc['@id']])>0:
-        doc['hasPart'] = [{'@id':i} for i in treedata[doc['@id']]]
+        doc['hasPart'] = [{'@id':fileName, '@type':'File'}]
       graph.append(doc)
       # # Attachments
       # if '_attachments' in doc:
@@ -201,11 +220,16 @@ def exportELN(backend, docID):
     cmd = ['git','tag']
     output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
     os.chdir(backend.basePath+os.sep+cwd)
-    masterNode  = {'@id':'ro-crate-metadata.json',\
+    masterNode  = {\
+      '@id':'ro-crate-metadata.json',\
       '@type':'CreativeWork',\
       'about': {'@id': './'},\
       'conformsTo': {'@id': 'https://w3id.org/ro/crate/1.1'},\
-      'schemaVersion': 'v1.0',\
+      'schemaVersion': 'v1.0'}
+    graph.append(masterNode)
+    masterNode  = {\
+      '@id':'./',\
+      '@type':['Dataset'],\
       'dateCreated': datetime.now().isoformat(),\
       'sdPublisher': {'@type':'Organization', 'name': 'PASTA ELN',\
         'logo': 'https://raw.githubusercontent.com/PASTA-ELN/desktop/main/pasta.png',\
@@ -215,8 +239,8 @@ def exportELN(backend, docID):
       'version': '1.0',\
       'hasPart': masterChildren\
       }
-    #finalize file
     graph.append(masterNode)
+    #finalize file
     index['@graph'] = graph
     zipFile.writestr(dirNameProject+os.sep+'ro-crate-metadata.json', json.dumps(index, indent=2))
   return True
