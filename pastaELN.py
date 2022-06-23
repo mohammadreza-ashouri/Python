@@ -256,7 +256,8 @@ else:
         success=False
 
     elif args.command=='createDoc':
-      content = args.content.replace("\n","\\n")
+      from urllib import parse
+      content = parse.unquote(args.content)
       doc = json.loads(content)
       docType = doc['docType']
       del doc['docType']
