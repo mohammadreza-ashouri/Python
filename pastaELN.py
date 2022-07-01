@@ -4,7 +4,8 @@
 Called by user or reactElectron frontend. Keep it simple: only functions that
 are required by frontend. Otherwise, make only temporary changes
 """
-import os, json, sys, subprocess
+import os, json, sys
+from subprocess import run, PIPE, STDOUT
 import argparse, traceback
 import urllib.request
 from backend import Pasta
@@ -58,6 +59,8 @@ Possible commands are:
       example: pastaELN.py importXLS -d instruments -i x-a803c556bb3b367b1e78901109bd5bf5 -c "~/path/to.xls" -l instrument
       -l is the document type
       afterwards: adopt ontology (views are automatically generated)
+    importELN: import .eln file
+      example: pastaELN.py importELN -c PASTA.eln
 ''')
 argparser.add_argument('command', help='see above...')
 argparser.add_argument('-i','--docID',   help='docID of project; always a long alpha-numeric code', default='')
@@ -194,21 +197,22 @@ else:
       print('software directory:',be.softwarePath)
       os.chdir(be.softwarePath)
       cmd = ['git','show','-s','--format=%ci']
-      output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+      output = run(cmd, stdout=PIPE, stderr=STDOUT, check=True)
       print('software version:',' '.join(output.stdout.decode('utf-8').split()[0:2]))
 
     elif args.command=='updatePASTA':
       #update desktop incl. Python backend
       os.chdir(be.softwarePath)
       os.chdir('..')
-      cmd = ['git','pull','--recurse-submodules']
-      output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
-      print(output.stdout.decode('utf-8'))
+      text = run(['git','pull'], stdout=PIPE, stderr=STDOUT, check=True)
+      print(text.stdout.decode('utf-8'))
       #ensure requirements are fulfilled
       os.chdir('Python')
+      text = run(['git','pull'], stdout=PIPE, stderr=STDOUT, check=True)
+      print(text.stdout.decode('utf-8'))
       cmd = ['pip3','install','-r','requirements.txt','--disable-pip-version-check']
-      output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
-      print(output.stdout.decode('utf-8'))
+      text = run(cmd, stdout=PIPE, stderr=STDOUT, check=True)
+      print(text.stdout.decode('utf-8'))
 
     elif args.command.startswith('verifyDB'):
       repair = args.command=='verifyDBdev'
