@@ -51,7 +51,7 @@ class Pasta:
     # directories
     #    self.basePath (root of directory tree) is root of all projects
     #    self.cwd changes during program
-    self.softwarePath = os.path.dirname(os.path.abspath(__file__))
+    self.softwarePath = configuration['softwareDir']
     self.extractorPath = configuration['extractorDir'] if 'extractorDir' in configuration else \
                          self.softwarePath+os.sep+'extractors'
     sys.path.append(self.extractorPath)  #allow extractors
