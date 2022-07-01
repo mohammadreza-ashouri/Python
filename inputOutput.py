@@ -225,18 +225,18 @@ def exportELN(backend, docID):
       '@type':'CreativeWork',\
       'about': {'@id': './'},\
       'conformsTo': {'@id': 'https://w3id.org/ro/crate/1.1'},\
-      'schemaVersion': 'v1.0'}
-    graph.append(masterNode)
-    masterNode  = {\
-      '@id':'./',\
-      '@type':['Dataset'],\
+      'schemaVersion': 'v1.0',\
       'dateCreated': datetime.now().isoformat(),\
       'sdPublisher': {'@type':'Organization', 'name': 'PASTA ELN',\
         'logo': 'https://raw.githubusercontent.com/PASTA-ELN/desktop/main/pasta.png',\
         'slogan': 'The favorite ELN for experimental scientists',\
         'url': 'https://github.com/PASTA-ELN/',\
         'description':'Version '+output.stdout.decode('utf-8').split()[-1]},\
-      'version': '1.0',\
+      'version': '1.0'}
+    graph.append(masterNode)
+    masterNode  = {\
+      '@id':'./',\
+      '@type':['Dataset'],\
       'hasPart': masterChildren\
       }
     graph.append(masterNode)
