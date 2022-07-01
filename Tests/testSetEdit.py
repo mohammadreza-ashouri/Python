@@ -136,7 +136,7 @@ class TestStringMethods(unittest.TestCase):
       # print('Promote last measurement')
       # ## Requires move of measurement into different folder: not supported yet/ever
       # ##   measurements should be moved by user on disk and then recorded
-      # ##   #TODO D: Change in future? Requires recoding of most everything
+      # ##   #TODO_P3: Change in future
       # myString = self.be.outputHierarchy(False,True,None)
       # myString = myString.split('\n')
       # myString[-1] = myString[-1].replace('** ','* ')

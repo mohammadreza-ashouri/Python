@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """ Main function when command-line commands used
 
-Called by user or reactElectron frontend. Keep it simple: only functions that
+Called by user or react-electron frontend. Keep it simple: only functions that
 are required by frontend. Otherwise, make only temporary changes
 """
 import os, json, sys
@@ -11,6 +11,7 @@ import urllib.request
 from backend import Pasta
 from miscTools import upOut, upIn, getExtractorConfig, printQRcodeSticker, checkConfiguration
 
+#TODO_P2 os -> pathlib: no more change-dir; open branch for it
 argparser = argparse.ArgumentParser(usage='''
 pastaELN.py <command> [-i docID] [-c content] [-l labels] [-d database]
 
