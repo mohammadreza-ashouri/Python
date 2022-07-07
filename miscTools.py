@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-Misc methods and diffinitions for json, colors
+Misc methods and definitions for json, colors
 """
 import sys
 

@@ -205,10 +205,6 @@ class TestStringMethods(unittest.TestCase):
       # self.be.replicateDB(configName,True)
       print('\n*** DONE WITH VERIFY ***')
       self.backup()
-      with open(self.be.softwarePath+'/pasta.log','r', encoding='utf-8') as fIn:
-        text = fIn.read()
-        self.assertFalse(text.count('**WARNING')==7,'WARNING string !=7 in log-file')
-        self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
       raise
@@ -220,12 +216,14 @@ class TestStringMethods(unittest.TestCase):
     backup test
     """
     print("BACKUP TEST")
-    if os.path.exists(self.be.basePath+'pasta_backup.zip'):
-      os.unlink(self.be.basePath+'pasta_backup.zip')
+    os.chdir('..')
+    print('In directory', os.path.abspath(os.curdir))
+    if os.path.exists(self.be.basePath+'../pasta_backup.zip'):
+      os.unlink(self.be.basePath+'../pasta_backup.zip')
     warnings.simplefilter("ignore")
     self.be.backup() #throws an "Exception ignored in SSL Socket"
     warnings.simplefilter("default")
-    if not os.path.exists(self.be.basePath+'pasta_backup.zip'):
+    if not os.path.exists(self.be.basePath+'../pasta_backup.zip'):
       print("Backup did not create zip file",self.be.basePath+'pasta_backup.zip')
       raise NameError('zip file was not created')
     success = self.be.backup('compare')

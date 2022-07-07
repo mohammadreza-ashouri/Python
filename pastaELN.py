@@ -10,6 +10,7 @@ import argparse, traceback
 import urllib.request
 from backend import Pasta
 from miscTools import upOut, upIn, getExtractorConfig, printQRcodeSticker, checkConfiguration
+from inputOutput import importELN, exportELN
 
 #TODO_P2 os -> pathlib: no more change-dir; open branch for it
 argparser = argparse.ArgumentParser(usage='''
@@ -244,7 +245,10 @@ else:
         config['-qrPrinter']['printer'])
 
     elif args.command=='saveBackup':   #save to backup file.zip
-      be.backup('backup', None, args.docID)
+      if args.docID!='':
+        exportELN(be, args.docID)
+      else:
+        be.backup('backup')
 
     elif args.command=='loadBackup':   #load from backup file.zip
       be.backup('restore')
@@ -284,6 +288,10 @@ else:
         doc = dict((k.lower(), v) for k, v in row.items())
         be.addData(args.label, doc )
       success=True
+
+    elif args.command=='importELN':
+      path = args.content if args.content[0]==os.sep else curWorkingDirectory+os.sep+args.content
+      success = importELN(be, args.database, path)
 
     else:
       ## Commands that require open database and open project
