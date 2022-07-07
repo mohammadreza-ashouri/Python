@@ -1,4 +1,4 @@
-
+"""Input and output functions towards the .eln file-format"""
 
 def importELN(backend, database, elnFileName):
   '''
@@ -10,20 +10,21 @@ def importELN(backend, database, elnFileName):
     elnFileName (string): name of file
 
   Returns:
-    success as bool
+    bool: success of import
   '''
   import os, json, shutil, base64
   from zipfile import ZipFile, ZIP_DEFLATED
 
-  #global variables
-  elnName = None
-  elnVersion = None
-
   def processPart(part):
     """
     recursive function call to process this node
+
+    Args:
+      part (dict): dictionary containing this data content
+
+    Returns:
+      bool: success of this function
     """
-    success = True
     if not isinstance(part, dict):
       print("**ERROR in part",part)
       return False
@@ -62,6 +63,9 @@ def importELN(backend, database, elnFileName):
       #for all ELN
       if '@type' in newNode:
         del newNode['@type']
+      if elnVersion is not None:
+        newNode['importedFrom'] = elnName+' '+elnVersion
+        elnVersion = None
       if elnName=='PASTA ELN' and newNode['-type'][0]!='x0':
         backend.db.saveDoc(newNode)
         if newNode['-type'][0][0]=='x':
@@ -98,10 +102,12 @@ def importELN(backend, database, elnFileName):
         shutil.copyfileobj(source, target)
       if elnName!='PASTA ELN':
         backend.addData(docType,part)
-    return
+    return True
 
   ######################
   #main function
+  elnName = None
+  elnVersion = None
   with ZipFile(elnFileName, 'r', compression=ZIP_DEFLATED) as elnFile:
     files = elnFile.namelist()
     dirName=files[0].split(os.sep)[0]
@@ -111,17 +117,15 @@ def importELN(backend, database, elnFileName):
     graph = json.loads(elnFile.read(dirName+'/ro-crate-metadata.json'))["@graph"]
     # print(json.dumps(graph,indent=2))
     #find information from master node
-    elnName, elnVersion = '', ''
     rocrateNode = [i for i in graph if i["@id"]=="ro-crate-metadata.json"][0]
     if 'sdPublisher' in rocrateNode:
       elnName     = rocrateNode['sdPublisher']['name']
     if 'version' in rocrateNode:
       elnVersion  = rocrateNode['version']
+    else:
+      elnVersion  = ''
+    print('Import',elnName,elnVersion)
     mainNode    = [i for i in graph if i["@id"]=="./"][0]
-    if 'sdPublisher' in mainNode:
-      elnName     = mainNode['sdPublisher']['name']
-    if 'version' in mainNode:
-      elnVersion  = mainNode['version']
     #iteratively go through list
     for part in mainNode['hasPart']:
       processPart(part) #TODO_P2 first child should get elnName and version
@@ -129,6 +133,16 @@ def importELN(backend, database, elnFileName):
 
 
 def exportELN(backend, docID):
+  """
+  export eln to file
+
+  Args:
+    backend (backend): PASTA backend instance
+    docID (string): docId of project
+
+  Returns:
+    bool: success of this export
+  """
   import os, json, subprocess
   import base64, io, shutil
   from PIL import Image
@@ -147,12 +161,20 @@ def exportELN(backend, docID):
     #create tree of hierarchical data
     treedata = {}
 
-    def listChildren(id, level):
+    def listChildren(idString, level):
       """
+      List all children
+
+      Args:
+        idString (string): id of this part
+        level (int): hierarchical level starting from 0
+
+      Returns:
+        list: list of children ids
       """
       items = [i for i in listDocs if len(i['key'].split(' '))==level]
-      if id is not None:
-        items = [i for i in items if i['key'].startswith(id)]
+      if idString is not None:
+        items = [i for i in items if i['key'].startswith(idString)]
       #sort by child
       keys = [i['key'] for i in items]
       childNums = [i['value'][0] for i in items]
@@ -165,7 +187,7 @@ def exportELN(backend, docID):
           treedata['__masterID__'] = item
       return [i.split(' ')[-1] for i in items]
 
-    children = listChildren(id=None, level=1)
+    listChildren(idString=None, level=1)
     masterID = treedata.pop('__masterID__')
     # print(treedata)
     for doc in treedata:
@@ -211,7 +233,6 @@ def exportELN(backend, docID):
     #3 ------------------- write index.json ---------------------------
     index = {}
     index['@context']= 'https://w3id.org/ro/crate/1.1/context'
-    index
     # master node ro-crate-metadata.json
     cwd = backend.cwd
     os.chdir(backend.softwarePath)
