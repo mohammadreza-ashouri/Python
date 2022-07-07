@@ -170,7 +170,8 @@ def exportELN(backend, docID):
     # print(treedata)
     for doc in treedata:
       doc = backend.db.getDoc(doc)
-      doc['@id'] = doc.pop('_id')
+      doc['@id']   = doc.pop('_id')
+      doc['@type'] = "DigitalDocument"
       if len(treedata[doc['@id']])>0:
         doc['hasPart'] = [{'@id':i} for i in treedata[doc['@id']]]
       if 'image' in doc:
@@ -189,14 +190,10 @@ def exportELN(backend, docID):
         else:
           print('image type not implemented')
         del doc['image']
-        doc['hasPart'] = [{'@id':fileName, '@type':'File'}]
+        doc['hasPart'] = [{'@id':fileName}]
+        graph.append({'@id':fileName, '@type':'File'})
       graph.append(doc)
-      # # Attachments
-      # if '_attachments' in doc:
-      #   numAttachments += len(doc['_attachments'])
-      #   for i in range(len(doc['_attachments'])):
-      #     attachmentName = dirNameProject+os.sep+'__database__'+os.sep+doc['_id']+'/v'+str(i)+'.json'
-      #     zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
+      # Attachments are not saved
 
     #2 ------------------ write data-files --------------------------
     masterChildren = [{'@id':masterID}]
@@ -207,7 +204,8 @@ def exportELN(backend, docID):
       for iFile in files:
         if iFile.startswith('.git') or iFile=='.id_pastaELN.json':
           continue
-        masterChildren.append({'@id':path+os.sep+iFile, '@type':'File'})
+        masterChildren.append({'@id':path+os.sep+iFile})
+        graph.append({'@id':path+os.sep+iFile, '@type':'File'})
         zipFile.write(path+os.sep+iFile, dirNameProject+os.sep+path+os.sep+iFile)
 
     #3 ------------------- write index.json ---------------------------
@@ -234,18 +232,9 @@ def exportELN(backend, docID):
         'description':'Version '+output.stdout.decode('utf-8').split()[-1]},\
       'version': '1.0'}
     graph.append(masterNode)
-    masterNode  = {\
-      '@id':'./',\
-      '@type':['Dataset'],\
-      'hasPart': masterChildren\
-      }
+    masterNode  = {'@id':'./', '@type':['Dataset'], 'hasPart': masterChildren}
     graph.append(masterNode)
     #finalize file
     index['@graph'] = graph
     zipFile.writestr(dirNameProject+os.sep+'ro-crate-metadata.json', json.dumps(index, indent=2))
   return True
-
-"""
-Whishlist Kadi4Mat:
-- no redundant info;
-"""
