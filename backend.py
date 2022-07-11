@@ -722,25 +722,24 @@ class Pasta:
     viewPaths      = self.db.getView('viewHierarchy/viewPaths')
     listPaths = [item['key'] for item in viewPaths]
     clean, count = True, 0
-    for _ in viewProjects:
-      # doc = self.db.getDoc(item['id'])
-      # dirName =doc['-branch'][0]['path']
-      # output += '- '+dirName+' -\n'
-      fileList = annexrepo.AnnexRepo('.').status()
+    for item in viewProjects:
+      doc = self.db.getDoc(item['id'])
+      dirName =doc['-branch'][0]['path']
+      fileList = annexrepo.AnnexRepo(self.basePath.joinpath(self.cwd).joinpath(dirName)).status()
       for posixPath in fileList:
         if fileList[posixPath]['state'] != 'clean':
           output += fileList[posixPath]['state']+' '+fileList[posixPath]['type']+' '+str(posixPath)+'\n'
           clean = False
         #test if file exists
-        relPath = self.basePath.relative_to(posixPath)
-        if relPath.endswith('.id_pastaELN.json'): #if project,step,task
+        relPath = posixPath.relative_to(self.basePath)
+        if relPath.stem=='.id_pastaELN.json': #if project,step,task
           relPath = relPath.parent
         if relPath in listPaths:
           listPaths.remove(relPath)
           continue
-        if '_pasta.' in relPath or '/.datalad/' in relPath or \
-           relPath.endswith('.gitattributes') or self.basePath.joinpath(relPath).is_dir() or \
-           relPath.endswith('.gitignore'):
+        if '_pasta.' in str(relPath) or '.datalad' in relPath.parts or \
+           relPath.stem=='.gitattributes' or self.basePath.joinpath(relPath).is_dir() or \
+           relPath.stem=='.gitignore':
           continue
         extension = '*'+relPath.suffix.lower()
         if extension in self.vanillaGit:

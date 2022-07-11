@@ -339,10 +339,11 @@ def checkConfiguration(conf=None, repair=False):
   Returns:
       string: output incl. \n
   """
-  import os, json
+  import json
+  from pathlib import Path
   from cloudant.client import CouchDB
   if conf is None:
-    with open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8') as fConf:
+    with open(Path.home().joinpath('.pastaELN.json'),'r', encoding='utf-8') as fConf:
       conf = json.load(fConf)
   output = ''
 
