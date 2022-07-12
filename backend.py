@@ -284,6 +284,7 @@ class Pasta:
           if sys.platform=='win32':
             win32api.SetFileAttributes(path.joinpath('.gitattributes'),win32con.FILE_ATTRIBUTE_HIDDEN)
           dlDataset = datalad.Dataset(path)
+          aa= 4[0] #next line
           dlDataset.save(path='.',message='changed gitattributes')
         else:
           self.basePath.joinpath(path).mkdir(exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
@@ -374,6 +375,7 @@ class Pasta:
     #   datalad and git give the directories, if untracked/random; and datalad status produces output
     #   also, git-annex status is empty if nothing has to be done
     #   git-annex output is nice to parse
+    aa = 4/0 #next lines
     fileList = annexrepo.AnnexRepo('.').status()
     dlDataset = datalad.Dataset('.')
     #create dictionary that has shasum as key and [origin and target] as value
