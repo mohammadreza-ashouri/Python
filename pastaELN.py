@@ -25,7 +25,7 @@ def commands(getDocu, args):
   """
   doc = ''
   success = 0  #success 0=undecided; -1=False; 1=True
-  pathConfig = Path.home().joinpath('.pastaELN.json')
+  pathConfig = Path.home()/'.pastaELN.json'
 
   ##################################################
   ## general things that do not require open database / change configuration file
@@ -68,7 +68,7 @@ def commands(getDocu, args):
   elif args.command=='extractorScan':
     with open(pathConfig,'r', encoding='utf-8') as f:
       configuration = json.load(f)
-      pathToExtractors = Path(__file__).parent.joinpath('extractors') \
+      pathToExtractors = Path(__file__).parent / 'extractors' \
         if 'extractorDir' not in configuration \
         else configuration['extractorDir']
     extractors = getExtractorConfig(pathToExtractors)
@@ -103,7 +103,7 @@ def commands(getDocu, args):
         del links[link][site]['password']
         changed = True
     if changed:
-      with open(Path.home().joinpath('.pastaELN_BAK.json'),'w', encoding='utf-8') as f:
+      with open(Path.home()/'.pastaELN_BAK.json','w', encoding='utf-8') as f:
         f.write(json.dumps(configBackup,indent=2))
       with open(pathConfig,'w', encoding='utf-8') as f:
         f.write(json.dumps(configuration,indent=2))
