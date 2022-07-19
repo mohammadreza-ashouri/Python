@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """TEST using the FULL set of python-requirements """
 import os, shutil, traceback, logging, subprocess
+from pathlib import Path
 import warnings, time
 import unittest
 from backend import Pasta
@@ -49,7 +50,7 @@ class TestStringMethods(unittest.TestCase):
       projID  = [i['id'] for i in viewProj if i['value'][0]=='Test project1'][0]
       projID1 = [i['id'] for i in viewProj if i['value'][0]=='Test project2'][0]
       self.be.changeHierarchy(projID)
-      projDirName = self.be.basePath+self.be.cwd
+      projDirName = self.be.basePath/self.be.cwd
       self.be.addData('x1',    {'comment': 'More random text', '-name': 'Test step one'})
       self.be.addData('x1',    {'comment': 'Much more random text', '-name': 'Test step two'})
       stepID = self.be.currentID
@@ -109,10 +110,10 @@ class TestStringMethods(unittest.TestCase):
       # also enter empty data to test if tags are extracted
       # scan tree to register into database
       print('*** TEST MEASUREMENTS AND SCANNING 1 ***')
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
-      stepDirName = self.be.basePath+self.be.db.getDoc(stepID)['-branch'][0]['path']
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
+      shutil.copy(self.be.softwarePath/'ExampleMeasurements/Zeiss.tif', projDirName)
+      shutil.copy(self.be.softwarePath/'ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
+      stepDirName = self.be.basePath/self.be.db.getDoc(stepID)['-branch'][0]['path']
+      shutil.copy(self.be.softwarePath/'ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
       self.be.scanTree()
       print(" ====== STATE 6 ====\n"+self.be.checkDB(verbose=False))
 
@@ -140,8 +141,8 @@ class TestStringMethods(unittest.TestCase):
 
       ### Try to fool system: move directory that includes data to another random name
       print('*** TEST MOVE DIRECTORY INTO RANDOM NAME ***')
-      origin = self.be.basePath+self.be.db.getDoc(stepID)['-branch'][0]['path']
-      target = os.sep.join(origin.split(os.sep)[:-1])+os.sep+'RandomDir'
+      origin = self.be.basePath/self.be.db.getDoc(stepID)['-branch'][0]['path']
+      target = origin.parent / 'RandomDir'
       shutil.move(origin, target)
       self.be.scanTree()
       print(" ====== STATE 9 ====\n"+self.be.checkDB(verbose=False))
@@ -152,9 +153,9 @@ class TestStringMethods(unittest.TestCase):
       self.be.changeHierarchy(projID1) #change into non-existant path; try to confuse software
       self.be.changeHierarchy(None)
       self.be.changeHierarchy(projID1) #change into existant path
-      projDirName1 = self.be.basePath+self.be.cwd
-      shutil.copy(projDirName+'/Zeiss.tif',projDirName1+'/Zeiss.tif')
-      shutil.move(projDirName+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteel0000LC.txt')
+      projDirName1 = self.be.basePath/self.be.cwd
+      shutil.copy(projDirName/'Zeiss.tif',projDirName1/'Zeiss.tif')
+      shutil.move(projDirName/'RobinSteel0000LC.txt',projDirName1/'RobinSteel0000LC.txt')
       self.be.scanTree()
       # A file was removed from previous project, go there, scan, return
       self.be.changeHierarchy(None)
@@ -166,7 +167,7 @@ class TestStringMethods(unittest.TestCase):
 
       ### Remove data: adopt branch in document
       print('*** TEST DELETE DATA FILE ***')
-      os.remove(projDirName1+'/Zeiss.tif')
+      os.remove(projDirName1/'Zeiss.tif')
       self.be.scanTree()
       print(" ====== STATE 11 ====\n"+self.be.checkDB(verbose=False))
 
@@ -248,9 +249,9 @@ class TestStringMethods(unittest.TestCase):
     old method for testing and plotting things on the screen. Over time much of the functionality has been moved to checkDB
     use diff-file to compare hierarchies, directory tree
     """
-    with open(self.be.softwarePath+'/Tests/verify'+str(number)+'.org','w', encoding='utf-8') as f:
+    with open(self.be.softwarePath/('Tests/verify'+str(number)+'.org'),'w', encoding='utf-8') as f:
       f.write(text)
-      f.write('++STATE: '+self.be.cwd+' '+str(self.be.hierStack)+'\n')
+      f.write('++STATE: '+str(self.be.cwd)+' '+str(self.be.hierStack)+'\n')
       f.write(self.be.outputHierarchy(onlyHierarchy,True,'all'))
       f.write('\n====================')
       try:

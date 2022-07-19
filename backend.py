@@ -242,7 +242,10 @@ class Pasta:
     # assemble branch information
     if childNum is None:
       childNum=9999
-    doc['-branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
+    if path is not None and path.is_absolute():
+      path = path.relative_to(self.basePath)
+    path = None if path is None else str(path)
+    doc['-branch'] = {'stack':hierStack,'child':childNum,'path':path, 'op':operation}
     if edit:
       #update document
       keysNone = [key for key in doc if doc[key] is None]
@@ -327,6 +330,7 @@ class Pasta:
         dirName (string): use this name to change into
         kwargs (dict): additional parameter
     """
+    from pathlib import Path
     if docID is None or (docID[0]=='x' and docID[1]!='-'):  # none, 'project', 'step', 'task' are given: close
       self.hierStack.pop()
       if self.cwd is not None:
@@ -338,6 +342,8 @@ class Pasta:
             doc = self.db.getDoc(docID)
             path = doc['-branch'][0]['path']
             dirName = path.split('/')[-1]
+          if isinstance(dirName, Path) and len(dirName.parts)>1:
+            dirName = dirName.parts[-1]
           self.cwd = self.cwd/dirName
         self.hierStack.append(docID)
       except:
@@ -405,9 +411,9 @@ class Pasta:
     for _, (origin, target) in shasumDict.items():
       print("  File changed:",origin,target)
       # originDir, _ = o..s.path.split(self.cwd+origin)
-      targetDir = target.parent
       # find hierStack and parentID of new TARGET location: for new and move
       if target != '':
+        targetDir = target.parent
         if not target.exists(): #if dead link
           linkTarget = target.readlink()
           for dirI in self.basePath.glob('*'):
@@ -439,14 +445,14 @@ class Pasta:
         if target == '':
           dlDataset.save(path=origin, message='Removed file')
         else:
-          dlDataset.save(path=origin, message='Moved file from here to '+self.cwd+target   )
-          dlDataset.save(path=target, message='Moved file from '+self.cwd+origin+' to here')
+          dlDataset.save(path=origin, message='Moved file from here to '+str(self.cwd/target)   )
+          dlDataset.save(path=target, message='Moved file from '+str(self.cwd/origin)+' to here')
         #get docID
-        if origin.endswith('.id_pastaELN.json'):
+        if origin!='' and origin.stem == '.id_pastaELN.json':
           origin = origin.parts[0]
-        if target.endswith('.id_pastaELN.json'):
+        if target!='' and target.stem == '.id_pastaELN.json':
           target = target.parts[0]
-        view = self.db.getView('viewHierarchy/viewPaths', preciseKey=self.cwd+origin )
+        view = self.db.getView('viewHierarchy/viewPaths', preciseKey=str(self.cwd/origin) )
         if len(view)==1:
           docID = view[0]['id']
           if target == '':       #delete
@@ -460,8 +466,8 @@ class Pasta:
                                           'child':itemTarget['value'][2],\
                                           'op':'u'}}, docID)
         else:
-          if not '_pasta.' in origin:
-            print("file not in database",self.cwd+origin)
+          if not '_pasta.' in str(origin):
+            print("file not in database",self.cwd/origin)
     return
 
 
@@ -633,7 +639,7 @@ class Pasta:
       parentPath = filePath.parts[0]
       dataset = datalad.Dataset(self.basePath/parentPath)
       if dataset.id:
-        dataset.save(path=self.basePath+filePath, message='Added locked document')
+        dataset.save(path=self.basePath/filePath, message='Added locked document')
       if exitAfterDataLad:
         return
       absFilePath = self.basePath/filePath
@@ -727,7 +733,7 @@ class Pasta:
     for item in viewProjects:
       doc = self.db.getDoc(item['id'])
       dirName =doc['-branch'][0]['path']
-      fileList = annexrepo.AnnexRepo(self.basePath/self.cwd/dirName).status()
+      fileList = annexrepo.AnnexRepo(self.basePath/dirName).status()
       for posixPath in fileList:
         if fileList[posixPath]['state'] != 'clean':
           output += fileList[posixPath]['state']+' '+fileList[posixPath]['type']+' '+str(posixPath)+'\n'
@@ -740,7 +746,7 @@ class Pasta:
           listPaths.remove(relPath)
           continue
         if '_pasta.' in str(relPath) or '.datalad' in relPath.parts or \
-           relPath.stem=='.gitattributes' or self.basePath/relPath.is_dir() or \
+           relPath.stem=='.gitattributes' or (self.basePath/relPath).is_dir() or \
            relPath.stem=='.gitignore':
           continue
         extension = '*'+relPath.suffix.lower()
@@ -917,14 +923,17 @@ class Pasta:
     Returns:
        success of function: true/false
     """
-    import re, tempfile
+    import re
     from pathlib import Path
     import datalad.api as datalad
     from commonTools import commonTools as cT
     from miscTools import createDirName
     # write backup
-    with open(tempfile.gettempdir()/'tempSetEditString.txt','w', encoding='utf-8') as fOut:
-      fOut.write(text)
+    verbose = True #debugging only of this function
+    if verbose:
+      print('===============START SAVE HIERARCHY===============')
+      print(text)
+      print('---------------End reprint input   ---------------')
     dlDataset = datalad.Dataset(self.basePath/self.cwd.parts[0])
     # add the prefix to org-mode structure lines
     prefix = '*'*len(self.hierStack)
@@ -1008,44 +1017,46 @@ class Pasta:
       if levelOld is None:   #first run-through
         doc['childNum'] = docDB['-branch'][0]['child']
       else:                   #after first entry
-        lenPath = len(self.cwd.split('/'))-1 if len(self.cwd.split('/')[-1])==0 else len(self.cwd.split('/'))
+        lenPath = len(self.cwd.parts)-1 if len(self.cwd.parts[-1])==0 else len(self.cwd.parts)
         for _ in range(lenPath-levelNew):
           self.changeHierarchy(None)                        #'cd ..'
         #check if directory exists on disk
         #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
-        dirName = createDirName(doc['-name'],doc['-type'][0],children[-1])
+        dirName = self.basePath/self.cwd/createDirName(doc['-name'],doc['-type'][0],children[-1])
         if not dirName.exists():                     #if move, deletion or because new
           if doc['_id']=='' or doc['_id']=='undefined':     #if new data
             dirName.mkdir()
           else:                                             #if move
-            path = docDB['-branch'][0]['path']
+            path = Path(docDB['-branch'][0]['path'])
             if not (self.basePath/path).exists():      #parent was moved: get 'path' from knowledge of parent
               parentID = docDB['-branch'][0]['stack'][-1]
               pathParent = Path(self.db.getDoc(parentID)['-branch'][0]['path'])
-              path = pathParent/path.parent
+              path = pathParent/path.stem
             if not (self.basePath/path).exists():        #if still does not exist
-              print("**ERROR bse01: doc path was not found and parent path was not found |"+doc)
+              print("**ERROR bse01: doc path was not found and parent path was not found |"+str(doc))
               return False
             if self.confirm is None or self.confirm(None,"Move directory "+path+" -> "+self.cwd+dirName):
-              self.basePath/path.rename(self.basePath/self.cwd)/dirName
-              dlDataset.save(path=self.basePath+path, message='SetEditString move directory: origin')
-              dlDataset.save(path=self.basePath+self.cwd+dirName, message='SetEditString move directory: target')
+              (self.basePath/path).rename(self.basePath/self.cwd/dirName)
+              dlDataset.save(path=self.basePath/path, message='SetEditString move directory: origin')
+              dlDataset.save(path=self.basePath/self.cwd/dirName, message='SetEditString move dir: target')
         if edit=='-edit-':
           self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
           if path is not None:
             #adopt measurements, samples, etc: change / update path by supplying old path
-            view = self.db.getView('viewHierarchy/viewPaths', startKey=path)
+            view = self.db.getView('viewHierarchy/viewPaths', startKey=str(path))
             for item in view:
-              if item['value'][1][0][0]=='x': continue  #skip since moved by itself
+              if item['value'][1][0][0]=='x':
+                continue  #skip since moved by itself
               self.db.updateDoc( {'-branch':{'path':self.cwd, 'oldpath':path,\
                                             'stack':self.hierStack,\
                                             'child':item['value'][2],\
                                             'op':'u'}},item['id'])
         doc['childNum'] = children[-1]
-      # write change to database
       ## FOR DEBUGGING:
-      print(doc['-name'].strip()+'|'+str(doc['-type'])+'||'+doc['_id']+' #:',doc['childNum'])
-      print('  children:',children,'   levelNew, levelOld',levelNew,levelOld,'   cwd:',self.cwd,'\n')
+      if verbose:
+        print(doc['-name'].strip()+'|'+str(doc['-type'])+'||'+doc['_id']+' #:',doc['childNum'])
+        print('  children:',children,'   levelNew, levelOld',levelNew,levelOld,'   cwd:',self.cwd,'\n')
+      # write change to database
       if edit=='-edit-':
         docDB = dict(docDB)
         docDB.update(doc)
@@ -1062,7 +1073,6 @@ class Pasta:
       children.pop()
     for _ in range(len(children)-1):
       self.changeHierarchy(None)
-    tempfile.gettempdir()/'tempSetEditString.txt'.unlink()
     dataset = datalad.Dataset(self.basePath/self.cwd.parts[0])
     dataset.save(message='set-edit-string: update the project structure')
     return True

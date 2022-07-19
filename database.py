@@ -156,9 +156,6 @@ class Database:
     if '-branch' in doc and 'op' in doc['-branch']:
       del doc['-branch']['op']  #remove operation, saveDoc creates and therefore always the same
       doc['-branch'] = [doc['-branch']]
-    for branch in doc['-branch']:
-      if isinstance(branch['path'], PosixPath):
-        branch['path'] = str(branch['path'])
     if self.confirm is None or self.confirm(doc,"Create this document?"):
       try:
         res = self.db.create_document(doc)
@@ -338,7 +335,7 @@ class Database:
       else:
         res = list(v.result)
     except:
-      print('**ERROR dgv01: Database / Network problem for path |',thePath)
+      print('**ERROR dgv01: Database / Network problem for path |',thePath[1])
       res = []
     return res
 
