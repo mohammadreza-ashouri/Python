@@ -4,6 +4,7 @@ import os, shutil, traceback, logging, subprocess
 from pathlib import Path
 import warnings, time
 import unittest
+import datalad.api as datalad
 from backend import Pasta
 
 class TestStringMethods(unittest.TestCase):
@@ -33,6 +34,17 @@ class TestStringMethods(unittest.TestCase):
     shutil.rmtree(self.dirName)
     os.makedirs(self.dirName)
     self.be = Pasta(configName, initViews=True)
+
+    logging.basicConfig(filename=self.be.softwarePath/'pasta.log',
+                        format='%(asctime)s|%(levelname)s:%(message)s',
+                        datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+    logging.getLogger('requests').setLevel(logging.WARNING)
+    logging.getLogger('asyncio').setLevel(logging.WARNING)
+    logging.getLogger('datalad').setLevel(logging.WARNING)
+    logging.getLogger('PIL').setLevel(logging.WARNING)
+    logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
+    logging.info('\nSTART PASTA '+configName)
 
     try:
       ### create some projects and show them
@@ -150,11 +162,13 @@ class TestStringMethods(unittest.TestCase):
       ### Move data, copy data into different project
       print('*** TEST MOVE DATA INTO DIFFERENT PROJECT ***')
       print('Try to change into non-existant path')
-      self.be.changeHierarchy(projID1) #change into non-existant path; try to confuse software
+      self.be.changeHierarchy(projID1) #change forward and back; try to confuse software
       self.be.changeHierarchy(None)
       self.be.changeHierarchy(projID1) #change into existant path
       projDirName1 = self.be.basePath/self.be.cwd
       shutil.copy(projDirName/'Zeiss.tif',projDirName1/'Zeiss.tif')
+      dataset = datalad.Dataset(self.be.basePath/projDirName)
+      dataset.unlock(path=projDirName/'RobinSteel0000LC.txt')
       shutil.move(projDirName/'RobinSteel0000LC.txt',projDirName1/'RobinSteel0000LC.txt')
       self.be.scanTree()
       # A file was removed from previous project, go there, scan, return
@@ -177,7 +191,7 @@ class TestStringMethods(unittest.TestCase):
       # compare database entries to those in filesystem (allows to check for unforseen events)
       # clean all that database entries in the filesystem
       print('*** TEST Rename a file locally ***')
-      shutil.move(projDirName1+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteelLC.txt')
+      shutil.move(projDirName1/'RobinSteel0000LC.txt',projDirName1/'RobinSteelLC.txt')
       self.be.scanTree()  #always scan before produceData: ensure that database correct
       print(" ====== STATE 12 ====\n"+self.be.checkDB(verbose=False))
 
@@ -206,7 +220,7 @@ class TestStringMethods(unittest.TestCase):
       # self.be.replicateDB(configName,True)
       print('\n*** DONE WITH VERIFY ***')
       self.backup()
-      with open(self.be.softwarePath+'/pasta.log','r', encoding='utf-8') as fIn:
+      with open(self.be.softwarePath/'pasta.log','r', encoding='utf-8') as fIn:
         text = fIn.read()
         self.assertFalse(text.count('**WARNING')==7,'WARNING string !=7 in log-file')
         self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
@@ -221,13 +235,13 @@ class TestStringMethods(unittest.TestCase):
     backup test
     """
     print("BACKUP TEST")
-    if os.path.exists(self.be.basePath+'pasta_backup.zip'):
-      os.unlink(self.be.basePath+'pasta_backup.zip')
+    if (self.be.basePath/'pasta_backup.zip').exists():
+      (self.be.basePath/'pasta_backup.zip').unlink()
     warnings.simplefilter("ignore")
     self.be.backup() #throws an "Exception ignored in SSL Socket"
     warnings.simplefilter("default")
-    if not os.path.exists(self.be.basePath+'pasta_backup.zip'):
-      print("Backup did not create zip file",self.be.basePath+'pasta_backup.zip')
+    if not (self.be.basePath/'pasta_backup.zip').exists():
+      print("Backup did not create zip file",self.be.basePath/'pasta_backup.zip')
       raise NameError('zip file was not created')
     success = self.be.backup('compare')
     if not success:
