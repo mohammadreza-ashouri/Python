@@ -57,7 +57,7 @@ class TestStringMethods(unittest.TestCase):
       self.be.changeHierarchy(None)
       self.be.addData('x1',    {'-name': 'Nanoindentation'})
       self.be.changeHierarchy(self.be.currentID)
-      indentDirName = self.be.basePath+self.be.cwd
+      indentDirName = self.be.basePath/self.be.cwd
       self.be.changeHierarchy(None)
       oldString = self.be.outputHierarchy(False)
       print(oldString)
@@ -65,8 +65,8 @@ class TestStringMethods(unittest.TestCase):
 
 
       print('*** TEST MEASUREMENTS AND SCANNING/CURATION ***')
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', indentDirName)
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', indentDirName)
+      shutil.copy(self.be.softwarePath/'ExampleMeasurements/RobinSteel0000LC.txt', indentDirName)
+      shutil.copy(self.be.softwarePath/'ExampleMeasurements/1500nmXX 5 7074 -4594.txt', indentDirName)
       self.be.scanTree()
       oldString = self.be.outputHierarchy(False)
       print(oldString)

@@ -201,7 +201,7 @@ class Pasta:
           if localCopy:
             baseName  = Path(doc['-name']).stem
             extension = Path(doc['-name']).suffix
-            path = self.cwd/cT.camelCase(baseName)+extension
+            path = self.cwd/(cT.camelCase(baseName)+extension)
             request.urlretrieve(doc['-name'], self.basePath/path)
             doc['-name'] = cT.camelCase(baseName)+extension
           else:
@@ -335,6 +335,7 @@ class Pasta:
 
     Args:
         docID (string): information on how to change
+        dirName (string): change into this directory (absolute path given). For if data is moved
         kwargs (dict): additional parameter
     """
     from pathlib import Path
@@ -469,7 +470,7 @@ class Pasta:
                                           'child':itemTarget['value'][2],\
                                           'op':'u'}}, docID)
         else:
-          if not '_pasta.' in str(origin):
+          if '_pasta.' not in str(origin):  #TODO_P1 is this really needed
             print("file not in database",self.cwd/origin)
     return
 
@@ -976,7 +977,7 @@ class Pasta:
         pathArray[-1]='trash_'+'_'.join(pathArray[-1].split('_')[1:])
         newPath   = pathArray.join('')
         print('Deleted doc: Path',oldPath,newPath)
-        self.basePath/oldPath.rename(self.basePath/newPath)
+        _ = self.basePath/oldPath.rename(self.basePath/newPath)
         continue
 
       # deleted parents
@@ -1054,7 +1055,7 @@ class Pasta:
             for item in view:
               if item['value'][1][0][0]=='x':
                 continue  #skip since moved by itself
-              self.db.updateDoc( {'-branch':{'path':self.cwd, 'oldpath':path,\
+              self.db.updateDoc( {'-branch':{'path':str(self.cwd), 'oldpath':str(path),\
                                             'stack':self.hierStack,\
                                             'child':item['value'][2],\
                                             'op':'u'}},item['id'])

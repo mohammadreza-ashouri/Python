@@ -337,7 +337,7 @@ def checkConfiguration(conf=None, repair=False):
   Returns:
       string: output incl. \n
   """
-  import json
+  import json, os
   from pathlib import Path
   from cloudant.client import CouchDB
   if conf is None:
@@ -407,8 +407,9 @@ def translateJS2PY():
   - remove the last export-lines from commonTools.js
   """
   import re, io
+  from pathlib import Path
   import js2py
-  commonToolsHash = generic_hash('../DOM/src/commonTools.js')
+  commonToolsHash = generic_hash(Path('../DOM/src/commonTools.js'))
   with open('./commonTools.py', encoding='utf-8') as fIn:
     stortedHash     = fIn.readlines()[-1]
   stortedHash = stortedHash.split('HASH:')[1].strip()
