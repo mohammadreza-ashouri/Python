@@ -488,7 +488,8 @@ class Pasta:
     Returns:
         bool: success
     """
-    import json
+    import json, os
+    from pathlib import Path
     from datetime import datetime
     from zipfile import ZipFile, ZIP_DEFLATED
     dirNameProject = 'backup'
