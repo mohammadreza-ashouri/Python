@@ -12,6 +12,7 @@ from backend import Pasta
 from miscTools import upOut, upIn, getExtractorConfig, printQRcodeSticker, checkConfiguration
 from inputOutput import importELN, exportELN
 
+SOFTWARE_VERSION = "v1.2.1"
 
 def commands(getDocu, args):
   """
@@ -184,10 +185,7 @@ def commands(getDocu, args):
         print('**ERROR pma02: Ontology does NOT exist on server')
       print('local directory:',be.basePath)
       print('software directory:',be.softwarePath)
-      output = run(['git','tag'], cwd=be.softwarePath, stdout=PIPE, stderr=STDOUT, check=True)
-      output = output.stdout.decode('utf-8').split('\n')
-      if len(output)>2:
-        print('software version: '+output[-2])
+      print('software version: '+SOFTWARE_VERSION)
       success = 1
 
     if getDocu:
