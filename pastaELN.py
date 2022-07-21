@@ -185,7 +185,11 @@ def commands(getDocu, args):
       print('local directory:',be.basePath)
       print('software directory:',be.softwarePath)
       output = run(['git','tag'], cwd=be.softwarePath, stdout=PIPE, stderr=STDOUT, check=True)
-      print('software version: '+output.stdout.decode('utf-8').split('\n')[-2])
+      output = output.stdout.decode('utf-8').split('\n')
+      if len(output)>2:
+        print('software version: '+output[-2])
+      else:
+        print('software version: '+'\n'.join(output))
       success = 1
 
     if getDocu:
