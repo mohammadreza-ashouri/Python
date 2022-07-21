@@ -56,17 +56,17 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('x1',    {'-name': 'Data files'})
       semStepID = self.be.currentID
       self.be.changeHierarchy(semStepID)
-      semDirName = self.be.basePath+self.be.cwd
+      semDirName = self.be.basePath/self.be.cwd
       self.be.changeHierarchy(None)
       print(self.be.outputHierarchy())
 
       ### TEST PROCEDURES
       print('\n*** TEST PROCEDURES ***')
-      sopDir = self.dirName+os.sep+'StandardOperatingProcedures'
+      sopDir = self.dirName/'StandardOperatingProcedures'
       os.makedirs(sopDir)
-      with open(sopDir+os.sep+'Example_SOP.md','w', encoding='utf-8') as fOut:
+      with open(sopDir/'Example_SOP.md','w', encoding='utf-8') as fOut:
         fOut.write('# Put sample in instrument\n# Do something\nDo not forget to\n- not do anything wrong\n- **USE BOLD LETTERS**\n')
-      self.be.addData('procedure', {'-name': 'StandardOperatingProcedures'+os.sep+'Example_SOP.md', 'comment': '#v1'})
+      self.be.addData('procedure', {'-name': 'StandardOperatingProcedures\Example_SOP.md', 'comment': '#v1'})
       print(self.be.output('procedure'))
 
       ### TEST SAMPLES
@@ -77,8 +77,8 @@ class TestStringMethods(unittest.TestCase):
 
       ###  TEST MEASUREMENTS AND SCANNING/CURATION
       print('*** TEST MEASUREMENTS AND SCANNING/CURATION ***')
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/simple.png', semDirName)
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/simple.csv', semDirName)
+      shutil.copy(self.be.softwarePath/'ExampleMeasurements/simple.png', semDirName)
+      shutil.copy(self.be.softwarePath/'ExampleMeasurements/simple.csv', semDirName)
       self.be.scanTree()
 
       ### USE GLOBAL FILES
@@ -95,7 +95,7 @@ class TestStringMethods(unittest.TestCase):
       print('\n*** DONE WITH VERIFY ***')
 
     except:
-      print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
+      print('ERROR OCCURRED IN VERIFY TESTING\n',traceback.format_exc() )
       raise
     return
 
