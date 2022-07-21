@@ -50,13 +50,14 @@ def importELN(backend, database, elnFileName):
         docType = newNode['-type'][0]
         newNode['_id'] = newNode.pop('@id')
         if len(subparts)==1 and subparts[0]['@id'].startswith('__thumbnails__'):
-          imgdata = elnFile.open(dirName+os.sep+subparts[0]['@id']).read()
-          if subparts[0]['@id'].endswith('.png'):
-            newNode['image'] = "data:image/png;base64," + base64.b64encode(imgdata).decode()
-          elif subparts[0]['@id'].endswith('.svg'):
-            newNode['image'] = imgdata.decode("utf-8")
-          else:
-            print("**ERROR cannot read this thumbnail")
+          with elnFile.open(dirName+os.sep+subparts[0]['@id']) as elnFilePointer:
+            imgdata = elnFilePointer.read()
+            if subparts[0]['@id'].endswith('.png'):
+              newNode['image'] = "data:image/png;base64," + base64.b64encode(imgdata).decode()
+            elif subparts[0]['@id'].endswith('.svg'):
+              newNode['image'] = imgdata.decode("utf-8")
+            else:
+              print("**ERROR cannot read this thumbnail")
           subparts = []
       else:
         print('**ERROR undefined ELN-Name', elnName)

@@ -14,7 +14,9 @@ def use(filePath, recipe='', saveFileName=None):
     dict: containing image, metaVendor, metaUser, recipe
   """
   # Extractor for fancy instrument
-  metaVendor = json.load(open(filePath))
+  metaVendor = ''
+  with open(filePath,'r', encoding='utf-8') as jsonFile:
+    metaVendor = json.load(jsonFile)
   recipe = 'json'
   image = ''
 
