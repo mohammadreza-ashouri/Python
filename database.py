@@ -1,6 +1,7 @@
 """Class for interaction with couchDB
 """
 import traceback
+from pathlib import PosixPath
 from serverActions import testUser
 
 class Database:
@@ -36,7 +37,7 @@ class Database:
       if '-ontology-' in self.db:
         print('Info: remove old ontology')
         self.db['-ontology-'].delete()
-      with open(softwarePath+'ontology.json', 'r', encoding='utf-8') as fIn:
+      with open(softwarePath.joinpath('ontology.json'), 'r', encoding='utf-8') as fIn:
         doc = json.load(fIn)
       _ = self.db.create_document(doc)
     # check if default views exist and create them
@@ -334,7 +335,7 @@ class Database:
       else:
         res = list(v.result)
     except:
-      print('**ERROR dgv01: Database / Network problem for path |',thePath)
+      print('**ERROR dgv01: Database / Network problem for path |',thePath[1])
       res = []
     return res
 

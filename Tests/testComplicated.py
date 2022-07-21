@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 """TEST using the FULL set of python-requirements """
 import os, shutil, traceback, logging, subprocess
+from pathlib import Path
 import warnings, time
 import unittest
+import datalad.api as datalad
 from backend import Pasta
 
 class TestStringMethods(unittest.TestCase):
@@ -33,6 +35,17 @@ class TestStringMethods(unittest.TestCase):
     os.makedirs(self.dirName)
     self.be = Pasta(configName, initViews=True)
 
+    logging.basicConfig(filename=self.be.softwarePath/'pasta.log',
+                        format='%(asctime)s|%(levelname)s:%(message)s',
+                        datefmt='%m-%d %H:%M:%S' ,level=logging.DEBUG)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+    logging.getLogger('requests').setLevel(logging.WARNING)
+    logging.getLogger('asyncio').setLevel(logging.WARNING)
+    logging.getLogger('datalad').setLevel(logging.WARNING)
+    logging.getLogger('PIL').setLevel(logging.WARNING)
+    logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
+    logging.info('\nSTART PASTA '+configName)
+
     try:
       ### create some projects and show them
       print('*** TEST PROJECTS ***')
@@ -49,7 +62,7 @@ class TestStringMethods(unittest.TestCase):
       projID  = [i['id'] for i in viewProj if i['value'][0]=='Test project1'][0]
       projID1 = [i['id'] for i in viewProj if i['value'][0]=='Test project2'][0]
       self.be.changeHierarchy(projID)
-      projDirName = self.be.basePath+self.be.cwd
+      projDirName = self.be.basePath/self.be.cwd
       self.be.addData('x1',    {'comment': 'More random text', '-name': 'Test step one'})
       self.be.addData('x1',    {'comment': 'Much more random text', '-name': 'Test step two'})
       stepID = self.be.currentID
@@ -109,10 +122,10 @@ class TestStringMethods(unittest.TestCase):
       # also enter empty data to test if tags are extracted
       # scan tree to register into database
       print('*** TEST MEASUREMENTS AND SCANNING 1 ***')
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
-      stepDirName = self.be.basePath+self.be.db.getDoc(stepID)['-branch'][0]['path']
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
+      shutil.copy(self.be.softwarePath/'ExampleMeasurements/Zeiss.tif', projDirName)
+      shutil.copy(self.be.softwarePath/'ExampleMeasurements/RobinSteel0000LC.txt', projDirName)
+      stepDirName = self.be.basePath/self.be.db.getDoc(stepID)['-branch'][0]['path']
+      shutil.copy(self.be.softwarePath/'ExampleMeasurements/1500nmXX 5 7074 -4594.txt', stepDirName)
       self.be.scanTree()
       print(" ====== STATE 6 ====\n"+self.be.checkDB(verbose=False))
 
@@ -140,8 +153,8 @@ class TestStringMethods(unittest.TestCase):
 
       ### Try to fool system: move directory that includes data to another random name
       print('*** TEST MOVE DIRECTORY INTO RANDOM NAME ***')
-      origin = self.be.basePath+self.be.db.getDoc(stepID)['-branch'][0]['path']
-      target = os.sep.join(origin.split(os.sep)[:-1])+os.sep+'RandomDir'
+      origin = self.be.basePath/self.be.db.getDoc(stepID)['-branch'][0]['path']
+      target = origin.parent / 'RandomDir'
       shutil.move(origin, target)
       self.be.scanTree()
       print(" ====== STATE 9 ====\n"+self.be.checkDB(verbose=False))
@@ -149,12 +162,14 @@ class TestStringMethods(unittest.TestCase):
       ### Move data, copy data into different project
       print('*** TEST MOVE DATA INTO DIFFERENT PROJECT ***')
       print('Try to change into non-existant path')
-      self.be.changeHierarchy(projID1) #change into non-existant path; try to confuse software
+      self.be.changeHierarchy(projID1) #change forward and back; try to confuse software
       self.be.changeHierarchy(None)
       self.be.changeHierarchy(projID1) #change into existant path
-      projDirName1 = self.be.basePath+self.be.cwd
-      shutil.copy(projDirName+'/Zeiss.tif',projDirName1+'/Zeiss.tif')
-      shutil.move(projDirName+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteel0000LC.txt')
+      projDirName1 = self.be.basePath/self.be.cwd
+      shutil.copy(projDirName/'Zeiss.tif',projDirName1/'Zeiss.tif')
+      dataset = datalad.Dataset(self.be.basePath/projDirName)
+      dataset.unlock(path=projDirName/'RobinSteel0000LC.txt')
+      shutil.move(projDirName/'RobinSteel0000LC.txt',projDirName1/'RobinSteel0000LC.txt')
       self.be.scanTree()
       # A file was removed from previous project, go there, scan, return
       self.be.changeHierarchy(None)
@@ -166,7 +181,7 @@ class TestStringMethods(unittest.TestCase):
 
       ### Remove data: adopt branch in document
       print('*** TEST DELETE DATA FILE ***')
-      os.remove(projDirName1+'/Zeiss.tif')
+      os.remove(projDirName1/'Zeiss.tif')
       self.be.scanTree()
       print(" ====== STATE 11 ====\n"+self.be.checkDB(verbose=False))
 
@@ -176,7 +191,7 @@ class TestStringMethods(unittest.TestCase):
       # compare database entries to those in filesystem (allows to check for unforseen events)
       # clean all that database entries in the filesystem
       print('*** TEST Rename a file locally ***')
-      shutil.move(projDirName1+'/RobinSteel0000LC.txt',projDirName1+'/RobinSteelLC.txt')
+      shutil.move(projDirName1/'RobinSteel0000LC.txt',projDirName1/'RobinSteelLC.txt')
       self.be.scanTree()  #always scan before produceData: ensure that database correct
       print(" ====== STATE 12 ====\n"+self.be.checkDB(verbose=False))
 
@@ -205,6 +220,10 @@ class TestStringMethods(unittest.TestCase):
       # self.be.replicateDB(configName,True)
       print('\n*** DONE WITH VERIFY ***')
       self.backup()
+      with open(self.be.softwarePath/'pasta.log','r', encoding='utf-8') as fIn:
+        text = fIn.read()
+        self.assertFalse(text.count('**WARNING')==7,'WARNING string !=7 in log-file')
+        self.assertFalse('ERROR:' in text  ,'ERROR string in log-file')
     except:
       print('ERROR OCCURRED IN VERIFY TESTING\n'+ traceback.format_exc() )
       raise
@@ -216,15 +235,13 @@ class TestStringMethods(unittest.TestCase):
     backup test
     """
     print("BACKUP TEST")
-    os.chdir('..')
-    print('In directory', os.path.abspath(os.curdir))
-    if os.path.exists(self.be.basePath+'../pasta_backup.zip'):
-      os.unlink(self.be.basePath+'../pasta_backup.zip')
+    if (self.be.basePath/'pasta_backup.zip').exists():
+      (self.be.basePath/'pasta_backup.zip').unlink()
     warnings.simplefilter("ignore")
     self.be.backup() #throws an "Exception ignored in SSL Socket"
     warnings.simplefilter("default")
-    if not os.path.exists(self.be.basePath+'../pasta_backup.zip'):
-      print("Backup did not create zip file",self.be.basePath+'pasta_backup.zip')
+    if not (self.be.basePath/'pasta_backup.zip').exists():
+      print("Backup did not create zip file",self.be.basePath/'pasta_backup.zip')
       raise NameError('zip file was not created')
     success = self.be.backup('compare')
     if not success:
@@ -246,9 +263,9 @@ class TestStringMethods(unittest.TestCase):
     old method for testing and plotting things on the screen. Over time much of the functionality has been moved to checkDB
     use diff-file to compare hierarchies, directory tree
     """
-    with open(self.be.softwarePath+'/Tests/verify'+str(number)+'.org','w', encoding='utf-8') as f:
+    with open(self.be.softwarePath/('Tests/verify'+str(number)+'.org'),'w', encoding='utf-8') as f:
       f.write(text)
-      f.write('++STATE: '+self.be.cwd+' '+str(self.be.hierStack)+'\n')
+      f.write('++STATE: '+str(self.be.cwd)+' '+str(self.be.hierStack)+'\n')
       f.write(self.be.outputHierarchy(onlyHierarchy,True,'all'))
       f.write('\n====================')
       try:

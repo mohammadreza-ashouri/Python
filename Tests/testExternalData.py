@@ -47,8 +47,8 @@ class TestStringMethods(unittest.TestCase):
       print("====== STATE * ====")
       print(self.be.checkDB(verbose=False))
       self.be.addData('measurement', {'-name': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/640px-Google_2015_logo.svg.png', 'comment': 'large'})
-      projDirName = self.be.basePath+self.be.cwd
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/Zeiss.tif', projDirName)
+      projDirName = self.be.basePath/self.be.cwd
+      shutil.copy(self.be.softwarePath/'ExampleMeasurements/Zeiss.tif', projDirName)
       self.be.scanTree()
       print(self.be.output('measurement'))
       print(self.be.outputSHAsum())

@@ -59,23 +59,21 @@ def generic_hash(path, forceFile=False):
   Raises:
     ValueError: shasum of directory not supported
   """
-  import os
   from urllib import request
-  if os.path.isdir(path):
-    raise ValueError('This seems to be a directory '+path)
-  if forceFile:
-    path = os.path.realpath(path)
-  if os.path.islink(path):    #if link, hash the link
-    shasum = symlink_hash(path)
-  elif os.path.isfile(path):  #Local file
-    size = os.path.getsize(path)
-    with open(path, 'rb') as stream:
-      shasum = blob_hash(stream, size)
-  else:                     #Remote file
-    with request.urlopen(path) as site:
+  if str(path).startswith('http'):                      #Remote file
+    with request.urlopen(str(path).replace(':/','://')) as site:
       meta = site.headers
       size = int(meta.get_all('Content-Length')[0])
-      shasum = blob_hash(site, size)
+      return blob_hash(site, size)
+  if path.is_dir():
+    raise ValueError('This seems to be a directory '+path)
+  if forceFile and path.is_symlink():
+    path = path.resolve()
+  if path.is_symlink():    #if link, hash the link
+    shasum = symlink_hash(path)
+  elif path.is_file():  #Local file
+    with open(path, 'rb') as stream:
+      shasum = blob_hash(stream, path.stat().st_size)
   return shasum
 
 
@@ -339,10 +337,11 @@ def checkConfiguration(conf=None, repair=False):
   Returns:
       string: output incl. \n
   """
-  import os, json
+  import json, os
+  from pathlib import Path
   from cloudant.client import CouchDB
   if conf is None:
-    with open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8') as fConf:
+    with open(Path.home()/'.pastaELN.json','r', encoding='utf-8') as fConf:
       conf = json.load(fConf)
   output = ''
 
@@ -408,8 +407,9 @@ def translateJS2PY():
   - remove the last export-lines from commonTools.js
   """
   import re, io
+  from pathlib import Path
   import js2py
-  commonToolsHash = generic_hash('../DOM/src/commonTools.js')
+  commonToolsHash = generic_hash(Path('../DOM/src/commonTools.js'))
   with open('./commonTools.py', encoding='utf-8') as fIn:
     stortedHash     = fIn.readlines()[-1]
   stortedHash = stortedHash.split('HASH:')[1].strip()

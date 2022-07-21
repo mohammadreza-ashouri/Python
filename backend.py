@@ -2,6 +2,8 @@
 """ Python Backend: all operations with the filesystem are here
 """
 
+# TODO_P1 reduce relative_to: self.cwd should be always small
+
 class Pasta:
   """
   PYTHON BACKEND
@@ -18,7 +20,8 @@ class Pasta:
           - initViews (bool): initialize views at startup
           - resetOntology (bool): reset ontology on database from one on file
     """
-    import os, json, sys
+    import json, sys
+    from pathlib import Path
     from database import Database
     from miscTools import upIn, upOut
     from commonTools import commonTools as cT
@@ -33,7 +36,7 @@ class Pasta:
     # open configuration file
     self.debug = True
     self.confirm = confirm
-    with open(os.path.expanduser('~')+'/.pastaELN.json','r', encoding='utf-8') as confFile:
+    with open(Path.home()/'.pastaELN.json','r', encoding='utf-8') as confFile:
       configuration = json.load(confFile)
     if configuration['version']!=1:
       print('**ERROR Configuration version does not fit')
@@ -51,25 +54,18 @@ class Pasta:
     # directories
     #    self.basePath (root of directory tree) is root of all projects
     #    self.cwd changes during program
-    self.softwarePath = os.path.dirname(os.path.abspath(__file__))
-    self.extractorPath = configuration['extractorDir'] if 'extractorDir' in configuration else \
-                         self.softwarePath+os.sep+'extractors'
-    sys.path.append(self.extractorPath)  #allow extractors
-    self.basePath     = links[linkDefault]['local']['path']
-    self.cwd          = ''
-    if not self.basePath.endswith(os.sep):
-      self.basePath += os.sep
-    if os.path.exists(self.basePath):
-      os.chdir(self.basePath)
-    else:
-      print('**ERROR bin01: Base folder did not exist |'+self.basePath)
-      sys.exit(1)
+    self.softwarePath = Path(configuration['softwareDir'])
+    self.extractorPath = Path(configuration['extractorDir']) if 'extractorDir' in configuration else \
+                         self.softwarePath/'extractors'
+    sys.path.append(str(self.extractorPath))  #allow extractors
+    self.basePath     = Path(links[linkDefault]['local']['path'])
+    self.cwd          = Path('.')
     # decipher configuration and store
     self.userID   = configuration['userID']
     self.magicTags= configuration['magicTags'] #"P1","P2","P3","TODO","WAIT","DONE"
     self.tableFormat = configuration['tableFormat']
     # start database
-    self.db = Database(n,s,databaseName,confirm=self.confirm,softwarePath=self.softwarePath+os.sep, **kwargs)
+    self.db = Database(n,s,databaseName,confirm=self.confirm,softwarePath=self.softwarePath, **kwargs)
     res = cT.ontology2Labels(self.db.ontology,self.tableFormat)
     self.dataLabels      = res['dataDict']
     self.hierarchyLabels = res['hierarchyDict']
@@ -98,14 +94,20 @@ class Pasta:
       kwargs (dict): additional parameter
     """
     import os
+    from pathlib import Path
     if deleteDB:
       #uninit / delete everything of git-annex and datalad
       for root, dirs, files in os.walk(self.basePath):
         for momo in dirs:
-          os.chmod(os.path.join(root, momo), 0o755)
+          try:
+            (Path(root)/momo).chmod(0o755)
+          except FileNotFoundError:
+            print('Could not change-mod',Path(root)/momo)
         for momo in files:
-          os.chmod(os.path.join(root, momo), 0o755)
-    os.chdir(self.softwarePath)  #where program started
+          try:
+            (Path(root)/momo).chmod(0o755)
+          except FileNotFoundError:
+            print('Could not change-mod',Path(root)/momo)
     self.db.exit(deleteDB)
     self.alive     = False
     return
@@ -129,7 +131,8 @@ class Pasta:
     Returns:
         bool: success
     """
-    import sys, os, json
+    import sys, json, os
+    from pathlib import Path
     from urllib import request
     import datalad.api as datalad
     from commonTools import commonTools as cT
@@ -187,39 +190,38 @@ class Pasta:
         if doc['-type'][0]=='x0':
           childNum = 0
         if edit:      #edit: cwd of the project/step/task: remove last directory from cwd (since cwd contains a / at end: remove two)
-          parentDirectory = os.sep.join(self.cwd.split(os.sep)[:-2])
-          if len(parentDirectory)>2:
-            parentDirectory += os.sep
+          parentDirectory = self.cwd.parent
         else:         #new: below the current project/step/task
           parentDirectory = self.cwd
-        path = parentDirectory + createDirName(doc['-name'],doc['-type'][0],childNum) #update,or create (if new doc, update ignored anyhow)
+        path = parentDirectory/createDirName(doc['-name'],doc['-type'][0],childNum) #update,or create (if new doc, update ignored anyhow)
         operation = 'u'
       else:
         #measurement, sample, procedure
         shasum = ''
         if '://' in doc['-name']:                                 #make up name
           if localCopy:
-            baseName, extension = os.path.splitext(os.path.basename(doc['-name']))
-            path = self.cwd + cT.camelCase(baseName)+extension
-            request.urlretrieve(doc['-name'], self.basePath+path)
+            baseName  = Path(doc['-name']).stem
+            extension = Path(doc['-name']).suffix
+            path = self.cwd/(cT.camelCase(baseName)+extension)
+            request.urlretrieve(doc['-name'], self.basePath/path)
             doc['-name'] = cT.camelCase(baseName)+extension
           else:
-            path = doc['-name']
+            path = Path(doc['-name'])
             try:
-              shasum  = generic_hash(doc['-name'])
+              shasum  = generic_hash(path)
             except:
               print('**ERROR bad01: fetch remote content failed. Data not added')
               return False
-        elif doc['-name']!='' and os.path.exists(self.basePath+doc['-name']):          #file exists
-          path = doc['-name']
-          doc['-name'] = os.path.basename(doc['-name'])
-        elif doc['-name']!='' and os.path.exists(self.basePath+self.cwd+doc['-name']): #file exists
-          path = self.cwd+doc['-name']
+        elif doc['-name']!='' and (self.basePath/doc['-name']).exists():          #file exists
+          path = Path(doc['-name'])
+          doc['-name'] = Path(doc['-name']).name
+        elif doc['-name']!='' and (self.basePath/self.cwd/doc['-name']).exists(): #file exists
+          path = self.cwd/doc['-name']
         else:                                                     #make up name
           shasum  = None
         if shasum is not None: # and doc['-type'][0]=='measurement':         #samples, procedures not added to shasum database, getMeasurement not sensible
           if shasum == '':
-            shasum = generic_hash(self.basePath+path, forceFile=True)
+            shasum = generic_hash(self.basePath/path, forceFile=True)
           view = self.db.getView('viewIdentify/viewSHAsum',shasum)
           if len(view)==0 or forceNewImage:  #measurement not in database: create doc
             while True:
@@ -231,12 +233,13 @@ class Pasta:
                 if 'ignore' in doc:
                   ignore = doc['ignore']; del doc['ignore']
                   if ignore=='dir':
-                    projPath = self.basePath + path.split(os.sep)[0]
-                    dirPath =  os.path.relpath(os.path.split(self.basePath+path)[0] , projPath)
-                    with open(projPath+os.sep+'.gitignore','a', encoding='utf-8') as fOut:
-                      fOut.write(dirPath+os.sep+'\n')
+                    projPath = self.basePath.parts[0]
+                    dirPath =  path.relative_to(projPath)
+                    with open(Path(projPath)/'.gitignore','a', encoding='utf-8') as fOut:
+                      fOut.write(dirPath+'/\n')
                     if sys.platform=='win32':
-                      win32api.SetFileAttributes(projPath+os.sep+'.gitignore',win32con.FILE_ATTRIBUTE_HIDDEN)
+                      win32api.SetFileAttributes(Path(projPath)/'.gitignore',\
+                        win32con.FILE_ATTRIBUTE_HIDDEN)
                   if ignore!='none':  #ignored images are added to datalad but not to database
                     return False
                 break
@@ -248,7 +251,10 @@ class Pasta:
     # assemble branch information
     if childNum is None:
       childNum=9999
-    doc['-branch'] = {'stack':hierStack,'child':childNum,'path':path,'op':operation}
+    if path is not None and path.is_absolute():
+      path = path.relative_to(self.basePath)
+    path = None if path is None else str(path)
+    doc['-branch'] = {'stack':hierStack,'child':childNum,'path':path, 'op':operation}
     if edit:
       #update document
       keysNone = [key for key in doc if doc[key] is None]
@@ -264,7 +270,7 @@ class Pasta:
     ## adaptation of directory tree, information on disk: documentID is required
     if self.cwd is not None and doc['-type'][0][0]=='x':
       #project, step, task
-      path = doc['-branch'][0]['path']
+      path = Path(doc['-branch'][0]['path'])
       if not edit:
         if doc['-type'][0]=='x0':
           ## shell command
@@ -273,7 +279,7 @@ class Pasta:
           # datalad api version: produces undesired output
           try:
             description = doc['objective'] if 'objective' in doc else '_'
-            datalad.create(path,description=description)
+            datalad.create(self.basePath/path,description=description)
           except:
             print('**ERROR bad02: Tried to create new datalad folder which did already exist')
             raise
@@ -281,34 +287,39 @@ class Pasta:
           for fileI in self.vanillaGit:
             gitAttribute += fileI+' annex.largefiles=nothing\n'
           gitIgnore = '\n'.join(self.gitIgnore)
-          with open(path+os.sep+'.gitattributes','w', encoding='utf-8') as fOut:
+          gitPath = self.basePath/path/'.gitattributes'
+          with open(gitPath,'w', encoding='utf-8') as fOut:
             fOut.write(gitAttribute+'\n')
           if sys.platform=='win32':
-            win32api.SetFileAttributes(path+os.sep+'.gitattributes',win32con.FILE_ATTRIBUTE_HIDDEN)
-          with open(path+os.sep+'.gitignore','w', encoding='utf-8') as fOut:
+            win32api.SetFileAttributes(gitPath, win32con.FILE_ATTRIBUTE_HIDDEN)
+          gitPath = self.basePath/path/'.gitignore'
+          with open(gitPath,'w', encoding='utf-8') as fOut:
             fOut.write(gitIgnore+'\n')
           if sys.platform=='win32':
-            win32api.SetFileAttributes(path+os.sep+'.gitignore',win32con.FILE_ATTRIBUTE_HIDDEN)
-          dlDataset = datalad.Dataset(path)
+            win32api.SetFileAttributes(gitPath,win32con.FILE_ATTRIBUTE_HIDDEN)
+          dlDataset = datalad.Dataset(self.basePath/path)
           dlDataset.save(path='.',message='changed gitattributes')
         else:
-          os.makedirs(self.basePath+path, exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
-      projectPath = path.split(os.sep)[0]
-      dataset = datalad.Dataset(self.basePath+projectPath)
-      if os.path.exists(self.basePath+path+os.sep+'.id_pastaELN.json'):
+          (self.basePath/path).mkdir(exist_ok=True)   #if exist, create again; moving not necessary since directory moved in changeHierarchy
+      projectPath = path.parts[0]
+      dataset = datalad.Dataset(self.basePath/projectPath)
+      if (self.basePath/path/'.id_pastaELN.json').exists():
         if sys.platform=='win32':
-          if win32api.GetFileAttributes(self.basePath+path+os.sep+'.id_pastaELN.json')==win32con.FILE_ATTRIBUTE_HIDDEN:
-            win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_pastaELN.json',win32con.FILE_ATTRIBUTE_ARCHIVE)
+          if win32api.GetFileAttributes(self.basePath/path/'.id_pastaELN.json')==\
+              win32con.FILE_ATTRIBUTE_HIDDEN:
+            win32api.SetFileAttributes(self.basePath/path/'.id_pastaELN.json',\
+              win32con.FILE_ATTRIBUTE_ARCHIVE)
         else:
-          dataset.unlock(path=self.basePath+path+os.sep+'.id_pastaELN.json')
-      with open(self.basePath+path+os.sep+'.id_pastaELN.json','w', encoding='utf-8') as f:  #local path, update in any case
+          dataset.unlock(path=self.basePath/path/'.id_pastaELN.json')
+      with open(self.basePath/path/'.id_pastaELN.json','w', encoding='utf-8') as f:  #local path, update in any case
         f.write(json.dumps(doc))
       if sys.platform=='win32':
-        win32api.SetFileAttributes(self.basePath+path+os.sep+'.id_pastaELN.json',win32con.FILE_ATTRIBUTE_HIDDEN)
+        win32api.SetFileAttributes(self.basePath/path/'.id_pastaELN.json',\
+          win32con.FILE_ATTRIBUTE_HIDDEN)
       # datalad api version
-      dataset.save(path=self.basePath+path+os.sep+'.id_pastaELN.json', message='Added new subfolder with .id_pastaELN.json')
+      dataset.save(path=self.basePath/path/'.id_pastaELN.json', message='Added folder & .id_pastaELN.json')
       ## shell command
-      # cmd = ['datalad','save','-m','Added new subfolder with .id_pastaELN.json', '-d', self.basePath+projectPath ,self.basePath+path+os.sep+'.id_pastaELN.json']
+      # cmd = ['datalad','save','-m','Added new subfolder with .id_pastaELN.json', '-d', self.basePath+projectPath ,self.basePath+path+/+'.id_pastaELN.json']
       # output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       # print("datalad save",output.stdout.decode('utf-8'))
     self.currentID = doc['_id']
@@ -325,28 +336,21 @@ class Pasta:
 
     Args:
         docID (string): information on how to change
-        dirName (string): use this name to change into
+        dirName (string): change into this directory (absolute path given). For if data is moved
         kwargs (dict): additional parameter
     """
-    import os
-    if docID is None or (docID[0]=='x' and docID[1]!='-'):  # none, 'project', 'step', 'task' are given: close
+    from pathlib import Path
+    if docID is None or (docID[0]=='x' and docID[1]!='-'):  #cd ..: none. close 'project', 'task'
       self.hierStack.pop()
-      if self.cwd is not None:
-        os.chdir('..')
-        self.cwd = os.sep.join(self.cwd.split(os.sep)[:-2])+os.sep
-        if self.cwd==os.sep: self.cwd=''
+      self.cwd = self.cwd.parent
     else:  # existing ID is given: open that
-      try:
-        if self.cwd is not None:
-          if dirName is None:
-            doc = self.db.getDoc(docID)
-            path = doc['-branch'][0]['path']
-            dirName = path.split(os.sep)[-1]
-          os.chdir(dirName)     #exception caught
-          self.cwd += dirName+os.sep
-        self.hierStack.append(docID)
-      except:
-        print('**ERROR bch01: Could not change into hierarchy. id|'+docID+'  directory:'+dirName+'  cwd:'+self.cwd)
+      self.hierStack.append(docID)
+      if dirName is not None:
+        self.cwd = dirName.relative_to(self.basePath)
+      else:
+        doc = self.db.getDoc(docID)
+        self.cwd = Path(doc['-branch'][0]['path'])
+        self.hierStack = doc['-branch'][0]['stack']+[docID]
     return
 
 
@@ -365,7 +369,7 @@ class Pasta:
     Raises:
       ValueError: could not add new measurement to database
     """
-    import os, shutil
+    import shutil
     import datalad.api as datalad
     from datalad.support import annexrepo
     from miscTools import bcolors, generic_hash
@@ -380,63 +384,63 @@ class Pasta:
     #   datalad and git give the directories, if untracked/random; and datalad status produces output
     #   also, git-annex status is empty if nothing has to be done
     #   git-annex output is nice to parse
-    fileList = annexrepo.AnnexRepo('.').status()
-    dlDataset = datalad.Dataset('.')
+    fileList = annexrepo.AnnexRepo(self.basePath/self.cwd).status()
+    dlDataset = datalad.Dataset(self.basePath/self.cwd)
     #create dictionary that has shasum as key and [origin and target] as value
     shasumDict = {}   #clean ones are omitted
     for posixPath in fileList:
-      fileName = os.path.relpath(str(posixPath), self.basePath+self.cwd)
+      #Stay absolute fileName = posixPath.relative_to(self.basePath/self.cwd)
       # if fileList[posixPath]['state']=='clean': #for debugging
       #   shasum = generic_hash(fileName)
       #   print(shasum,fileList[posixPath]['prev_gitshasum'],fileList[posixPath]['gitshasum'],fileName)
       if fileList[posixPath]['state']=='untracked':
-        shasum = generic_hash(fileName)
+        shasum = generic_hash(posixPath)
         if shasum in shasumDict:
-          shasumDict[shasum] = [shasumDict[shasum][0],fileName]
+          shasumDict[shasum] = [shasumDict[shasum][0], posixPath]
         else:
-          shasumDict[shasum] = ['',fileName]
+          shasumDict[shasum] = ['', posixPath]
       if fileList[posixPath]['state']=='deleted':
         shasum = fileList[posixPath]['prev_gitshasum']
         if shasum in shasumDict:
-          shasumDict[shasum] = [fileName, shasumDict[shasum][1]]
+          shasumDict[shasum] = [posixPath, shasumDict[shasum][1]]
         else:
-          shasumDict[shasum] = [fileName, '']
+          shasumDict[shasum] = [posixPath, '']
       if fileList[posixPath]['state']=='modified':
         shasum = fileList[posixPath]['gitshasum']
-        shasumDict[shasum] = ['', fileName] #new content is same place. No moving necessary, just "new file"
+        shasumDict[shasum] = ['', posixPath] #new content is same place. No moving necessary, just "new file"
 
     # loop all entries and separate into moved,new,deleted
     print("Number of changed files:",len(shasumDict))
     for _, (origin, target) in shasumDict.items():
-      print("  File changed:",origin,target)
-      # originDir, _ = os.path.split(self.cwd+origin)
-      targetDir, _ = os.path.split(self.cwd+target)
+      print("  File changed:",origin,'->',target)
+      # originDir, _ = o..s.path.split(self.cwd+origin)
       # find hierStack and parentID of new TARGET location: for new and move
       if target != '':
-        if not os.path.exists(target): #if dead link
-          linkTarget = os.readlink(target)
-          for dirI in os.listdir(self.basePath):
-            if os.path.isdir(self.basePath+dirI):
-              path = self.basePath+dirI+os.sep+linkTarget
-              if os.path.exists(path):
-                os.unlink(target)
+        targetDir = target.parent
+        if not target.exists(): #if dead link
+          linkTarget = target.resolve()
+          for dirI in self.basePath.glob('*'):
+            if (self.basePath/dirI).is_dir():
+              path = self.basePath/dirI/linkTarget
+              if path.exists():
+                target.unlock()
                 shutil.copy(path,target)
                 break
         parentID = None
         itemTarget = -1
         while parentID is None:
-          view = self.db.getView('viewHierarchy/viewPaths', startKey=targetDir)
+          view = self.db.getView('viewHierarchy/viewPaths', startKey=str(targetDir.relative_to(self.basePath)))
           for item in view:
-            if item['key']==targetDir:
+            if item['key']==str(targetDir.relative_to(self.basePath)):
               parentID = item['id']
               itemTarget = item
-          targetDir = os.sep.join(targetDir.split(os.sep)[:-1])
+          targetDir = targetDir.parent
         parentDoc = self.db.getDoc(parentID)
         hierStack = parentDoc['-branch'][0]['stack']+[parentID]
       ### separate into two cases
       # newly created file
       if origin == '':
-        newDoc    = {'-name':self.cwd+target}
+        newDoc    = {'-name':str(target)}
         _ = self.addData('measurement', newDoc, hierStack, callback=callback)  #saved to datalad in here
       # move or delete file
       else:
@@ -444,29 +448,31 @@ class Pasta:
         if target == '':
           dlDataset.save(path=origin, message='Removed file')
         else:
-          dlDataset.save(path=origin, message='Moved file from here to '+self.cwd+target   )
-          dlDataset.save(path=target, message='Moved file from '+self.cwd+origin+' to here')
+          dlDataset.save(path=origin, message='Moved file from here to '+str(self.cwd/target)   )
+          dlDataset.save(path=target, message='Moved file from '+str(self.cwd/origin)+' to here')
         #get docID
-        if origin.endswith('.id_pastaELN.json'):
-          origin = os.path.split(origin)[0]
-        if target.endswith('.id_pastaELN.json'):
-          target = os.path.split(target)[0]
-        view = self.db.getView('viewHierarchy/viewPaths', preciseKey=self.cwd+origin )
+        if origin!='' and origin.name == '.id_pastaELN.json':  #if origin has .id_pastaELN.json: parent directory has moved
+          origin = origin.parent
+        if target!='' and target.name == '.id_pastaELN.json':
+          target = target.parent
+        view = self.db.getView('viewHierarchy/viewPaths', preciseKey=str((self.cwd/origin).relative_to(self.basePath)) )
         if len(view)==1:
           docID = view[0]['id']
           if target == '':       #delete
-            self.db.updateDoc( {'-branch':{'path':self.cwd+origin, 'oldpath':self.cwd+origin,\
+            self.db.updateDoc( {'-branch':{'path':  str((self.cwd/origin).relative_to(self.basePath)),\
+                                          'oldpath':str((self.cwd/origin).relative_to(self.basePath)),\
                                           'stack':[None],\
                                           'child':-1,\
                                           'op':'d'}}, docID)
           else:                  #update
-            self.db.updateDoc( {'-branch':{'path':self.cwd+target, 'oldpath':self.cwd+origin,\
+            self.db.updateDoc( {'-branch':{'path':  str((self.cwd/target).relative_to(self.basePath)),\
+                                          'oldpath':str((self.cwd/origin).relative_to(self.basePath)),\
                                           'stack':hierStack,\
                                           'child':itemTarget['value'][2],\
                                           'op':'u'}}, docID)
         else:
-          if not '_pasta.' in origin:
-            print("file not in database",self.cwd+origin)
+          if '_pasta.' not in str(origin):  #TODO_P1 is this really needed
+            print("file not in database",self.cwd/origin)
     return
 
   def backup(self, method='backup', **kwargs):
@@ -482,7 +488,7 @@ class Pasta:
     Returns:
         bool: success
     """
-    import os, json
+    import json
     from datetime import datetime
     from zipfile import ZipFile, ZIP_DEFLATED
     dirNameProject = 'backup'
@@ -505,27 +511,26 @@ class Pasta:
         for doc in listDocs:
           if isinstance(doc, str):
             doc = self.db.getDoc(doc)
-          fileName = '__database__'+os.sep+doc['_id']+'.json'
+          fileName = '__database__/'+doc['_id']+'.json'
           listFileNames.append(fileName)
-          zipFile.writestr(dirNameProject+os.sep+fileName, json.dumps(doc) )
+          zipFile.writestr(Path(dirNameProject)/fileName, json.dumps(doc) )
           # Attachments
           if '_attachments' in doc:
             numAttachments += len(doc['_attachments'])
             for i in range(len(doc['_attachments'])):
-              attachmentName = dirNameProject+os.sep+'__database__'+os.sep+doc['_id']+'/v'+str(i)+'.json'
+              attachmentName = dirNameProject+'/__database__/'+doc['_id']+'/v'+str(i)+'.json'
               zipFile.writestr(attachmentName, json.dumps(doc.get_attachment('v'+str(i)+'.json')))
         #write data-files
         for path, _, files in os.walk(self.basePath):
           if '/.git' in path or '/.datalad' in path:
             continue
-          path = os.path.relpath(path,self.basePath)
+          path = Path(path).relative_to(self.basePath)
           for iFile in files:
             if iFile.startswith('.git'):
               continue
-            listFileNames.append(path+os.sep+iFile)
-            # print('in',os.path.abspath(os.curdir),': save', path+os.sep+iFile,' as',\
-            #   dirNameProject+os.sep+path+os.sep+iFile)
-            zipFile.write(path+os.sep+iFile, dirNameProject+os.sep+path+os.sep+iFile)
+            listFileNames.append(path/iFile)
+            # print('in',Path().absolute(),': save', path/iFile,' as', Path(dirNameProject)/path/iFile)
+            zipFile.write(path/iFile, Path(dirNameProject)/path/iFile)
         #create some fun output
         compressed, fileSize = 0,0
         for doc in zipFile.infolist():
@@ -611,28 +616,31 @@ class Pasta:
           - maxSize of image
           - saveToFile: save data to files
     """
-    import os, importlib, shutil, urllib, tempfile
+    import importlib, shutil, urllib, tempfile
+    from pathlib import Path
     import datalad.api as datalad
     exitAfterDataLad = kwargs.get('exitAfterDataLad',False)
-    extension = os.path.splitext(filePath)[1][1:]
-    if '://' in filePath:
-      absFilePath = tempfile.gettempdir()+os.sep+os.path.basename(filePath)
-      urllib.request.urlretrieve(filePath, absFilePath)
-      projectDB = self.cwd.split(os.sep)[0]
-      dataset = datalad.Dataset(self.basePath+projectDB)
+    extension = filePath.suffix[1:]  #cut off initial . of .jpg
+    if str(filePath).startswith('http'):
+      absFilePath = Path(tempfile.gettempdir())/filePath.name
+      urllib.request.urlretrieve(str(filePath).replace(':/','://'), absFilePath)
+      projectDB = self.cwd.parts[0]
+      dataset = datalad.Dataset(self.basePath/projectDB)
     else:
-      parentPath = filePath.split(os.sep)[0]
-      dataset = datalad.Dataset(self.basePath+parentPath)
+      if filePath.is_absolute():
+        filePath = filePath.relative_to(self.basePath)
+      parentPath = filePath.parts[0]
+      dataset = datalad.Dataset(self.basePath/parentPath)
       if dataset.id:
-        dataset.save(path=self.basePath+filePath, message='Added locked document')
+        dataset.save(path=self.basePath/filePath, message='Added locked document')
       if exitAfterDataLad:
         return
-      absFilePath = self.basePath + filePath
+      absFilePath = self.basePath/filePath
     pyFile = 'extractor_'+extension+'.py'
-    pyPath = self.extractorPath+os.sep+pyFile
+    pyPath = self.extractorPath/pyFile
     if len(doc['-type'])==1:
       doc['-type'] += [extension]
-    if os.path.exists(pyPath):
+    if pyPath.exists():
       # import module and use to get data
       module  = importlib.import_module(pyFile[:-3])
       content = module.use(absFilePath, '/'.join(doc['-type']) )
@@ -653,7 +661,7 @@ class Pasta:
         doc['-type']     += doc['recipe'].split('/')
       del doc['recipe']
     else:
-      print('  No extractor found')
+      print('  No extractor found',pyFile)
     # FOR EXTRACTOR DEBUGGING
     # import json
     # for item in doc:
@@ -713,7 +721,6 @@ class Pasta:
     Returns:
         string: output incl. \n
     """
-    import os
     from datalad.support import annexrepo
     ### check database itself for consistency
     output = self.db.checkDB(verbose=verbose, **kwargs)
@@ -723,44 +730,39 @@ class Pasta:
     viewProjects   = self.db.getView('viewDocType/x0')
     viewPaths      = self.db.getView('viewHierarchy/viewPaths')
     listPaths = [item['key'] for item in viewPaths]
-    curDirectory = os.path.abspath(os.path.curdir)
     clean, count = True, 0
     for item in viewProjects:
       doc = self.db.getDoc(item['id'])
       dirName =doc['-branch'][0]['path']
-      #output += '- '+dirName+' -\n'
-      os.chdir(self.basePath+dirName)
-      fileList = annexrepo.AnnexRepo('.').status()
+      fileList = annexrepo.AnnexRepo(self.basePath/dirName).status()
       for posixPath in fileList:
         if fileList[posixPath]['state'] != 'clean':
           output += fileList[posixPath]['state']+' '+fileList[posixPath]['type']+' '+str(posixPath)+'\n'
           clean = False
         #test if file exists
-        relPath = os.path.relpath(str(posixPath),self.basePath)
-        if relPath.endswith('.id_pastaELN.json'): #if project,step,task
-          relPath, _ = os.path.split(relPath)
-        if relPath in listPaths:
-          listPaths.remove(relPath)
+        relPath = posixPath.relative_to(self.basePath)
+        if relPath.name=='.id_pastaELN.json': #if project,step,task
+          relPath = relPath.parent
+        if str(relPath) in listPaths:
+          listPaths.remove(str(relPath))
           continue
-        if '_pasta.' in relPath or '/.datalad/' in relPath or \
-           relPath.endswith('.gitattributes') or os.path.isdir(self.basePath+relPath) or \
-           relPath.endswith('.gitignore'):
+        if '_pasta.' in str(relPath) or '.datalad' in relPath.parts or \
+           relPath.name=='.gitattributes' or (self.basePath/relPath).is_dir() or \
+           relPath.name=='.gitignore':
           continue
-        _, extension = os.path.splitext(relPath)
-        extension = '*'+extension.lower()
+        extension = '*'+relPath.suffix.lower()
         if extension in self.vanillaGit:
           continue
         count += 1
     output += 'Number of files on disk that are not in database '+str(count)+' (see log for details)\n'
     listPaths = [i for i in listPaths if not "://" in i ]
-    listPaths = [i for i in listPaths if not os.path.exists(self.basePath+i)]
+    listPaths = [i for i in listPaths if not (self.basePath/i).exists()]
     if len(listPaths)>0:
       output += "These files of database not on filesystem: "+str(listPaths)+'\n'
     if clean:
       output += "** Datalad tree CLEAN **\n"
     else:
       output += "** Datalad tree NOT clean **\n"
-    os.chdir(curDirectory)
     return output
 
 
@@ -922,14 +924,18 @@ class Pasta:
     Returns:
        success of function: true/false
     """
-    import re, os, tempfile
+    import re
+    from pathlib import Path
     import datalad.api as datalad
     from commonTools import commonTools as cT
     from miscTools import createDirName
     # write backup
-    with open(tempfile.gettempdir()+os.sep+'tempSetEditString.txt','w', encoding='utf-8') as fOut:
-      fOut.write(text)
-    dlDataset = datalad.Dataset(self.basePath+self.cwd.split(os.sep)[0])
+    verbose = False #debugging only of this function
+    if verbose:
+      print('===============START SAVE HIERARCHY===============')
+      print(text)
+      print('---------------End reprint input   ---------------')
+    dlDataset = datalad.Dataset(self.basePath/self.cwd.parts[0])
     # add the prefix to org-mode structure lines
     prefix = '*'*len(self.hierStack)
     startLine = r'^\*+\ '
@@ -960,11 +966,11 @@ class Pasta:
           _ = self.db.updateDoc(subDoc, item['id'])
           deletedDocs.append(item['id'])
         oldPath   = doc['-branch'][0]['path']
-        pathArray = oldPath.split(os.sep)
+        pathArray = oldPath.parts
         pathArray[-1]='trash_'+'_'.join(pathArray[-1].split('_')[1:])
-        newPath   = os.sep.join(pathArray)
+        newPath   = pathArray.join('')
         print('Deleted doc: Path',oldPath,newPath)
-        os.rename(self.basePath+oldPath,self.basePath+newPath)
+        _ = self.basePath/oldPath.rename(self.basePath/newPath)
         continue
 
       # deleted parents
@@ -1012,44 +1018,46 @@ class Pasta:
       if levelOld is None:   #first run-through
         doc['childNum'] = docDB['-branch'][0]['child']
       else:                   #after first entry
-        lenPath = len(self.cwd.split('/'))-1 if len(self.cwd.split('/')[-1])==0 else len(self.cwd.split('/'))
+        lenPath = len(self.cwd.parts)-1 if len(self.cwd.parts[-1])==0 else len(self.cwd.parts)
         for _ in range(lenPath-levelNew):
           self.changeHierarchy(None)                        #'cd ..'
         #check if directory exists on disk
         #move directory; this is the first point where the non-existence of the folder is seen and can be corrected
-        dirName = createDirName(doc['-name'],doc['-type'][0],children[-1])
-        if not os.path.exists(dirName):                     #if move, deletion or because new
+        dirName = self.basePath/self.cwd/createDirName(doc['-name'],doc['-type'][0],children[-1])
+        if not dirName.exists():                     #if move, deletion or because new
           if doc['_id']=='' or doc['_id']=='undefined':     #if new data
-            os.makedirs(dirName)
+            dirName.mkdir()
           else:                                             #if move
-            path = docDB['-branch'][0]['path']
-            if not os.path.exists(self.basePath+path):      #parent was moved: get 'path' from knowledge of parent
+            path = Path(docDB['-branch'][0]['path'])
+            if not (self.basePath/path).exists():      #parent was moved: get 'path' from knowledge of parent
               parentID = docDB['-branch'][0]['stack'][-1]
-              pathParent = self.db.getDoc(parentID)['-branch'][0]['path']
-              path = pathParent+os.sep+path.split(os.sep)[-1]
-            if not os.path.exists(self.basePath+path):        #if still does not exist
-              print("**ERROR bse01: doc path was not found and parent path was not found |"+doc)
+              pathParent = Path(self.db.getDoc(parentID)['-branch'][0]['path'])
+              path = pathParent/path.name
+            if not (self.basePath/path).exists():        #if still does not exist
+              print("**ERROR bse01: doc path was not found and parent path was not found |"+str(doc))
               return False
             if self.confirm is None or self.confirm(None,"Move directory "+path+" -> "+self.cwd+dirName):
-              os.rename(self.basePath+path, self.basePath+self.cwd+dirName)
-              dlDataset.save(path=self.basePath+path, message='SetEditString move directory: origin')
-              dlDataset.save(path=self.basePath+self.cwd+dirName, message='SetEditString move directory: target')
+              (self.basePath/path).rename(self.basePath/self.cwd/dirName)
+              dlDataset.save(path=self.basePath/path, message='SetEditString move directory: origin')
+              dlDataset.save(path=self.basePath/self.cwd/dirName, message='SetEditString move dir: target')
         if edit=='-edit-':
-          self.changeHierarchy(doc['_id'], dirName=dirName)   #'cd directory'
+          self.changeHierarchy(doc['_id'], dirName)   #'cd directory'
           if path is not None:
             #adopt measurements, samples, etc: change / update path by supplying old path
-            view = self.db.getView('viewHierarchy/viewPaths', startKey=path)
+            view = self.db.getView('viewHierarchy/viewPaths', startKey=str(path))
             for item in view:
-              if item['value'][1][0][0]=='x': continue  #skip since moved by itself
-              self.db.updateDoc( {'-branch':{'path':self.cwd, 'oldpath':path+os.sep,\
+              if item['value'][1][0][0]=='x':
+                continue  #skip since moved by itself
+              self.db.updateDoc( {'-branch':{'path':str(self.cwd), 'oldpath':str(path),\
                                             'stack':self.hierStack,\
                                             'child':item['value'][2],\
                                             'op':'u'}},item['id'])
         doc['childNum'] = children[-1]
-      # write change to database
       ## FOR DEBUGGING:
-      print(doc['-name'].strip()+'|'+str(doc['-type'])+'||'+doc['_id']+' #:',doc['childNum'])
-      print('  children:',children,'   levelNew, levelOld',levelNew,levelOld,'   cwd:',self.cwd,'\n')
+      if verbose:
+        print(doc['-name'].strip()+'|'+str(doc['-type'])+'||'+doc['_id']+' #:',doc['childNum'])
+        print('  children:',children,'   levelNew, levelOld',levelNew,levelOld,'   cwd:',self.cwd,'\n')
+      # write change to database
       if edit=='-edit-':
         docDB = dict(docDB)
         docDB.update(doc)
@@ -1066,8 +1074,7 @@ class Pasta:
       children.pop()
     for _ in range(len(children)-1):
       self.changeHierarchy(None)
-    os.unlink(tempfile.gettempdir()+os.sep+'tempSetEditString.txt')
-    dataset = datalad.Dataset(self.basePath+self.cwd.split(os.sep)[0])
+    dataset = datalad.Dataset(self.basePath/self.cwd.parts[0])
     dataset.save(message='set-edit-string: update the project structure')
     return True
 
@@ -1111,9 +1118,9 @@ class Pasta:
     Returns:
         string: output incl. \n
     """
-    outString = f'{0: <32}|{1: <40}|{2: <25}'.format('SHAsum', 'Name', 'ID')+'\n'
+    outString = f"{'SHAsum': <32}|{'Name': <40}|{'ID': <25}\n"
     outString += '-'*110+'\n'
     for item in self.db.getView('viewIdentify/viewSHAsum'):
       key = item['key'] if item['key'] else '-empty-'
-      outString += f'{0: <32}|{1: <40}|{2: <25}'.format(key, item['value'][-40:], item['id'])+'\n'
+      outString += f"{key[:32]: <32}|{item['value'][:40]: <40}|{item['id']: <25}\n"
     return outString

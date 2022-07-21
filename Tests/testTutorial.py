@@ -56,21 +56,21 @@ class TestStringMethods(unittest.TestCase):
       self.be.addData('x1',    {'-name': 'SEM images'})
       semStepID = self.be.currentID
       self.be.changeHierarchy(semStepID)
-      semDirName = self.be.basePath+self.be.cwd
+      semDirName = self.be.basePath.joinpath(self.be.cwd)
       self.be.changeHierarchy(None)
       self.be.addData('x1',    {'-name': 'Nanoindentation'})
       self.be.changeHierarchy(self.be.currentID)
-      indentDirName = self.be.basePath+self.be.cwd
+      indentDirName = self.be.basePath.joinpath(self.be.cwd)
       self.be.changeHierarchy(None)
       print(self.be.outputHierarchy())
 
       ### TEST PROCEDURES
       print('\n*** TEST PROCEDURES ***')
-      sopDir = self.dirName+os.sep+'StandardOperatingProcedures'
-      os.makedirs(sopDir)
-      with open(sopDir+os.sep+'Nanoindentation.org','w', encoding='utf-8') as fOut:
+      sopDir = self.dirName.joinpath('StandardOperatingProcedures')
+      sopDir.mkdir(exist_ok=True)
+      with open(sopDir.joinpath('Nanoindentation.org'),'w', encoding='utf-8') as fOut:
         fOut.write('* Put sample in nanoindenter\n* Do indentation\nDo not forget to\n- calibrate tip\n- *calibrate stiffness*\n')
-      with open(sopDir+os.sep+'SEM.md','w', encoding='utf-8') as fOut:
+      with open(sopDir.joinpath('SEM.md'),'w', encoding='utf-8') as fOut:
         fOut.write('# Put sample in SEM\n# Do scanning\nDo not forget to\n- contact the pole-piece\n- **USE GLOVES**\n')
       self.be.addData('procedure', {'-name': 'StandardOperatingProcedures'+os.sep+'SEM.md', \
         'comment': '#v1'})
@@ -87,9 +87,9 @@ class TestStringMethods(unittest.TestCase):
 
       ###  TEST MEASUREMENTS AND SCANNING/CURATION
       print('*** TEST MEASUREMENTS AND SCANNING/CURATION ***')
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/Zeiss.tif', semDirName)
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/RobinSteel0000LC.txt', indentDirName)
-      shutil.copy(self.be.softwarePath+'/ExampleMeasurements/1500nmXX 5 7074 -4594.txt', indentDirName)
+      shutil.copy(self.be.softwarePath.joinpath('ExampleMeasurements/Zeiss.tif'), semDirName)
+      shutil.copy(self.be.softwarePath.joinpath('ExampleMeasurements/RobinSteel0000LC.txt'), indentDirName)
+      shutil.copy(self.be.softwarePath.joinpath('ExampleMeasurements/1500nmXX 5 7074 -4594.txt'),indentDirName)
       self.be.scanTree()
       # TEST THAT LOCAL FILES/THUMBNAILS EXIST: thumbnails not created anymore
       # self.assertTrue(os.path.exists(semDirName+'Zeiss_tif_pasta.jpg'),'Zeiss PASTA not created')
@@ -113,7 +113,8 @@ class TestStringMethods(unittest.TestCase):
       # sed changing file content works
       # shasum different in any case
       print("\n*** TRY TO CHANGE THOSE FILES ***")
-      cmd = ['convert',semDirName+'Zeiss.tif','-fill','white','+opaque','black',semDirName+'Zeiss.tif']
+      cmd = ['convert',str(semDirName.joinpath('Zeiss.tif')),'-fill','white','+opaque','black',\
+                       str(semDirName.joinpath('Zeiss.tif'))]
       try:
         subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       except:
