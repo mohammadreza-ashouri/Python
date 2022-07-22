@@ -12,7 +12,7 @@ from backend import Pasta
 from miscTools import upOut, upIn, getExtractorConfig, printQRcodeSticker, checkConfiguration
 from inputOutput import importELN, exportELN
 
-SOFTWARE_VERSION = "v1.2.1"
+SOFTWARE_VERSION = "v1.2.2"
 
 def commands(getDocu, args):
   """
