@@ -26,7 +26,7 @@ def commands(getDocu, args):
     string: documentation or empty string
   """
   doc = ''
-  success = 0  #success 0=undecided; -1=False; 1=True
+  success = ''  #success ''=undecided; '-1'=False; '1'=True
   pathConfig = Path.home()/'.pastaELN.json'
 
   ##################################################
@@ -37,7 +37,7 @@ def commands(getDocu, args):
   elif args.command=='help':
     print("HELP:")
     argparser.print_help()
-    success = 1
+    return '1'
 
   doc += '\n-- Configuration file commands --\n'
   if getDocu:
@@ -48,7 +48,7 @@ def commands(getDocu, args):
     repair = args.command=='verifyConfigurationDev'
     output = checkConfiguration(repair=repair)
     print(output)
-    success = -1 if '**ERROR' in output else 1
+    return '-1' if '**ERROR' in output else '1'
 
   if getDocu:
     doc += '  newDB: add/update database configuration. item is e.g.\n'
@@ -62,7 +62,7 @@ def commands(getDocu, args):
     configuration[label] = newDB[label]
     with open(pathConfig,'w', encoding='utf-8') as f:
       f.write(json.dumps(configuration, indent=2))
-    success = 1
+    return '1'
 
   if getDocu:
     doc += '  extractorScan: get list of all extractors and save into .pastaELN.json\n'
@@ -83,11 +83,11 @@ def commands(getDocu, args):
     configuration['extractors'] = extractors
     with open(pathConfig,'w', encoding='utf-8') as f:
       f.write(json.dumps(configuration, indent=2))
-    success = 1
+    return '1'
 
   if not getDocu and args.command=='up':
     print('up:',upOut(args.docID))
-    success = 1
+    return '1'
 
   if getDocu:
     doc += '  scramble: scramble the password and user name in configuration file\n'
@@ -109,7 +109,7 @@ def commands(getDocu, args):
         f.write(json.dumps(configBackup,indent=2))
       with open(pathConfig,'w', encoding='utf-8') as f:
         f.write(json.dumps(configuration,indent=2))
-    success = 1
+    return '1'
 
   if getDocu:
     doc += '  decipher: decipher encrypted string\n'
@@ -117,7 +117,7 @@ def commands(getDocu, args):
   elif args.command=='decipher':
     from serverActions import passwordDecrypt
     print(passwordDecrypt(args.content).decode())
-    success = 1
+    return '1'
 
 
   ##################################################
@@ -186,7 +186,7 @@ def commands(getDocu, args):
       print('local directory:',be.basePath)
       print('software directory:',be.softwarePath)
       print('software version: '+SOFTWARE_VERSION)
-      success = 1
+      return '1'
 
     if getDocu:
       doc += '  verifyDB: test PASTA database\n'
@@ -196,18 +196,18 @@ def commands(getDocu, args):
       repair = args.command=='verifyDBdev'
       output = be.checkDB(verbose=False, repair=repair)
       print(output)
-      success = 1
+      return '1'
 
     if getDocu:
       doc += '  syncLR / syncRL: synchronize with / from remote server\n'
       doc += '    example: pastaELN.py syncLR\n'
     elif args.command=='syncLR':
       success = be.replicateDB()
-      success = 1 if success else -1
+      return '1' if success else '-1'
     elif args.command=='syncRL':
       be.exit()
       print('**ERROR pma03: syncRL not implemented yet')
-      success = -1
+      return '-1'
 
     if getDocu:
       doc += '  print: print overview\n'
@@ -215,7 +215,7 @@ def commands(getDocu, args):
       doc += "    example: pastaELN.py print -d instruments -l instrument\n"
     elif args.command=='print':
       print(be.output(args.label,True))
-      success = 1
+      return '1'
 
     if getDocu:
       doc += '  printQRCodes: print qr-codes\n'
@@ -228,7 +228,7 @@ def commands(getDocu, args):
         content = content[1:-1]
       content = json.loads(content)
       printQRcodeSticker(content, config['-qrPrinter']['page'], config['-qrPrinter']['printer'])
-      success = 1
+      return '1'
 
     if getDocu:
       doc += '  saveBackup,loadBackup: save to file.zip / load from file.zip\n'
@@ -244,7 +244,7 @@ def commands(getDocu, args):
 
     elif args.command=='loadBackup':   #load from backup file.zip
       be.backup('restore')
-      success = 1
+      return '1'
 
     if getDocu:
       doc += '  importXLS: import first sheet of excel file into database\n'
@@ -261,7 +261,7 @@ def commands(getDocu, args):
       for _, row in data.iterrows():
         data = dict((k.lower(), v) for k, v in row.items())
         be.addData(args.label, data )
-      success = 1
+      return '1'
 
     if getDocu:
       doc += '  createDoc: add document to database\n'
@@ -276,7 +276,7 @@ def commands(getDocu, args):
       if len(args.docID)>1 and args.docID!='none':
         be.changeHierarchy(args.docID)
       be.addData(docType,data)
-      success = 1
+      return '1'
 
     if getDocu:
       doc += '  redo: recreate thumbnail\n'
@@ -287,17 +287,17 @@ def commands(getDocu, args):
       be.useExtractors(data['-branch'][0]['path'], data['shasum'], data, extractorRedo=True)  #any path is good since the file is the same everywhere; data-changed by reference
       if len(data['-type'])>1 and len(data['image'])>1:
         be.db.updateDoc({'image':data['image'], '-type':data['-type']},args.docID)
-        success = 1
+        return '1'
       else:
         print('**ERROR pma06: error after redo-extraction')
-        success = -1
+        return '-1'
 
     if getDocu:
       doc += '  history: get history for docTypes\n'
       doc += '    example: pastaELN.py history\n'
     elif args.command=='history':
       print(be.db.historyDB())
-      success = 1
+      return '1'
 
     if getDocu:
       doc += '  updatePASTA: update software version\n'
@@ -313,7 +313,7 @@ def commands(getDocu, args):
       cmd = ['pip3','install','-r','requirements.txt','--disable-pip-version-check']
       run(cmd, cwd=softwarePath, stdout=PIPE, stderr=STDOUT, check=True)
       # print(text.stdout.decode('utf-8')) #temporarily don't print
-      success = 1
+      return '1'
 
     ##################################################
     ## Commands that require open database and open project
@@ -326,7 +326,7 @@ def commands(getDocu, args):
       doc += '    example: pastaELN.py scanHierarchy -i ....\n'
     elif args.command=='scanHierarchy':
       be.scanTree()
-      success = 1
+      return '1'
 
     if getDocu:
       doc += '  saveHierarchy: save hierarchy to database\n'
@@ -339,27 +339,21 @@ def commands(getDocu, args):
         print('**ERROR pma07: something strange occurs with content string')
       ## FOR DEBUGGING OF CONTENT STRING: ensure beginning and end are correct
       # print(content)
-      success = 1 if be.setEditString(content) else -1
+      return '1' if be.setEditString(content) else '-1'
 
     if getDocu:
       doc += '  hierarchy: print document hierarchy\n'
       doc += '    example: pastaELN.py hierarchy -i x-1234567890abc'
     elif args.command=='hierarchy':
       print(be.outputHierarchy(True,True))
-      success = 1
+      return '1'
 
   except:
     print("**ERROR pma10: exception thrown during pastaELN.py"+traceback.format_exc()+"\n")
     raise
 
-  #final verdict
-  if not getDocu:
-    if be is not None:
-      be.exit()
-    if success == 0:
-      print('**ERROR pma08: command in pastaELN.py does not exist |',args.command)
-    if success == 1 and args.command!='up':
-      print('SUCCESS')
+  if not getDocu and be is not None:
+    be.exit()
   return doc
 
 ###################
@@ -375,4 +369,8 @@ if __name__=='__main__':
   argparser.add_argument('-l','--label',   help='label used for printing', default='x0')
   argparser.add_argument('-d','--database',help='name of database configuration', default='') #required for be = Pasta(args.database)
   arguments = argparser.parse_args()
-  commands(False, arguments)
+  result = commands(False, arguments)
+  if result == '':
+    print('**ERROR pma08: command in pastaELN.py does not exist |',arguments.command)
+  elif result == '1' and arguments.command!='up':
+    print('SUCCESS')
