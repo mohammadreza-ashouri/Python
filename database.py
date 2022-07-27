@@ -609,6 +609,7 @@ class Database:
           outstring+= f'{bcolors.FAIL}**ERROR dch17: -name not in '+doc['_id']+f'{bcolors.ENDC}\n'
           if repair and 'name' in doc:  #repair from v0.9.9->1.0.0
             doc['-name']=doc['name']
+            del doc['name']
             doc.save()
 
 

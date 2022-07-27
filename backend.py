@@ -966,10 +966,8 @@ class Pasta:
           subDoc = {'-user':self.userID, 'edit':'-delete-'}
           _ = self.db.updateDoc(subDoc, item['id'])
           deletedDocs.append(item['id'])
-        oldPath   = doc['-branch'][0]['path']
-        pathArray = oldPath.parts
-        pathArray[-1]='trash_'+'_'.join(pathArray[-1].split('_')[1:])
-        newPath   = pathArray.join('')
+        oldPath = doc['-branch'][0]['path']
+        newPath = oldPath.parent/('trash_'+oldPath.name)
         print('Deleted doc: Path',oldPath,newPath)
         _ = self.basePath/oldPath.rename(self.basePath/newPath)
         continue
